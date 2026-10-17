@@ -1,6 +1,17 @@
 const linesRoot = document.querySelector("#cart-lines");
 const checkoutForm = document.querySelector("#checkout-form");
 
+checkoutForm.querySelectorAll('input[name="recipientType"]').forEach(input => {
+  input.addEventListener("change", () => {
+    const isOther = checkoutForm.querySelector('input[name="recipientType"]:checked').value === "other";
+    document.querySelector("#delivery-name-label").textContent = isOther ? "Recipient name" : "Your name";
+    document.querySelector("#address-recipient-label").textContent = isOther ? "Recipient delivery address" : "Your delivery address";
+    document.querySelector("#recipient-hint").textContent = isOther
+      ? "Enter the recipient’s name, mobile number, and delivery address below."
+      : "Enter your contact and delivery details.";
+  });
+});
+
 function renderCart() {
   const cart = readCart();
   updateCartCount();
@@ -120,6 +131,18 @@ checkoutForm.addEventListener("submit", async event => {
 
   const cart = readCart();
   if (!cart?.items?.length) return;
+  const formData = new FormData(checkoutForm);
+  const deliveryDetails = {
+    recipientType: formData.get("recipientType"),
+    name: String(formData.get("recipientName") || "").trim(),
+    phone: String(formData.get("recipientPhone") || "").trim(),
+    flatBuilding: String(formData.get("flatBuilding") || "").trim(),
+    lane: String(formData.get("lane") || "").trim(),
+    landmark: String(formData.get("landmark") || "").trim(),
+    pincode: String(formData.get("pincode") || "").trim()
+  };
+  const deliveryAddress = [deliveryDetails.flatBuilding, deliveryDetails.lane, deliveryDetails.landmark, deliveryDetails.pincode]
+    .filter(Boolean).join(", ");
   const button = checkoutForm.querySelector("button[type=submit]");
   button.disabled = true;
   button.textContent = "Placing order…";
@@ -130,7 +153,8 @@ checkoutForm.addEventListener("submit", async event => {
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         restaurantId: cart.restaurantId,
-        deliveryAddress: new FormData(checkoutForm).get("deliveryAddress"),
+        deliveryAddress,
+        deliveryDetails,
         items: cart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity }))
       })
     });

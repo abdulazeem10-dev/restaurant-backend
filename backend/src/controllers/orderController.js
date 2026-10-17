@@ -6,6 +6,15 @@ const MenuItem = require("../models/MenuItem");
 const createSchema = z.object({
   restaurantId: z.string().regex(/^[a-f\d]{24}$/i),
   deliveryAddress: z.string().trim().min(8).max(500),
+  deliveryDetails: z.object({
+    recipientType: z.enum(["self", "other"]),
+    name: z.string().trim().min(1).max(100),
+    phone: z.string().regex(/^\d{10}$/),
+    flatBuilding: z.string().trim().min(1).max(120),
+    lane: z.string().trim().min(1).max(180),
+    landmark: z.string().trim().max(120).optional().default(""),
+    pincode: z.string().regex(/^\d{6}$/)
+  }).strict(),
   items: z.array(z.object({
     menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)
@@ -36,6 +45,7 @@ async function createOrder(req, res) {
     customerId: req.user._id,
     restaurantId: restaurant._id,
     deliveryAddress: parsed.data.deliveryAddress,
+    deliveryDetails: parsed.data.deliveryDetails,
     items,
     subtotalPaise,
     deliveryFeePaise: 0,

@@ -1,9 +1,20 @@
 const mongoose = require("mongoose");
 
+const deliveryDetailsSchema = new mongoose.Schema({
+  recipientType: { type: String, enum: ["self", "other"], required: true },
+  name: { type: String, required: true, trim: true, maxlength: 100 },
+  phone: { type: String, required: true, match: /^\d{10}$/ },
+  flatBuilding: { type: String, required: true, trim: true, maxlength: 120 },
+  lane: { type: String, required: true, trim: true, maxlength: 180 },
+  landmark: { type: String, trim: true, maxlength: 120, default: "" },
+  pincode: { type: String, required: true, match: /^\d{6}$/ }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true, index: true },
   deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
+  deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
   deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   items: [{
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },

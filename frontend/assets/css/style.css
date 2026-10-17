@@ -140,12 +140,21 @@ article h3 { margin-top: 0; }
 .cart-line-total { min-width: 5.5rem; text-align: right; white-space: nowrap; }
 .cart-remove-button { padding: .55rem .7rem; border: 1px solid #f1d6d2; border-radius: 9px; background: white; color: #b42318; font-size: .88rem; }
 .cart-remove-button:hover { background: #fff3f1; }
-.cart-checkout { position: sticky; top: 96px; margin: 0; padding: 1.4rem; border-color: #efe4da; }
+.cart-checkout { margin: 0; padding: 1.4rem; border-color: #efe4da; }
 .cart-checkout h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.025em; }
 .cart-checkout > p:not(.eyebrow) { margin: .5rem 0 1rem; font-size: .9rem; line-height: 1.5; }
 .cart-checkout label { display: block; margin-bottom: .45rem; font-weight: 700; font-size: .9rem; }
 .cart-checkout textarea { display: block; width: 100%; min-height: 112px; padding: .8rem .9rem; border: 1px solid #dfd4cb; border-radius: 10px; background: #fffdfa; line-height: 1.5; }
 .cart-checkout textarea:focus-visible { outline: 3px solid #ea580c2e; border-color: #ea580c; }
+.order-for-choice { display: flex; flex-wrap: wrap; gap: .65rem 1rem; margin: 1rem 0 .7rem; padding: .8rem; border: 1px solid #eee6df; border-radius: 10px; }
+.order-for-choice legend { padding: 0 .25rem; font-size: .88rem; font-weight: 700; }
+.order-for-choice label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: .88rem; font-weight: 600; cursor: pointer; }
+.order-for-choice input { width: auto; margin: 0; accent-color: #ea580c; }
+.recipient-hint { margin: .4rem 0 .8rem !important; color: #857c74; font-size: .82rem !important; }
+.delivery-fields { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+.delivery-field { display: grid; gap: .35rem; margin: 0 !important; }
+.delivery-field input { width: 100%; min-width: 0; min-height: 44px; padding: .65rem .75rem; border: 1px solid #dfd4cb; border-radius: 9px; background: #fffdfa; font-size: .9rem; }
+.delivery-field input:focus-visible { outline: 3px solid #ea580c2e; border-color: #ea580c; }
 .cart-total { display: grid; grid-template-columns: 1fr auto; gap: .4rem .8rem; margin: 1.2rem 0; padding: 1rem 0; border-top: 1px solid #eee6df; border-bottom: 1px solid #eee6df; }
 .cart-total strong { font-size: 1.1rem; }
 .cart-total small { grid-column: 1 / -1; color: #857c74; line-height: 1.4; }
