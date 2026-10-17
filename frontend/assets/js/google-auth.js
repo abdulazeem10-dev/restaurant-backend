@@ -1,6 +1,6 @@
 // Replace this value with the Google OAuth 2.0 Web Client ID from Google Cloud.
 // The Client ID is public; never put a Google client secret in frontend code.
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "852447387928-qvqa0a8mvcv37v0qdlkihftumv9ii4ld.apps.googleusercontent.com";
 
 function renderGoogleSignInButton() {
   const container = document.querySelector("#google-signin-button");
