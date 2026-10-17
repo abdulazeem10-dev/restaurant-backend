@@ -8,8 +8,10 @@ a { color: #c2410c; text-decoration: none; }
 a:hover { text-decoration: underline; }
 main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
 h2 { margin-top: 0; }
-input, textarea, button { font: inherit; padding: .7rem .8rem; border-radius: .55rem; }
+input, textarea, button, select { font: inherit; padding: .7rem .8rem; border-radius: .55rem; }
 input, textarea { width: min(100%, 28rem); border: 1px solid #d8cec4; background: white; }
+.form-grid select, .grid select { width: 100%; min-height: 48px; border: 1px solid #d8cec4; background: white; color: #25231f; }
+.form-grid select:focus-visible, .grid select:focus-visible { outline: 3px solid #ea580c33; border-color: #ea580c; }
 textarea { resize: vertical; }
 button { border: 0; background: #ea580c; color: white; cursor: pointer; font-weight: 650; }
 button:hover { background: #c2410c; }
