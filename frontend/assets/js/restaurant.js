@@ -43,9 +43,41 @@ async function loadOrders() {
   if (!orders.length) root.textContent = "No orders yet.";
 }
 document.querySelector("#menu-form").addEventListener("submit", async event => {
-  event.preventDefault(); msg.textContent = ""; const form = new FormData(event.currentTarget);
-  try { await api("/restaurants/owner/menu", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), category: form.get("category"), description: form.get("description"), imageUrl: form.get("imageUrl"), pricePaise: Math.round(Number(form.get("price")) * 100), available: true }) }); event.currentTarget.reset(); await loadMenu(); }
-  catch (error) { msg.textContent = error.message; }
+  event.preventDefault();
+  msg.textContent = "";
+  const menuForm = event.currentTarget;
+  const form = new FormData(menuForm);
+  const submitButton = menuForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+
+  try {
+    await api("/restaurants/owner/menu", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.get("name"),
+        category: form.get("category"),
+        description: form.get("description"),
+        imageUrl: form.get("imageUrl"),
+        pricePaise: Math.round(Number(form.get("price")) * 100),
+        available: true
+      })
+    });
+  } catch (error) {
+    msg.textContent = error.message;
+    submitButton.disabled = false;
+    return;
+  }
+
+  menuForm.reset();
+  msg.textContent = "Menu item added.";
+  try {
+    await loadMenu();
+  } catch (error) {
+    msg.textContent = `Menu item added, but the list could not refresh: ${error.message}`;
+  } finally {
+    submitButton.disabled = false;
+  }
 });
 Promise.all([loadMenu(), loadOrders()]).catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
 setInterval(() => { if (getToken()) loadOrders().catch(error => { msg.textContent = error.message; }); }, 20000);
