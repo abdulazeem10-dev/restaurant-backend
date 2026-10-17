@@ -3,13 +3,23 @@ const { z } = require("zod");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 
+const restaurantImageUrlSchema = z.string().trim().max(2048).optional().default("").refine(value => {
+  if (!value) return true;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}, "Image URL must be a valid HTTPS URL");
+
 const createSchema = z.object({
   ownerName: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
   password: z.string().min(12).max(128),
   restaurantName: z.string().trim().min(1).max(150),
   description: z.string().max(2000).optional().default(""),
-  address: z.string().trim().min(5).max(500)
+  address: z.string().trim().min(5).max(500),
+  imageUrl: restaurantImageUrlSchema
 }).strict();
 
 async function createRestaurant(req, res) {
@@ -31,6 +41,7 @@ async function createRestaurant(req, res) {
       name: parsed.data.restaurantName,
       description: parsed.data.description,
       address: parsed.data.address,
+      imageUrl: parsed.data.imageUrl,
       status: "pending",
       isOpen: false
     });
@@ -59,4 +70,17 @@ async function setRestaurantStatus(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus };
+async function setRestaurantImage(req, res) {
+  const parsed = z.object({ imageUrl: restaurantImageUrlSchema }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Image URL must be a valid HTTPS URL" });
+
+  const restaurant = await Restaurant.findByIdAndUpdate(
+    req.params.id,
+    { $set: { imageUrl: parsed.data.imageUrl } },
+    { new: true, runValidators: true }
+  );
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  return res.json({ restaurant });
+}
+
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage };

@@ -40,6 +40,12 @@ const restaurantSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500
     },
+    imageUrl: {
+      type: String,
+      trim: true,
+      maxlength: 2048,
+      default: ""
+    },
     location: {
       type: locationSchema,
       default: undefined

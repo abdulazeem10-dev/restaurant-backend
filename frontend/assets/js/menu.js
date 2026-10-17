@@ -104,6 +104,17 @@ async function loadStorefront() {
     const { restaurant } = await restaurantResponse.json();
     const { items } = await menuResponse.json();
     currentRestaurant = restaurant;
+    if (restaurant.imageUrl) {
+      const restaurantArt = document.querySelector(".storefront-art");
+      restaurantArt.classList.add("has-image");
+      restaurantArt.replaceChildren();
+      const restaurantImage = document.createElement("img");
+      restaurantImage.src = restaurant.imageUrl;
+      restaurantImage.alt = "";
+      restaurantImage.loading = "lazy";
+      restaurantImage.addEventListener("error", () => restaurantImage.remove(), { once: true });
+      restaurantArt.append(restaurantImage);
+    }
     document.title = `${restaurant.name} menu | Food Platform`;
     document.querySelector("#restaurant-name").textContent = restaurant.name;
     document.querySelector("#crumb-name").textContent = restaurant.name;

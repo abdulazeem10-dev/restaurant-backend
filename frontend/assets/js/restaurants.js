@@ -18,10 +18,20 @@ function renderRestaurants() {
     card.className = "restaurant-card";
     const cover = document.createElement("div");
     cover.className = `restaurant-cover cover-${index % 4}`;
-    cover.setAttribute("aria-hidden", "true");
-    const coverText = document.createElement("span");
-    coverText.textContent = ["🍽️", "🥘", "🍕", "🥗"][index % 4];
-    cover.append(coverText);
+    if (restaurant.imageUrl) {
+      cover.classList.add("has-image");
+      const coverImage = document.createElement("img");
+      coverImage.src = restaurant.imageUrl;
+      coverImage.alt = "";
+      coverImage.loading = "lazy";
+      coverImage.addEventListener("error", () => coverImage.remove(), { once: true });
+      cover.append(coverImage);
+    } else {
+      cover.setAttribute("aria-hidden", "true");
+      const coverText = document.createElement("span");
+      coverText.textContent = ["🍽️", "🥘", "🍕", "🥗"][index % 4];
+      cover.append(coverText);
+    }
 
     const details = document.createElement("div");
     details.className = "restaurant-card-content";

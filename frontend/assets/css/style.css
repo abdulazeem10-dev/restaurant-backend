@@ -66,6 +66,12 @@ article h3 { margin-top: 0; }
 .restaurant-cover::before, .restaurant-cover::after { content: ""; position: absolute; width: 155px; height: 155px; border: 1px solid #ffffff66; border-radius: 50%; }
 .restaurant-cover::before { transform: translate(-115px, 65px); }.restaurant-cover::after { transform: translate(130px, -100px) scale(1.5); }
 .restaurant-cover span { z-index: 1; font-size: 4.3rem; filter: drop-shadow(0 7px 4px #5b302526); }
+.restaurant-cover.has-image::before, .restaurant-cover.has-image::after { display: none; }
+.restaurant-cover.has-image img, .storefront-art.has-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.restaurant-image-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .7rem; margin-top: .9rem; }
+.restaurant-image-form input { width: 100%; }
+.storefront-art.has-image { background: #f5eee8; }
+.storefront-art.has-image i, .storefront-art.has-image b { display: none; }
 .cover-0 { background: linear-gradient(135deg, #f7c982, #f4a990); }.cover-1 { background: linear-gradient(135deg, #f8dfa1, #eaa979); }.cover-2 { background: linear-gradient(135deg, #f5b6a4, #df7482); }.cover-3 { background: linear-gradient(135deg, #d9e6bb, #94c2a3); }
 .restaurant-card-content { padding: 1rem 1.05rem 1.1rem; }
 .restaurant-meta { display: flex; align-items: center; justify-content: space-between; gap: .4rem; font-size: .76rem; }

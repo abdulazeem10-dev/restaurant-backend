@@ -59,6 +59,38 @@ async function loadRestaurants() {
       </p>
     `;
 
+    const imageForm = document.createElement("form");
+    imageForm.className = "restaurant-image-form";
+    const imageLabel = document.createElement("label");
+    imageLabel.textContent = "Restaurant image URL (HTTPS)";
+    const imageInput = document.createElement("input");
+    imageInput.type = "url";
+    imageInput.maxLength = 2048;
+    imageInput.placeholder = "https://…";
+    imageInput.value = restaurant.imageUrl || "";
+    imageLabel.append(document.createElement("br"), imageInput);
+    const imageButton = document.createElement("button");
+    imageButton.type = "submit";
+    imageButton.textContent = "Save image";
+    imageForm.append(imageLabel, imageButton);
+    imageForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      imageButton.disabled = true;
+      try {
+        await adminRequest(`/admin/restaurants/${restaurant._id}/image`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: imageInput.value.trim() })
+        });
+        message.textContent = "Restaurant image saved.";
+        await loadRestaurants();
+      } catch (error) {
+        message.textContent = error.message;
+        imageButton.disabled = false;
+      }
+    });
+    card.append(imageForm);
+
     if (restaurant.status === "pending") {
       for (const status of ["approved", "rejected"]) {
         const button = document.createElement("button");
@@ -123,11 +155,13 @@ document
     event.preventDefault();
     message.textContent = "";
 
-    const form = new FormData(event.currentTarget);
+    const restaurantForm = event.currentTarget;
+    const form = new FormData(restaurantForm);
     const fields = [
       "restaurantName",
       "address",
       "description",
+      "imageUrl",
       "ownerName",
       "email",
       "password"
@@ -144,7 +178,7 @@ document
         body: JSON.stringify(body)
       });
 
-      event.currentTarget.reset();
+      restaurantForm.reset();
       message.textContent =
         "Restaurant and owner account created. The restaurant is pending approval.";
 
