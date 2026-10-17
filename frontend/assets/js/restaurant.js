@@ -16,6 +16,15 @@ async function loadMenu() {
   for (const item of items) {
     const card = document.createElement("article");
     card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label><input type="checkbox" ${item.available ? "checked" : ""}> Available</label> <button type="button" class="secondary">Delete</button>`;
+    if (item.imageUrl) {
+      const image = document.createElement("img");
+      image.src = item.imageUrl;
+      image.alt = item.name;
+      image.loading = "lazy";
+      image.className = "dish-image-preview";
+      image.addEventListener("error", () => image.remove(), { once: true });
+      card.prepend(image);
+    }
     card.querySelector("input").addEventListener("change", event => api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ available: event.target.checked }) }).catch(error => { msg.textContent = error.message; }));
     card.querySelector("button").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
     root.append(card);
@@ -35,7 +44,7 @@ async function loadOrders() {
 }
 document.querySelector("#menu-form").addEventListener("submit", async event => {
   event.preventDefault(); msg.textContent = ""; const form = new FormData(event.currentTarget);
-  try { await api("/restaurants/owner/menu", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), category: form.get("category"), description: form.get("description"), pricePaise: Math.round(Number(form.get("price")) * 100), available: true }) }); event.currentTarget.reset(); await loadMenu(); }
+  try { await api("/restaurants/owner/menu", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), category: form.get("category"), description: form.get("description"), imageUrl: form.get("imageUrl"), pricePaise: Math.round(Number(form.get("price")) * 100), available: true }) }); event.currentTarget.reset(); await loadMenu(); }
   catch (error) { msg.textContent = error.message; }
 });
 Promise.all([loadMenu(), loadOrders()]).catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });

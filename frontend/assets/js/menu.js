@@ -60,6 +60,15 @@ function renderMenu(items, restaurant) {
       row.className = "menu-item-card";
       const info = document.createElement("div");
       info.className = "menu-item-info";
+      if (item.imageUrl) {
+        const image = document.createElement("img");
+        image.src = item.imageUrl;
+        image.alt = item.name;
+        image.loading = "lazy";
+        image.className = "dish-image";
+        image.addEventListener("error", () => image.remove(), { once: true });
+        row.append(image);
+      }
       const title = document.createElement("h4");
       title.textContent = item.name;
       const price = document.createElement("strong");

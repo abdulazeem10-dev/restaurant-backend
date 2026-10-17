@@ -99,6 +99,8 @@ article h3 { margin-top: 0; }
 .category-heading { display: flex; align-items: baseline; gap: .7rem; padding: .4rem .2rem; }
 .category-heading h3 { margin: 0; font-size: 1.3rem; }
 .menu-item-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .7rem; padding: 1.05rem; border-radius: 13px; }
+.dish-image { flex: 0 0 104px; width: 104px; height: 88px; object-fit: cover; border-radius: 10px; background: #f5eee8; }
+.dish-image-preview { display: block; width: min(100%, 240px); height: 140px; margin-bottom: .7rem; object-fit: cover; border-radius: 10px; background: #f5eee8; }
 .menu-item-info h4 { margin: 0 0 .35rem; font-size: 1.05rem; }.menu-item-info strong { color: #39322d; }.menu-item-info p { margin: .45rem 0 0; font-size: .9rem; }
 .add-item-button { min-width: 86px; border: 1px solid #edc7ca; background: white; color: #df4056; }.add-item-button:hover { background: #fff3f3; }.add-item-button:disabled { border-color: #eee7e2; background: #faf8f6; color: #9b928b; opacity: 1; }
 .menu-cart-card { position: sticky; top: 96px; padding: 1.3rem; border: 1px solid #efe8e2; border-radius: 15px; background: white; box-shadow: 0 6px 20px #3424190a; }

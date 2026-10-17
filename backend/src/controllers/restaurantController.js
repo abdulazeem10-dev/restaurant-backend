@@ -31,7 +31,7 @@ async function getPublicMenu(req, res) {
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
     available: true
-  }).select("name description pricePaise category available").sort({ category: 1, name: 1 });
+  }).select("name description imageUrl pricePaise category available").sort({ category: 1, name: 1 });
 
   return res.json({ items });
 }
@@ -63,11 +63,20 @@ async function createMenuItem(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (restaurant.status !== "approved") return res.status(403).json({ error: "Restaurant is not approved" });
 
-  const { name, description = "", pricePaise, category, available = true } = req.body || {};
+  const { name, description = "", imageUrl = "", pricePaise, category, available = true } = req.body || {};
+  let validImageUrl = imageUrl === "";
+  if (typeof imageUrl === "string" && imageUrl.length <= 2048 && imageUrl.trim()) {
+    try {
+      validImageUrl = new URL(imageUrl).protocol === "https:";
+    } catch {
+      validImageUrl = false;
+    }
+  }
   if (typeof name !== "string" || !name.trim() || name.length > 150 ||
       typeof category !== "string" || !category.trim() || category.length > 80 ||
       !Number.isSafeInteger(pricePaise) || pricePaise < 1 ||
       typeof description !== "string" || description.length > 1000 ||
+      typeof imageUrl !== "string" || !validImageUrl ||
       typeof available !== "boolean") {
     return res.status(400).json({ error: "Invalid menu item details" });
   }
@@ -76,6 +85,7 @@ async function createMenuItem(req, res) {
     restaurantId: restaurant._id,
     name: name.trim(),
     description: description.trim(),
+    imageUrl: imageUrl.trim(),
     pricePaise,
     category: category.trim(),
     available
@@ -88,7 +98,7 @@ async function updateMenuItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user._id);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
-  const allowed = ["name", "description", "pricePaise", "category", "available"];
+  const allowed = ["name", "description", "imageUrl", "pricePaise", "category", "available"];
   const input = req.body || {};
   if (Object.keys(input).length === 0 || Object.keys(input).some(key => !allowed.includes(key))) {
     return res.status(400).json({ error: "Invalid fields" });
@@ -107,6 +117,19 @@ async function updateMenuItem(req, res) {
   }
   if (input.description !== undefined && (typeof input.description !== "string" || input.description.length > 1000)) {
     return res.status(400).json({ error: "Invalid description" });
+  }
+  if (input.imageUrl !== undefined) {
+    if (typeof input.imageUrl !== "string" || input.imageUrl.length > 2048) {
+      return res.status(400).json({ error: "Invalid dish image URL" });
+    }
+    if (input.imageUrl.trim()) {
+      try {
+        if (new URL(input.imageUrl).protocol !== "https:") throw new Error("Invalid protocol");
+      } catch {
+        return res.status(400).json({ error: "Dish image must use a valid HTTPS URL" });
+      }
+    }
+    input.imageUrl = input.imageUrl.trim();
   }
 
   const item = await MenuItem.findOneAndUpdate(
