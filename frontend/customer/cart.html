@@ -1,3 +1,55 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your cart | Food Platform</title><link rel="stylesheet" href="../assets/css/style.css"></head>
-<body><header><h1>Food Platform</h1><nav><a href="index.html">Restaurants</a><a href="orders.html">My orders</a><a href="login.html">Login</a></nav></header><main><h2>Your cart</h2><p id="notice" role="status"></p><div id="cart-lines"></div><form id="checkout-form" class="panel"><h3>Delivery address</h3><p>Delivery partner integration will be added later.</p><label>Address<br><textarea name="deliveryAddress" required minlength="8" maxlength="500" rows="3"></textarea></label><p id="total"></p><button type="submit">Place order</button></form><p id="error" role="alert"></p></main><script src="../assets/js/common.js"></script><script src="../assets/js/cart.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf5">
+  <title>Your cart | Food Platform</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="customer-page cart-page">
+  <header class="site-header">
+    <a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="index.html">Restaurants</a>
+      <a href="orders.html">My orders</a>
+      <a href="login.html" class="login-link">Log in</a>
+    </nav>
+  </header>
+
+  <main class="cart-main">
+    <div class="cart-heading">
+      <div>
+        <p class="eyebrow">READY WHEN YOU ARE</p>
+        <h1>Your cart</h1>
+        <p class="muted">Check your items and add a delivery address.</p>
+      </div>
+      <a class="back-link" href="index.html">← Continue shopping</a>
+    </div>
+
+    <p id="notice" class="cart-notice" role="status"></p>
+    <div class="cart-layout">
+      <section class="cart-items-panel" aria-label="Cart items">
+        <div class="cart-section-title"><h2>Your items</h2><span class="muted">Review quantities before ordering</span></div>
+        <div id="cart-lines" class="cart-lines" aria-live="polite"></div>
+      </section>
+
+      <form id="checkout-form" class="panel cart-checkout">
+        <p class="eyebrow">DELIVERY DETAILS</p>
+        <h2>Where should we deliver?</h2>
+        <p class="muted">Enter the complete address where you’d like to receive your order.</p>
+        <label for="delivery-address">Delivery address</label>
+        <textarea id="delivery-address" name="deliveryAddress" required minlength="8" maxlength="500" rows="4" placeholder="House / flat, street, area, city, PIN code"></textarea>
+        <div id="total" class="cart-total"></div>
+        <button type="submit" class="cart-submit">Place order</button>
+        <p class="cart-checkout-note">You’ll be asked to sign in if you haven’t already.</p>
+      </form>
+    </div>
+    <p id="error" class="error-message" role="alert"></p>
+  </main>
+
+  <footer class="site-footer"><a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a><span>Fresh food from your neighbourhood</span></footer>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/cart.js"></script>
+</body>
+</html>
