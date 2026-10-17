@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const { createHash, randomBytes } = require("node:crypto");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 
 const passwordResetRequestSchema = z.object({
@@ -55,7 +56,12 @@ async function sendPasswordResetEmail(email, token) {
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
+  phone: z.string().trim().min(8).max(25),
   password: z.string().min(12).max(128)
+}).strict();
+
+const googleSchema = z.object({
+  credential: z.string().min(20).max(10000)
 }).strict();
 
 const loginSchema = z.object({
@@ -67,6 +73,11 @@ async function register(req, res) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid registration details" });
 
+  const phone = parsed.data.phone.replace(/[\s().-]/g, "");
+  if (!/^\+?[1-9]\d{7,14}$/.test(phone)) {
+    return res.status(400).json({ error: "Enter a valid phone number with country code, such as +919876543210" });
+  }
+
   const email = parsed.data.email.toLowerCase();
   const existing = await User.findOne({ email });
   if (existing) return res.status(409).json({ error: "Unable to register with these details" });
@@ -75,13 +86,14 @@ async function register(req, res) {
   const user = await User.create({
     name: parsed.data.name,
     email,
+    phone,
     passwordHash,
     role: "customer",
     status: "active"
   });
 
   return res.status(201).json({
-    user: { id: user._id, name: user.name, email: user.email, role: user.role }
+    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
   });
 }
 
@@ -90,7 +102,7 @@ async function login(req, res) {
   if (!parsed.success) return res.status(400).json({ error: "Invalid login details" });
 
   const user = await User.findOne({ email: parsed.data.email.toLowerCase() }).select("+passwordHash");
-  const valid = user && await bcrypt.compare(parsed.data.password, user.passwordHash);
+  const valid = user?.passwordHash && await bcrypt.compare(parsed.data.password, user.passwordHash);
 
   if (!valid || user.status !== "active") {
     return res.status(401).json({ error: "Invalid email or password" });
@@ -107,6 +119,65 @@ async function login(req, res) {
     tokenType: "Bearer",
     expiresIn: process.env.JWT_EXPIRES_IN || "15m",
     user: { id: user._id, name: user.name, email: user.email, role: user.role }
+  });
+}
+
+async function googleLogin(req, res) {
+  const parsed = googleSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Google sign-in response is missing or invalid" });
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ error: "Google sign-in is not configured yet" });
+  }
+
+  let payload;
+  try {
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    const ticket = await client.verifyIdToken({
+      idToken: parsed.data.credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ error: "Google sign-in could not be verified. Please try again." });
+  }
+
+  if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+    return res.status(401).json({ error: "Use a Google account with a verified email address" });
+  }
+
+  const email = payload.email.toLowerCase();
+  let user = await User.findOne({ email }).select("+googleSub");
+  if (user && (user.role !== "customer" || user.status !== "active")) {
+    return res.status(403).json({ error: "Google sign-in is available for active customer accounts only" });
+  }
+  if (user?.googleSub && user.googleSub !== payload.sub) {
+    return res.status(401).json({ error: "This email is linked to a different Google account" });
+  }
+
+  if (!user) {
+    user = await User.create({
+      name: payload.name?.trim().slice(0, 100) || email.split("@")[0],
+      email,
+      role: "customer",
+      status: "active",
+      googleSub: payload.sub
+    });
+  } else if (!user.googleSub) {
+    user.googleSub = payload.sub;
+    await user.save();
+  }
+
+  const accessToken = jwt.sign(
+    { sub: String(user._id) },
+    process.env.JWT_SECRET,
+    { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
+  );
+
+  return res.json({
+    accessToken,
+    tokenType: "Bearer",
+    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
   });
 }
 
@@ -170,4 +241,4 @@ function me(req, res) {
   });
 }
 
-module.exports = { register, login, requestPasswordReset, resetPassword, me };
+module.exports = { register, login, googleLogin, requestPasswordReset, resetPassword, me };

@@ -16,11 +16,13 @@
     <p><label>Password<br><input type="password" name="password" required autocomplete="current-password"></label></p>
     <button type="submit">Login</button>
   </form>
+  <p class="auth-divider">or continue with</p>
+  <div id="google-signin-button"></div>
   <p><a href="forgot-password.html">Forgot password?</a></p>
   <p id="message" role="status"></p>
   <p>New here? <a href="register.html">Create a customer account</a>.</p>
 </main>
-<script src="../assets/js/common.js"></script><script>
+<script src="../assets/js/common.js"></script><script src="../assets/js/google-auth.js"></script><script>
 document.querySelector("#login-form").addEventListener("submit", async event => {
   event.preventDefault();
   const message = document.querySelector("#message");
@@ -36,6 +38,7 @@ document.querySelector("#login-form").addEventListener("submit", async event => 
     else location.href = new URLSearchParams(location.search).get("next") === "cart.html" ? "cart.html" : "index.html";
   } catch (error) { message.textContent = error.message; }
 });
+renderGoogleSignInButton();
 </script>
 </body>
 </html>
