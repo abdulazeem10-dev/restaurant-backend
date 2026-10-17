@@ -3,7 +3,13 @@ async function loadOrders() {
   if (!getToken()) { error.innerHTML = `Please <a href="login.html?next=orders.html">sign in</a> to view your orders.`; return; }
   try {
     const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
-    const data = await response.json(); if (!response.ok) throw new Error(data.error || "Could not load orders");
+    const data = await response.json();
+    if (response.status === 401) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      error.innerHTML = `Your session expired. Please <a href="login.html?next=orders.html">sign in again</a> to view your orders.`;
+      return;
+    }
+    if (!response.ok) throw new Error(data.error || "Could not load orders");
     if (!data.orders.length) { root.textContent = "You haven’t placed any orders yet."; return; }
     for (const order of data.orders) {
       const card = document.createElement("article");
