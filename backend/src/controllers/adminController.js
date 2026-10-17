@@ -19,7 +19,8 @@ const createSchema = z.object({
   restaurantName: z.string().trim().min(1).max(150),
   description: z.string().max(2000).optional().default(""),
   address: z.string().trim().min(5).max(500),
-  imageUrl: restaurantImageUrlSchema
+  imageUrl: restaurantImageUrlSchema,
+  foodType: z.enum(["veg", "nonVeg", "both"]).optional().default("both")
 }).strict();
 
 async function createRestaurant(req, res) {
@@ -42,6 +43,7 @@ async function createRestaurant(req, res) {
       description: parsed.data.description,
       address: parsed.data.address,
       imageUrl: parsed.data.imageUrl,
+      foodType: parsed.data.foodType,
       status: "pending",
       isOpen: false
     });
@@ -83,4 +85,17 @@ async function setRestaurantImage(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage };
+async function setRestaurantFoodType(req, res) {
+  const parsed = z.object({ foodType: z.enum(["veg", "nonVeg", "both"]) }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose Veg, Non-Veg, or Both" });
+
+  const restaurant = await Restaurant.findByIdAndUpdate(
+    req.params.id,
+    { $set: { foodType: parsed.data.foodType } },
+    { new: true, runValidators: true }
+  );
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  return res.json({ restaurant });
+}
+
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType };

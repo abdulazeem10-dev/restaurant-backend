@@ -5,7 +5,7 @@ async function listRestaurants(req, res) {
   const restaurants = await Restaurant.find({
     status: "approved",
     isOpen: true
-  }).select("name description address imageUrl isOpen").sort({ name: 1 }).limit(100);
+  }).select("name description address imageUrl foodType isOpen").sort({ name: 1 }).limit(100);
 
   res.json({ restaurants });
 }
@@ -14,7 +14,7 @@ async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
     status: "approved"
-  }).select("name description address imageUrl isOpen");
+  }).select("name description address imageUrl foodType isOpen");
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   return res.json({ restaurant });

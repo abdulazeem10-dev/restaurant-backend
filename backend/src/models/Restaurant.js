@@ -46,6 +46,11 @@ const restaurantSchema = new mongoose.Schema(
       maxlength: 2048,
       default: ""
     },
+    foodType: {
+      type: String,
+      enum: ["veg", "nonVeg", "both"],
+      default: "both"
+    },
     location: {
       type: locationSchema,
       default: undefined

@@ -1,13 +1,15 @@
 const restaurantGrid = document.querySelector("#restaurants");
 const searchInput = document.querySelector("#search-input");
 const sortSelect = document.querySelector("#sort-select");
+const foodTypeFilter = document.querySelector("#food-type-filter");
 const resultCount = document.querySelector("#results-count");
 let allRestaurants = [];
 
 function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const matches = allRestaurants.filter(restaurant =>
-    `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term)
+    `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term) &&
+    (foodTypeFilter.value === "all" || (restaurant.foodType || "both") === "both" || restaurant.foodType === foodTypeFilter.value)
   );
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
@@ -42,7 +44,7 @@ function renderRestaurants() {
     open.textContent = "Open now";
     const delivery = document.createElement("span");
     delivery.className = "muted";
-    delivery.textContent = "Order from restaurant";
+    delivery.textContent = restaurant.foodType === "veg" ? "Veg" : restaurant.foodType === "nonVeg" ? "Non-Veg" : "Veg & Non-Veg";
     meta.append(open, delivery);
 
     const title = document.createElement("h3");
@@ -91,4 +93,5 @@ async function loadRestaurants() {
 document.querySelector("#restaurant-search").addEventListener("submit", event => { event.preventDefault(); renderRestaurants(); });
 searchInput.addEventListener("input", renderRestaurants);
 sortSelect.addEventListener("change", renderRestaurants);
+foodTypeFilter.addEventListener("change", renderRestaurants);
 loadRestaurants();

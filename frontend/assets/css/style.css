@@ -56,6 +56,9 @@ article h3 { margin-top: 0; }
 .discovery-heading h2, .menu-header h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.25rem); letter-spacing: -.04em; }
 .muted { color: #857c74; }
 .discovery-heading .muted { margin: .5rem 0 0; }
+.discovery-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; }
+.food-filter { display: flex; align-items: center; gap: .5rem; color: #776d66; font-size: .9rem; white-space: nowrap; }
+.food-filter select { padding: .6rem .8rem; border: 1px solid #e8e1dc; border-radius: 9px; color: #37302b; background: white; font: inherit; }
 .sort-control { display: flex; align-items: center; gap: .5rem; color: #776d66; font-size: .9rem; white-space: nowrap; }
 .sort-control select { padding: .6rem .8rem; border: 1px solid #e8e1dc; border-radius: 9px; color: #37302b; background: white; font: inherit; }
 .results-count { min-height: 1.2rem; margin: .6rem 0; color: #897f77; font-size: .88rem; }

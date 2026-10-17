@@ -35,7 +35,10 @@
 
     <section class="discovery-heading" id="restaurants">
       <div><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Restaurants to explore</h2><p class="muted">Browse independent restaurants and order directly from their menus.</p></div>
-      <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
+      <div class="discovery-controls">
+        <label class="food-filter">Food type <select id="food-type-filter"><option value="all">All restaurants</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label>
+        <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
+      </div>
     </section>
     <p id="results-count" class="results-count" aria-live="polite"></p>
     <section id="restaurants" class="restaurant-grid" aria-live="polite"></section>

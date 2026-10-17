@@ -59,6 +59,34 @@ async function loadRestaurants() {
       </p>
     `;
 
+    const foodTypeLabel = document.createElement("label");
+    foodTypeLabel.textContent = "Food type";
+    const foodTypeSelect = document.createElement("select");
+    foodTypeSelect.innerHTML = `
+      <option value="both">Veg and Non-Veg</option>
+      <option value="veg">Veg only</option>
+      <option value="nonVeg">Non-Veg only</option>
+    `;
+    foodTypeSelect.value = restaurant.foodType || "both";
+    foodTypeSelect.addEventListener("change", async () => {
+      foodTypeSelect.disabled = true;
+      try {
+        await adminRequest(`/admin/restaurants/${restaurant._id}/food-type`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ foodType: foodTypeSelect.value })
+        });
+        message.textContent = "Restaurant food type updated.";
+      } catch (error) {
+        message.textContent = error.message;
+        foodTypeSelect.value = restaurant.foodType || "both";
+      } finally {
+        foodTypeSelect.disabled = false;
+      }
+    });
+    foodTypeLabel.append(document.createElement("br"), foodTypeSelect);
+    card.append(foodTypeLabel);
+
     const imageForm = document.createElement("form");
     imageForm.className = "restaurant-image-form";
     const imageLabel = document.createElement("label");
@@ -162,6 +190,7 @@ document
       "address",
       "description",
       "imageUrl",
+      "foodType",
       "ownerName",
       "email",
       "password"
