@@ -9,7 +9,7 @@ function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const matches = allRestaurants.filter(restaurant =>
     `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term) &&
-    (foodTypeFilter.value === "all" || (restaurant.foodType || "both") === "both" || restaurant.foodType === foodTypeFilter.value)
+    (foodTypeFilter.value === "all" || (restaurant.foodType || "both") === foodTypeFilter.value)
   );
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
