@@ -7,10 +7,14 @@ let allRestaurants = [];
 
 function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
-  const matches = allRestaurants.filter(restaurant =>
-    `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term) &&
-    (foodTypeFilter.value === "all" || (restaurant.foodType || "both") === foodTypeFilter.value)
-  );
+  const matches = allRestaurants.filter(restaurant => {
+    const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
+    const foodType = restaurant.foodType === "veg" ? "veg" : "both";
+    const foodTypeMatches = foodTypeFilter.value === "all" ||
+      (foodTypeFilter.value === "veg" && (foodType === "veg" || foodType === "both")) ||
+      (foodTypeFilter.value === "nonVeg" && foodType === "both");
+    return searchMatches && foodTypeMatches;
+  });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
   restaurantGrid.replaceChildren();
@@ -44,7 +48,7 @@ function renderRestaurants() {
     open.textContent = "Open now";
     const delivery = document.createElement("span");
     delivery.className = "muted";
-    delivery.textContent = restaurant.foodType === "veg" ? "Veg" : restaurant.foodType === "nonVeg" ? "Non-Veg" : "Veg & Non-Veg";
+    delivery.textContent = restaurant.foodType === "veg" ? "Veg" : "Veg & Non-Veg";
     meta.append(open, delivery);
 
     const title = document.createElement("h3");

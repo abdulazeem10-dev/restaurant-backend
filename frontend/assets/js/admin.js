@@ -63,9 +63,8 @@ async function loadRestaurants() {
     foodTypeLabel.textContent = "Food type";
     const foodTypeSelect = document.createElement("select");
     foodTypeSelect.innerHTML = `
-      <option value="both">Veg and Non-Veg</option>
+      <option value="both">Veg & Non-Veg (serves both)</option>
       <option value="veg">Veg only</option>
-      <option value="nonVeg">Non-Veg only</option>
     `;
     foodTypeSelect.value = restaurant.foodType || "both";
     foodTypeSelect.addEventListener("change", async () => {
