@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Create account | Food Platform</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body><header><h1>Food Platform</h1><a href="index.html">Restaurants</a></header><main><h2>Create a customer account</h2><form id="register-form"><p><label>Name<br><input name="name" required maxlength="100" autocomplete="name"></label></p><p><label>Email<br><input name="email" type="email" required autocomplete="email"></label></p><p><label>Password (at least 12 characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label></p><button type="submit">Create account</button></form><p id="message" role="status"></p><p>Already have an account? <a href="login.html">Sign in</a>.</p></main><script src="../assets/js/common.js"></script><script>
+document.querySelector("#register-form").addEventListener("submit", async event => {
+  event.preventDefault(); const message = document.querySelector("#message"); const form = new FormData(event.currentTarget); message.textContent = "Creating account…";
+  try {
+    const response = await fetch(`${API_BASE}/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.get("name"), email: form.get("email"), password: form.get("password") }) });
+    const data = await response.json(); if (!response.ok) throw new Error(data.error || "Unable to create account");
+    message.textContent = "Account created. Please sign in."; event.currentTarget.reset();
+  } catch (error) { message.textContent = error.message; }
+});
+</script></body></html>

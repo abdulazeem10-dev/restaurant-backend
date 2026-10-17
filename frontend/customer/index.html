@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff">
+  <title>Food Platform | Discover Mumbai restaurants</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="customer-page">
+  <header class="site-header">
+    <a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a>
+    <form class="top-search" id="restaurant-search" role="search">
+      <span aria-hidden="true">⌕</span>
+      <input id="search-input" type="search" placeholder="Search restaurants or areas" aria-label="Search restaurants or areas">
+      <button type="submit">Search</button>
+    </form>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="orders.html">Orders</a>
+      <a href="cart.html" class="cart-link">Cart <span data-cart-count>0</span></a>
+      <a href="login.html" class="login-link">Log in</a>
+    </nav>
+  </header>
+
+  <main class="discovery-main">
+    <section class="hero-banner">
+      <div class="hero-copy">
+        <p class="eyebrow">MUMBAI · MADE FOR YOUR CRAVINGS</p>
+        <h1>Good food.<br><span>Good mood.</span></h1>
+        <p>Find local restaurants, explore their menus, and order your favourites.</p>
+        <a class="hero-cta" href="#restaurants">Explore restaurants <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="hero-art" aria-hidden="true"><div class="plate"><span>🍛</span></div><div class="hero-sticker sticker-one">Fresh<br>& local</div><div class="hero-sticker sticker-two">Made with<br>love ♡</div></div>
+    </section>
+
+    <section class="discovery-heading" id="restaurants">
+      <div><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Restaurants to explore</h2><p class="muted">Browse independent restaurants and order directly from their menus.</p></div>
+      <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
+    </section>
+    <p id="results-count" class="results-count" aria-live="polite"></p>
+    <section id="restaurants" class="restaurant-grid" aria-live="polite"></section>
+    <p id="error" class="error-message" role="alert"></p>
+  </main>
+  <footer class="site-footer"><a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a><span>Discover local food in Mumbai</span></footer>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/restaurants.js"></script>
+</body>
+</html>

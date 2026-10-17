@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Restaurant menu | Food Platform</title><link rel="stylesheet" href="../assets/css/style.css"></head>
+<body class="customer-page">
+  <header class="site-header">
+    <a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a>
+    <nav class="site-nav" aria-label="Main navigation"><a href="index.html">Restaurants</a><a href="orders.html">Orders</a><a href="cart.html" class="cart-link">Cart <span data-cart-count>0</span></a><a href="login.html" class="login-link">Log in</a></nav>
+  </header>
+  <main class="storefront-main">
+    <p class="breadcrumbs"><a href="index.html">Restaurants</a><span aria-hidden="true">/</span><span id="crumb-name">Menu</span></p>
+    <section class="storefront-hero">
+      <div class="storefront-art" aria-hidden="true"><span>🍲</span><i>✦</i><b>♡</b></div>
+      <div class="storefront-info"><p class="eyebrow">LOCAL RESTAURANT</p><h1 id="restaurant-name">Loading restaurant…</h1><p id="restaurant-description" class="muted"></p><p id="restaurant-address" class="storefront-address"></p><span id="restaurant-status" class="open-badge"></span></div>
+    </section>
+    <section class="menu-header"><div><p class="eyebrow">FRESH FROM THE KITCHEN</p><h2>Explore the menu</h2></div><a class="back-link" href="index.html">← All restaurants</a></section>
+    <nav id="category-nav" class="category-nav" aria-label="Menu categories"></nav>
+    <p id="error" class="error-message" role="alert"></p>
+    <div class="menu-layout"><section id="menu-items" class="menu-list" aria-live="polite"></section><aside class="menu-cart-card"><span class="cart-card-icon" aria-hidden="true">🛍️</span><h3>Your order</h3><p id="cart-summary" class="muted">Your cart is empty</p><a class="card-action" href="cart.html">Go to cart <span aria-hidden="true">→</span></a></aside></div>
+  </main>
+  <script src="../assets/js/common.js"></script><script src="../assets/js/menu.js"></script>
+</body></html>
