@@ -11,6 +11,8 @@ const connectDatabase = require("./config/database");
 
 const app = express();
 app.disable("x-powered-by");
+// Vercel forwards the original client IP through one trusted proxy hop.
+app.set("trust proxy", 1);
 app.use(helmet());
 
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5500")
