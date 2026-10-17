@@ -7,6 +7,7 @@ const menuItemSchema = new mongoose.Schema({
   imageUrl: { type: String, trim: true, maxlength: 2048, default: "" },
   pricePaise: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
   category: { type: String, required: true, trim: true, maxlength: 80 },
+  foodType: { type: String, enum: ["veg", "nonVeg"] },
   available: { type: Boolean, default: true }
 }, { timestamps: true });
 

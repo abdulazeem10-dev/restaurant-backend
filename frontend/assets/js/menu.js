@@ -2,6 +2,14 @@ const restaurantId = new URLSearchParams(location.search).get("id");
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
 let currentRestaurant = null;
+let allMenuItems = [];
+
+function renderFilteredMenu() {
+  if (!currentRestaurant) return;
+  const filter = document.querySelector("#menu-food-filter").value;
+  const filtered = filter === "all" ? allMenuItems : allMenuItems.filter(item => item.foodType === filter);
+  renderMenu(filtered, currentRestaurant, filter);
+}
 
 function updateStoreCart() {
   const cart = readCart();
@@ -26,7 +34,7 @@ function addMenuItem(item) {
   updateStoreCart();
 }
 
-function renderMenu(items, restaurant) {
+function renderMenu(items, restaurant, filter = "all") {
   const groups = new Map();
   for (const item of items) {
     const category = item.category || "Menu";
@@ -71,12 +79,17 @@ function renderMenu(items, restaurant) {
       }
       const title = document.createElement("h4");
       title.textContent = item.name;
+      const typeBadge = document.createElement("span");
+      typeBadge.className = `dish-type-badge ${item.foodType === "veg" ? "dish-type-veg" : "dish-type-nonveg"}`;
+      typeBadge.textContent = item.foodType === "veg" ? "Veg" : "Non-Veg";
       const price = document.createElement("strong");
       price.textContent = formatRupees(item.pricePaise);
       const description = document.createElement("p");
       description.className = "muted";
       description.textContent = item.description || "Prepared fresh by the restaurant.";
-      info.append(title, price, description);
+      info.append(title);
+      if (item.foodType === "veg" || item.foodType === "nonVeg") info.append(typeBadge);
+      info.append(price, description);
       const action = document.createElement("button");
       action.type = "button";
       action.className = "add-item-button";
@@ -89,7 +102,13 @@ function renderMenu(items, restaurant) {
     }
     menuRoot.append(section);
   }
-  if (!items.length) menuRoot.innerHTML = "<div class=\"empty-state\"><h3>Menu coming soon</h3><p>This restaurant hasn’t added available dishes yet.</p></div>";
+  if (!items.length) {
+    const emptyTitle = filter === "all" ? "Menu coming soon" : `No ${filter === "veg" ? "Veg" : "Non-Veg"} dishes listed`;
+    const emptyMessage = filter === "all"
+      ? "This restaurant hasn’t added available dishes yet."
+      : "Try another food filter or check back later.";
+    menuRoot.innerHTML = `<div class="empty-state"><h3>${emptyTitle}</h3><p>${emptyMessage}</p></div>`;
+  }
 }
 
 async function loadStorefront() {
@@ -123,9 +142,11 @@ async function loadStorefront() {
     const status = document.querySelector("#restaurant-status");
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";
     status.classList.toggle("closed-badge", !restaurant.isOpen);
-    renderMenu(items, restaurant);
+    allMenuItems = items;
+    renderFilteredMenu();
     updateStoreCart();
   } catch (errorValue) { error.textContent = errorValue.message || "Could not load this restaurant."; }
 }
 
 loadStorefront();
+document.querySelector("#menu-food-filter").addEventListener("change", renderFilteredMenu);

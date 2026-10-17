@@ -31,7 +31,7 @@ async function getPublicMenu(req, res) {
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
     available: true
-  }).select("name description imageUrl pricePaise category available").sort({ category: 1, name: 1 });
+  }).select("name description imageUrl pricePaise category foodType available").sort({ category: 1, name: 1 });
 
   return res.json({ items });
 }
@@ -63,7 +63,7 @@ async function createMenuItem(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (restaurant.status !== "approved") return res.status(403).json({ error: "Restaurant is not approved" });
 
-  const { name, description = "", imageUrl = "", pricePaise, category, available = true } = req.body || {};
+  const { name, description = "", imageUrl = "", pricePaise, category, foodType, available = true } = req.body || {};
   let validImageUrl = imageUrl === "";
   if (typeof imageUrl === "string" && imageUrl.length <= 2048 && imageUrl.trim()) {
     try {
@@ -74,6 +74,7 @@ async function createMenuItem(req, res) {
   }
   if (typeof name !== "string" || !name.trim() || name.length > 150 ||
       typeof category !== "string" || !category.trim() || category.length > 80 ||
+      !["veg", "nonVeg"].includes(foodType) ||
       !Number.isSafeInteger(pricePaise) || pricePaise < 1 ||
       typeof description !== "string" || description.length > 1000 ||
       typeof imageUrl !== "string" || !validImageUrl ||
@@ -88,6 +89,7 @@ async function createMenuItem(req, res) {
     imageUrl: imageUrl.trim(),
     pricePaise,
     category: category.trim(),
+    foodType,
     available
   });
 
@@ -98,7 +100,7 @@ async function updateMenuItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user._id);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
-  const allowed = ["name", "description", "imageUrl", "pricePaise", "category", "available"];
+  const allowed = ["name", "description", "imageUrl", "pricePaise", "category", "foodType", "available"];
   const input = req.body || {};
   if (Object.keys(input).length === 0 || Object.keys(input).some(key => !allowed.includes(key))) {
     return res.status(400).json({ error: "Invalid fields" });
@@ -108,6 +110,9 @@ async function updateMenuItem(req, res) {
   }
   if (input.available !== undefined && typeof input.available !== "boolean") {
     return res.status(400).json({ error: "Invalid availability" });
+  }
+  if (input.foodType !== undefined && !["veg", "nonVeg"].includes(input.foodType)) {
+    return res.status(400).json({ error: "Food type must be Veg or Non-Veg" });
   }
   if (input.name !== undefined && (typeof input.name !== "string" || !input.name.trim() || input.name.length > 150)) {
     return res.status(400).json({ error: "Invalid name" });

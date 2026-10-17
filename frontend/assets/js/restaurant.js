@@ -15,7 +15,21 @@ async function loadMenu() {
   else { toggle.hidden = true; }
   for (const item of items) {
     const card = document.createElement("article");
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label><input type="checkbox" ${item.available ? "checked" : ""}> Available</label> <button type="button" class="secondary">Delete</button>`;
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input type="checkbox" ${item.available ? "checked" : ""}> Available</label> <button type="button" class="secondary">Delete</button></p>`;
+    const foodTypeSelect = card.querySelector(".menu-food-type");
+    foodTypeSelect.value = item.foodType || "";
+    foodTypeSelect.addEventListener("change", async () => {
+      foodTypeSelect.disabled = true;
+      try {
+        await api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foodType: foodTypeSelect.value }) });
+        msg.textContent = `${item.name} marked ${foodTypeSelect.value === "veg" ? "Veg" : "Non-Veg"}.`;
+      } catch (error) {
+        msg.textContent = error.message;
+        foodTypeSelect.value = item.foodType || "";
+      } finally {
+        foodTypeSelect.disabled = false;
+      }
+    });
     if (item.imageUrl) {
       const image = document.createElement("img");
       image.src = item.imageUrl;
@@ -61,6 +75,7 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
       body: JSON.stringify({
         name: form.get("name"),
         category: form.get("category"),
+        foodType: form.get("foodType"),
         description: form.get("description"),
         imageUrl: form.get("imageUrl"),
         pricePaise: Math.round(Number(form.get("price")) * 100),
