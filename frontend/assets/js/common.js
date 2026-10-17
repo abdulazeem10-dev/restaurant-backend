@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:5000/api";
+// const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://foodway-ten.vercel.app/api";
 const TOKEN_KEY = "food-platform-token";
 function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
 function authHeaders(extra = {}) { return { ...extra, ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) }; }
