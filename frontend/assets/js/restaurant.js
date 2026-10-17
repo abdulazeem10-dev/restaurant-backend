@@ -13,7 +13,9 @@ async function loadMenu() {
   const toggle = document.querySelector("#open-toggle");
   if (restaurant.status === "approved") { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
   else { toggle.hidden = true; }
-  for (const item of items) {
+  const foodFilter = document.querySelector("#owner-food-filter").value;
+  const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
+  for (const item of visibleItems) {
     const card = document.createElement("article");
     card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input type="checkbox" ${item.available ? "checked" : ""}> Available</label> <button type="button" class="secondary">Delete</button></p>`;
     const foodTypeSelect = card.querySelector(".menu-food-type");
@@ -23,6 +25,7 @@ async function loadMenu() {
       try {
         await api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foodType: foodTypeSelect.value }) });
         msg.textContent = `${item.name} marked ${foodTypeSelect.value === "veg" ? "Veg" : "Non-Veg"}.`;
+        await loadMenu();
       } catch (error) {
         msg.textContent = error.message;
         foodTypeSelect.value = item.foodType || "";
@@ -44,7 +47,9 @@ async function loadMenu() {
     root.append(card);
   }
   if (!items.length) root.textContent = "Add your first menu item above.";
+  else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
+document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
 async function loadOrders() {
   const { orders } = await api("/orders/restaurant"); const root = document.querySelector("#orders"); root.replaceChildren();
   for (const order of orders) {
