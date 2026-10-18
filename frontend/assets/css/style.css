@@ -79,6 +79,7 @@ article h3 { margin-top: 0; }
 .storefront-art.has-image i, .storefront-art.has-image b { display: none; }
 .cover-0 { background: linear-gradient(135deg, #f7c982, #f4a990); }.cover-1 { background: linear-gradient(135deg, #f8dfa1, #eaa979); }.cover-2 { background: linear-gradient(135deg, #f5b6a4, #df7482); }.cover-3 { background: linear-gradient(135deg, #d9e6bb, #94c2a3); }
 .restaurant-card-content { padding: 1rem 1.05rem 1.1rem; }
+.restaurant-rating, .review-stars { color: #bf7a00; font-weight: 700; }
 .restaurant-meta { display: flex; align-items: center; justify-content: space-between; gap: .4rem; font-size: .76rem; }
 .open-badge, .closed-badge { display: inline-block; padding: .35rem .6rem; border-radius: 999px; background: #e9f6ed; color: #32804d; font-size: .78rem; font-weight: 700; }
 .closed-badge { background: #f1eeeb; color: #857a72; }
@@ -121,6 +122,17 @@ article h3 { margin-top: 0; }
 .category-heading { display: flex; align-items: baseline; gap: .7rem; padding: .4rem .2rem; }
 .category-heading h3 { margin: 0; font-size: 1.3rem; }
 .menu-item-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .7rem; padding: 1.05rem; border-radius: 13px; }
+.reviews-section { margin: 3rem 0 2rem; }
+.reviews-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.reviews-heading h2 { margin: 0; }
+.reviews-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: .8rem; }
+.review-card { padding: 1rem; }
+.review-card-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.review-card p { overflow-wrap: anywhere; }
+.order-review-form { display: grid; gap: .8rem; margin-top: 1rem; }
+.order-review-form label { display: grid; gap: .4rem; }
+.order-review-form select, .order-review-form textarea { width: 100%; padding: .7rem; border: 1px solid #dfd4cb; border-radius: 9px; font: inherit; }
+.order-review-status { color: #a54c00; font-weight: 700; }
 .dish-image { flex: 0 0 104px; width: 104px; height: 88px; object-fit: cover; border-radius: 10px; background: #f5eee8; }
 .dish-image-preview { display: block; width: min(100%, 240px); height: 140px; margin-bottom: .7rem; object-fit: cover; border-radius: 10px; background: #f5eee8; }
 .menu-item-info h4 { margin: 0 0 .35rem; font-size: 1.05rem; }.menu-item-info strong { color: #39322d; }.menu-item-info p { margin: .45rem 0 0; font-size: .9rem; }
@@ -221,6 +233,7 @@ article h3 { margin-top: 0; }
 .payment-summary .cart-submit { width: 100%; min-height: 48px; border-radius: 10px; }
 @media (max-width: 880px) { .site-header { flex-wrap: wrap; gap: .7rem 1.2rem; }.top-search { order: 3; width: 100%; max-width: none; }.restaurant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.hero-art { margin-right: 0; transform: scale(.82); }.menu-layout { grid-template-columns: 1fr; }.menu-cart-card { position: static; order: -1; } }
 @media (max-width: 580px) { .site-header { position: static; padding: .8rem 1rem; }.site-nav { gap: .7rem; font-size: .9rem; }.site-nav .login-link { padding: .5rem .65rem; }.hero-banner { min-height: 300px; padding: 1.8rem 1.35rem; }.hero-art { position: absolute; right: -95px; bottom: -65px; opacity: .42; transform: scale(.72); }.hero-copy h1 { font-size: 3.1rem; }.discovery-main { padding: 0 1rem; }.discovery-heading { align-items: flex-start; flex-direction: column; margin-top: 2.5rem; }.restaurant-grid { grid-template-columns: 1fr; }.restaurant-cover { height: 145px; }.site-footer { align-items: flex-start; flex-direction: column; padding: 1.4rem 1rem; }.storefront-main { padding: 0 1rem; }.storefront-hero { grid-template-columns: 1fr; gap: 1.2rem; padding: .8rem; }.storefront-art { min-height: 160px; }.storefront-info { padding: .25rem .35rem .6rem; }.menu-header { align-items: flex-start; flex-direction: column; gap: .6rem; }.menu-header-actions { align-items: flex-start; flex-direction: column; gap: .8rem; }.menu-item-card { align-items: flex-start; }.menu-item-info { min-width: 0; }.menu-item-info p { line-height: 1.4; }.add-item-button { min-width: 75px; padding: .6rem .55rem; } }
+@media (max-width: 580px) { .reviews-heading { align-items: flex-start; flex-direction: column; gap: .35rem; } }
 @media (max-width: 880px) { .cart-layout { grid-template-columns: 1fr; }.cart-checkout { position: static; } }
 @media (max-width: 580px) { .cart-main { margin-top: 1.5rem; padding: 0 1rem; }.cart-heading { align-items: flex-start; flex-direction: column; }.cart-line-card { align-items: flex-start; flex-direction: column; }.cart-line-controls { width: 100%; flex-wrap: wrap; justify-content: space-between; gap: .6rem; }.cart-line-total { margin-left: auto; }.cart-section-title { align-items: flex-start; flex-direction: column; gap: .25rem; } }
 @media (max-width: 880px) { .payment-layout { grid-template-columns: minmax(0, 1fr); }.payment-summary { order: -1; } }
@@ -263,4 +276,26 @@ article h3 { margin-top: 0; }
   .site-nav { font-size: .8rem; }
   .site-nav .login-link { padding-inline: .5rem; }
   .cart-total { grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
+}
+
+/* Restaurant service hours and delivery coverage. */
+.delivery-pin-filter input { width: 9rem; min-height: 40px; padding: .55rem .7rem; border: 1px solid #e8e1dc; border-radius: 9px; color: #37302b; background: #fff; font: inherit; }
+.restaurant-service-detail { margin: .35rem 0; font-size: .86rem; line-height: 1.45; overflow-wrap: anywhere; }
+.opening-hours-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: .8rem 0 1rem; }
+.opening-hours-row { display: grid; grid-template-columns: minmax(4.5rem, .7fr) auto minmax(6.8rem, 1fr) minmax(6.8rem, 1fr); align-items: center; gap: .5rem; padding: .65rem; border: 1px solid #eee6df; border-radius: 10px; }
+.opening-hours-row > strong { font-size: .9rem; }
+.opening-hours-row label { display: inline-flex; align-items: center; gap: .3rem; margin: 0; font-size: .78rem; white-space: nowrap; }
+.opening-hours-row .opening-hours-closed { font-size: .75rem; }
+.opening-hours-row input[type="checkbox"] { width: auto; margin: 0; accent-color: #ea580c; }
+.opening-hours-row input[type="time"] { width: 100%; min-width: 0; min-height: 38px; padding: .35rem; border: 1px solid #dfd4cb; border-radius: 7px; background: #fffdfa; font-size: .8rem; }
+.service-settings-panel textarea { display: block; width: min(100%, 40rem); margin: .4rem 0 .8rem; padding: .7rem; border: 1px solid #dfd4cb; border-radius: 9px; background: #fffdfa; }
+.service-settings-panel form > button { min-height: 44px; }
+@media (max-width: 760px) {
+  .opening-hours-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .delivery-pin-filter input { width: 100%; }
+  .opening-hours-row { grid-template-columns: minmax(4rem, .7fr) auto minmax(5.8rem, 1fr) minmax(5.8rem, 1fr); gap: .35rem; padding: .5rem; }
+  .opening-hours-row label { font-size: .7rem; }
+  .opening-hours-row input[type="time"] { font-size: .72rem; }
 }

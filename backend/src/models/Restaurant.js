@@ -15,6 +15,22 @@ const locationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const dailyHoursSchema = new mongoose.Schema({
+  closed: { type: Boolean, required: true, default: false },
+  opensAt: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/, default: "09:00" },
+  closesAt: { type: String, match: /^([01]\d|2[0-3]):[0-5]\d$/, default: "22:00" }
+}, { _id: false });
+
+const openingHoursSchema = new mongoose.Schema({
+  monday: { type: dailyHoursSchema, required: true },
+  tuesday: { type: dailyHoursSchema, required: true },
+  wednesday: { type: dailyHoursSchema, required: true },
+  thursday: { type: dailyHoursSchema, required: true },
+  friday: { type: dailyHoursSchema, required: true },
+  saturday: { type: dailyHoursSchema, required: true },
+  sunday: { type: dailyHoursSchema, required: true }
+}, { _id: false });
+
 const restaurantSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -50,6 +66,14 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       enum: ["veg", "nonVeg", "both"],
       default: "both"
+    },
+    openingHours: {
+      type: openingHoursSchema,
+      default: undefined
+    },
+    deliveryPincodes: {
+      type: [{ type: String, match: /^\d{6}$/ }],
+      default: []
     },
     location: {
       type: locationSchema,

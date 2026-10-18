@@ -39,6 +39,15 @@ Checkout lets customers choose online UPI/cards/net banking, UPI QR, or cash on 
 ## Customer phone sign-in
 Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Create a Verify Service, then configure these backend environment variables (keep the auth token private): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID`. Phone sign-in is for active customer accounts and accepts Indian 10-digit numbers or E.164 numbers such as `+919876543210`. Password and Google sign-in remain available.
 
+## Restaurant hours and delivery areas
+Restaurant owners can set weekly opening hours in India Standard Time and list the 6-digit PIN codes they deliver to. Customers can filter restaurants by PIN, see today's hours and listed delivery areas, and checkout/order requests are checked against the restaurant's hours and delivery PIN list. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
+
+## Ratings and reviews
+Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
+
+## Menu availability
+Restaurant owners can switch each menu item between available and unavailable from the dashboard. Unavailable dishes are hidden from customers and cannot be added to a new order.
+
 ## Initial admin
 For safety, there is no public admin registration endpoint. Create the first admin through a secure one-time local provisioning script or directly in a controlled database process. Do not expose an admin-creation route publicly.
 
@@ -51,7 +60,7 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `POST /api/auth/phone/otp/request` — sends a rate-limited sign-in code to a matching active customer account
 - `POST /api/auth/phone/otp/verify` — verifies the SMS code and creates a customer session
 - `GET /api/auth/me`
-- `GET /api/restaurants`
+- `GET /api/restaurants` — lists approved restaurants, with optional `?pincode=400001` coverage filter
 - `GET /api/restaurants/:id`
 - `GET /api/restaurants/:id/menu`
 - `GET /api/restaurants/owner/menu` — restaurant owner only
@@ -59,6 +68,10 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `PATCH /api/restaurants/owner/menu/:id` — restaurant owner only
 - `DELETE /api/restaurants/owner/menu/:id` — restaurant owner only
 - `PATCH /api/restaurants/owner/open` — restaurant owner sets open/closed (approved restaurants only)
+- `PATCH /api/restaurants/owner/service-settings` — owner updates opening hours and delivery PIN codes
+- `GET /api/reviews/restaurant/:id` — public restaurant rating and recent reviews
+- `GET /api/reviews/restaurant/mine` — restaurant owner's reviews
+- `POST /api/reviews` — customer reviews one of their ready orders
 - `POST /api/orders` — authenticated customer creates an order (server calculates item prices)
 - `GET /api/orders/mine` — authenticated customer lists their orders
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders

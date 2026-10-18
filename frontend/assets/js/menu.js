@@ -4,6 +4,18 @@ const categoryRoot = document.querySelector("#category-nav");
 let currentRestaurant = null;
 let allMenuItems = [];
 
+function formatTodayHours(openingHours) {
+  if (!openingHours) return "Opening hours have not been set.";
+  const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
+  const hours = openingHours[day];
+  if (!hours || hours.closed) return "Closed today.";
+  const formatTime = value => {
+    const [hour, minute] = value.split(":").map(Number);
+    return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
+  };
+  return `Today's hours: ${formatTime(hours.opensAt)}–${formatTime(hours.closesAt)} IST`;
+}
+
 function renderFilteredMenu() {
   if (!currentRestaurant) return;
   const filter = document.querySelector("#menu-food-filter").value;
@@ -18,6 +30,58 @@ function updateStoreCart() {
   const quantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
   const total = cart.items.reduce((sum, item) => sum + item.pricePaise * item.quantity, 0);
   summary.textContent = `${quantity} ${quantity === 1 ? "item" : "items"} · ${formatRupees(total)}`;
+}
+
+function renderReviews(data) {
+  const summary = document.querySelector("#review-summary");
+  const root = document.querySelector("#restaurant-reviews");
+  const count = Number(data.ratingCount) || 0;
+  summary.textContent = count ? `★ ${Number(data.ratingAverage).toFixed(1)} · ${count} ${count === 1 ? "review" : "reviews"}` : "No reviews yet";
+  root.replaceChildren();
+  if (!data.reviews?.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Reviews from customers will appear here.";
+    root.append(empty);
+    return;
+  }
+  for (const review of data.reviews) {
+    const card = document.createElement("article");
+    card.className = "review-card";
+    const top = document.createElement("div");
+    top.className = "review-card-top";
+    const name = document.createElement("strong");
+    name.textContent = review.customerName;
+    const rating = document.createElement("span");
+    rating.className = "review-stars";
+    rating.setAttribute("aria-label", `${review.rating} out of 5 stars`);
+    rating.textContent = `${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}`;
+    top.append(name, rating);
+    card.append(top);
+    if (review.comment) {
+      const comment = document.createElement("p");
+      comment.textContent = review.comment;
+      card.append(comment);
+    }
+    const date = document.createElement("small");
+    date.className = "muted";
+    date.textContent = new Date(review.createdAt).toLocaleDateString("en-IN");
+    card.append(date);
+    root.append(card);
+  }
+}
+
+async function loadReviews() {
+  const summary = document.querySelector("#review-summary");
+  try {
+    const response = await fetch(`${API_BASE}/reviews/restaurant/${encodeURIComponent(restaurantId)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not load reviews");
+    renderReviews(data);
+  } catch {
+    summary.textContent = "Reviews are temporarily unavailable.";
+    document.querySelector("#restaurant-reviews").replaceChildren();
+  }
 }
 
 function addMenuItem(item) {
@@ -142,9 +206,15 @@ async function loadStorefront() {
     const status = document.querySelector("#restaurant-status");
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";
     status.classList.toggle("closed-badge", !restaurant.isOpen);
+    document.querySelector("#restaurant-hours").textContent = formatTodayHours(restaurant.openingHours);
+    const pincodes = restaurant.deliveryPincodes || [];
+    document.querySelector("#restaurant-delivery-area").textContent = pincodes.length
+      ? `Delivery PINs: ${pincodes.join(", ")}`
+      : "Delivery area has not been set.";
     allMenuItems = items;
     renderFilteredMenu();
     updateStoreCart();
+    await loadReviews();
   } catch (errorValue) { error.textContent = errorValue.message || "Could not load this restaurant."; }
 }
 

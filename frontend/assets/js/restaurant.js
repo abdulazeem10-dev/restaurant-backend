@@ -1,4 +1,5 @@
 const msg = document.querySelector("#message");
+const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
 async function api(path, options = {}) {
@@ -6,10 +7,28 @@ async function api(path, options = {}) {
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
 }
+function renderOpeningHours(schedule = {}) {
+  const root = document.querySelector("#opening-hours-fields");
+  root.replaceChildren();
+  for (const day of openingDays) {
+    const hours = schedule[day] || { closed: true, opensAt: "09:00", closesAt: "22:00" };
+    const row = document.createElement("div");
+    row.className = "opening-hours-row";
+    row.innerHTML = `<strong>${day[0].toUpperCase()}${day.slice(1)}</strong><label class="opening-hours-closed"><input type="checkbox" name="${day}-closed" ${hours.closed ? "checked" : ""}> Closed</label><label>Opens <input type="time" name="${day}-opens" value="${escapeHtml(hours.opensAt || "09:00")}" ${hours.closed ? "disabled" : ""} required></label><label>Closes <input type="time" name="${day}-closes" value="${escapeHtml(hours.closesAt || "22:00")}" ${hours.closed ? "disabled" : ""} required></label>`;
+    const closedInput = row.querySelector(`[name="${day}-closed"]`);
+    closedInput.addEventListener("change", () => {
+      row.querySelector(`[name="${day}-opens"]`).disabled = closedInput.checked;
+      row.querySelector(`[name="${day}-closes"]`).disabled = closedInput.checked;
+    });
+    root.append(row);
+  }
+}
 async function loadMenu() {
   const { restaurant, items } = await api("/restaurants/owner/menu"); const root = document.querySelector("#menu-items"); root.replaceChildren();
   document.querySelector("#restaurant-title").textContent = restaurant.name;
-  document.querySelector("#restaurant-state").textContent = `Status: ${restaurant.status} · ${restaurant.isOpen ? "Open for orders" : "Closed"}`;
+  document.querySelector("#restaurant-state").textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
+  renderOpeningHours(restaurant.openingHours);
+  document.querySelector("#delivery-pincodes").value = (restaurant.deliveryPincodes || []).join(", ");
   const toggle = document.querySelector("#open-toggle");
   if (restaurant.status === "approved") { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
   else { toggle.hidden = true; }
@@ -17,7 +36,7 @@ async function loadMenu() {
   const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
   for (const item of visibleItems) {
     const card = document.createElement("article");
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input type="checkbox" ${item.available ? "checked" : ""}> Available</label> <button type="button" class="secondary">Delete</button></p>`;
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary">Delete</button></p>`;
     const foodTypeSelect = card.querySelector(".menu-food-type");
     foodTypeSelect.value = item.foodType || "";
     foodTypeSelect.addEventListener("change", async () => {
@@ -42,7 +61,21 @@ async function loadMenu() {
       image.addEventListener("error", () => image.remove(), { once: true });
       card.prepend(image);
     }
-    card.querySelector("input").addEventListener("change", event => api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ available: event.target.checked }) }).catch(error => { msg.textContent = error.message; }));
+    const availability = card.querySelector(".menu-availability");
+    availability.addEventListener("change", async () => {
+      const nextAvailability = availability.checked;
+      availability.disabled = true;
+      msg.textContent = "";
+      try {
+        await api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ available: nextAvailability }) });
+        msg.textContent = `${item.name} is ${nextAvailability ? "now available" : "now hidden from customers"}.`;
+      } catch (error) {
+        availability.checked = !nextAvailability;
+        msg.textContent = error.message;
+      } finally {
+        availability.disabled = false;
+      }
+    });
     card.querySelector("button").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
     root.append(card);
   }
@@ -50,6 +83,64 @@ async function loadMenu() {
   else if (!visibleItems.length) root.textContent = `No ${foodFilter === "veg" ? "Veg" : "Non-Veg"} dishes. Choose another filter.`;
 }
 document.querySelector("#owner-food-filter").addEventListener("change", () => loadMenu().catch(error => { msg.textContent = error.message; }));
+document.querySelector("#hours-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const openingHours = Object.fromEntries(openingDays.map(day => {
+    const closed = form.elements[`${day}-closed`].checked;
+    return [day, {
+      closed,
+      opensAt: form.elements[`${day}-opens`].value || "09:00",
+      closesAt: form.elements[`${day}-closes`].value || "22:00"
+    }];
+  }));
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  msg.textContent = "";
+  try {
+    await api("/restaurants/owner/service-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ openingHours })
+    });
+    msg.textContent = "Opening hours saved.";
+    await loadMenu();
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+document.querySelector("#delivery-area-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const text = new FormData(form).get("deliveryPincodes");
+  const deliveryPincodes = String(text).split(/[\s,;]+/).filter(Boolean);
+  if (deliveryPincodes.some(pincode => !/^\d{6}$/.test(pincode))) {
+    msg.textContent = "Enter only valid 6-digit PIN codes, separated by commas.";
+    return;
+  }
+  if (deliveryPincodes.length > 100) {
+    msg.textContent = "You can add up to 100 delivery PIN codes.";
+    return;
+  }
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  msg.textContent = "";
+  try {
+    await api("/restaurants/owner/service-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deliveryPincodes })
+    });
+    msg.textContent = deliveryPincodes.length ? "Delivery areas saved." : "Delivery PIN restrictions cleared.";
+    await loadMenu();
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 async function loadOrders() {
   const { orders } = await api("/orders/restaurant"); const root = document.querySelector("#orders"); root.replaceChildren();
   for (const order of orders) {
@@ -69,6 +160,41 @@ async function loadOrders() {
     root.append(card);
   }
   if (!orders.length) root.textContent = "No orders yet.";
+}
+async function loadReviews() {
+  const root = document.querySelector("#owner-reviews");
+  const { reviews } = await api("/reviews/restaurant/mine");
+  root.replaceChildren();
+  if (!reviews.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No customer reviews yet. Reviews appear after customers submit them for ready orders.";
+    root.append(empty);
+    return;
+  }
+  for (const review of reviews) {
+    const card = document.createElement("article");
+    card.className = "review-card";
+    const top = document.createElement("div");
+    top.className = "review-card-top";
+    const customer = document.createElement("strong");
+    customer.textContent = review.customerName;
+    const stars = document.createElement("span");
+    stars.className = "review-stars";
+    stars.textContent = `${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)} · ${review.rating}/5`;
+    top.append(customer, stars);
+    card.append(top);
+    if (review.comment) {
+      const comment = document.createElement("p");
+      comment.textContent = review.comment;
+      card.append(comment);
+    }
+    const date = document.createElement("small");
+    date.className = "muted";
+    date.textContent = new Date(review.createdAt).toLocaleDateString("en-IN");
+    card.append(date);
+    root.append(card);
+  }
 }
 document.querySelector("#menu-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -108,5 +234,5 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
     submitButton.disabled = false;
   }
 });
-Promise.all([loadMenu(), loadOrders()]).catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
+Promise.all([loadMenu(), loadOrders(), loadReviews()]).catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
 setInterval(() => { if (getToken()) loadOrders().catch(error => { msg.textContent = error.message; }); }, 20000);

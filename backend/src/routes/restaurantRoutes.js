@@ -12,6 +12,7 @@ router.post("/owner/menu", authenticate, authorize("restaurant"), asyncHandler(c
 router.patch("/owner/menu/:id", authenticate, authorize("restaurant"), asyncHandler(controller.updateMenuItem));
 router.delete("/owner/menu/:id", authenticate, authorize("restaurant"), asyncHandler(controller.deleteMenuItem));
 router.patch("/owner/open", authenticate, authorize("restaurant"), asyncHandler(controller.setOwnOpenStatus));
+router.patch("/owner/service-settings", authenticate, authorize("restaurant"), asyncHandler(controller.updateOwnServiceSettings));
 
 router.get("/", asyncHandler(controller.listRestaurants));
 router.get("/:id", asyncHandler(controller.getRestaurant));

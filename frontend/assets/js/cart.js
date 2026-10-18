@@ -144,8 +144,21 @@ checkoutForm.addEventListener("submit", async event => {
   const deliveryAddress = [deliveryDetails.flatBuilding, deliveryDetails.lane, deliveryDetails.landmark, deliveryDetails.pincode]
     .filter(Boolean).join(", ");
   const button = checkoutForm.querySelector("button[type=submit]");
-  sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
-  location.href = "payment.html";
+  button.disabled = true;
+  try {
+    const response = await fetch(`${API_BASE}/restaurants/${encodeURIComponent(cart.restaurantId)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not check restaurant delivery availability.");
+    if (!data.restaurant.isOpen) throw new Error("This restaurant is currently closed and cannot accept your order.");
+    if (data.restaurant.deliveryPincodes?.length && !data.restaurant.deliveryPincodes.includes(deliveryDetails.pincode)) {
+      throw new Error(`This restaurant does not deliver to PIN code ${deliveryDetails.pincode}. Please update the address or choose another restaurant.`);
+    }
+    sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
+    location.href = "payment.html";
+  } catch (submitError) {
+    error.textContent = submitError.message;
+    button.disabled = false;
+  }
 });
 
 renderCart();

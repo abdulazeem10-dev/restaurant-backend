@@ -1,23 +1,69 @@
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
+const Review = require("../models/Review");
+const { z } = require("zod");
+const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
+
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const dailyHoursSchema = z.object({
+  closed: z.boolean(),
+  opensAt: timeSchema,
+  closesAt: timeSchema
+}).strict().superRefine((hours, context) => {
+  if (!hours.closed && hours.closesAt <= hours.opensAt) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Closing time must be later than opening time" });
+  }
+});
+const openingHoursInputSchema = z.object(Object.fromEntries(
+  WEEKDAYS.map(day => [day, dailyHoursSchema])
+)).strict();
+const serviceSettingsSchema = z.object({
+  openingHours: openingHoursInputSchema.optional(),
+  deliveryPincodes: z.array(z.string().regex(/^\d{6}$/)).max(100).optional()
+}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined);
 
 async function listRestaurants(req, res) {
-  const restaurants = await Restaurant.find({
-    status: "approved",
-    isOpen: true
-  }).select("name description address imageUrl foodType isOpen").sort({ name: 1 }).limit(100);
+  const query = { status: "approved" };
+  if (req.query.pincode !== undefined) {
+    if (typeof req.query.pincode !== "string" || !/^\d{6}$/.test(req.query.pincode)) {
+      return res.status(400).json({ error: "Enter a valid 6-digit PIN code" });
+    }
+    query.deliveryPincodes = req.query.pincode;
+  }
+  const restaurants = await Restaurant.find(query)
+    .select("name description address imageUrl foodType isOpen openingHours deliveryPincodes")
+    .sort({ name: 1 }).limit(100).lean();
+  const ratingStats = await Review.aggregate([
+    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
+    { $group: { _id: "$restaurantId", ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
+  ]);
+  const ratingByRestaurant = new Map(ratingStats.map(stats => [String(stats._id), stats]));
 
-  res.json({ restaurants });
+  return res.json({ restaurants: restaurants.map(restaurant => ({
+    ...restaurant,
+    isOpen: isRestaurantOpenNow(restaurant),
+    ratingAverage: ratingByRestaurant.get(String(restaurant._id))?.ratingAverage || 0,
+    ratingCount: ratingByRestaurant.get(String(restaurant._id))?.ratingCount || 0
+  })) });
 }
 
 async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
     status: "approved"
-  }).select("name description address imageUrl foodType isOpen");
+  }).select("name description address imageUrl foodType isOpen openingHours deliveryPincodes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  return res.json({ restaurant });
+  const [stats] = await Review.aggregate([
+    { $match: { restaurantId: restaurant._id } },
+    { $group: { _id: null, ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
+  ]);
+  return res.json({ restaurant: {
+    ...restaurant,
+    isOpen: isRestaurantOpenNow(restaurant),
+    ratingAverage: stats?.ratingAverage || 0,
+    ratingCount: stats?.ratingCount || 0
+  } });
 }
 
 async function getPublicMenu(req, res) {
@@ -50,12 +96,41 @@ async function setOwnOpenStatus(req, res) {
   return res.json({ restaurant: { id: restaurant._id, name: restaurant.name, isOpen: restaurant.isOpen, status: restaurant.status } });
 }
 
+async function updateOwnServiceSettings(req, res) {
+  const parsed = serviceSettingsSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter valid opening hours and 6-digit delivery PIN codes" });
+
+  const restaurant = await getOwnedRestaurant(req.user._id);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (parsed.data.openingHours) restaurant.openingHours = parsed.data.openingHours;
+  if (parsed.data.deliveryPincodes) restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
+  await restaurant.save();
+  return res.json({
+    restaurant: {
+      id: restaurant._id,
+      openingHours: restaurant.openingHours,
+      deliveryPincodes: restaurant.deliveryPincodes
+    }
+  });
+}
+
 async function getOwnMenu(req, res) {
   const restaurant = await getOwnedRestaurant(req.user._id);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
   const items = await MenuItem.find({ restaurantId: restaurant._id }).sort({ createdAt: -1 });
-  return res.json({ restaurant: { id: restaurant._id, name: restaurant.name, isOpen: restaurant.isOpen, status: restaurant.status }, items });
+  return res.json({
+    restaurant: {
+      id: restaurant._id,
+      name: restaurant.name,
+      isOpen: restaurant.isOpen,
+      isOpenNow: isRestaurantOpenNow(restaurant),
+      status: restaurant.status,
+      openingHours: restaurant.openingHours,
+      deliveryPincodes: restaurant.deliveryPincodes
+    },
+    items
+  });
 }
 
 async function createMenuItem(req, res) {
@@ -162,5 +237,5 @@ async function deleteMenuItem(req, res) {
 
 module.exports = {
   listRestaurants, getRestaurant, getPublicMenu,
-  getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus
+  getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings
 };

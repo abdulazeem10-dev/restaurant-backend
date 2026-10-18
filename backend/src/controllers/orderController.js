@@ -2,6 +2,8 @@ const { z } = require("zod");
 const Order = require("../models/Order");
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
+const Review = require("../models/Review");
+const { isWithinOpeningHours } = require("../utils/openingHours");
 
 const createSchema = z.object({
   restaurantId: z.string().regex(/^[a-f\d]{24}$/i),
@@ -26,8 +28,13 @@ async function createOrder(req, res) {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid order details" });
 
-  const restaurant = await Restaurant.findOne({ _id: parsed.data.restaurantId, status: "approved", isOpen: true });
+  const restaurant = await Restaurant.findOne({ _id: parsed.data.restaurantId, status: "approved" });
   if (!restaurant) return res.status(404).json({ error: "Restaurant is not accepting orders" });
+  if (!restaurant.isOpen) return res.status(409).json({ error: "This restaurant is currently closed" });
+  if (!isWithinOpeningHours(restaurant.openingHours)) return res.status(409).json({ error: "This restaurant is outside its listed opening hours" });
+  if (restaurant.deliveryPincodes?.length && !restaurant.deliveryPincodes.includes(parsed.data.deliveryDetails.pincode)) {
+    return res.status(400).json({ error: "This restaurant does not deliver to that PIN code" });
+  }
 
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
   const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
@@ -60,7 +67,9 @@ async function createOrder(req, res) {
 
 async function listMyOrders(req, res) {
   const orders = await Order.find({ customerId: req.user._id }).populate("restaurantId", "name address").sort({ createdAt: -1 }).limit(100);
-  return res.json({ orders });
+  const reviews = await Review.find({ customerId: req.user._id, orderId: { $in: orders.map(order => order._id) } }).select("orderId rating");
+  const reviewByOrder = new Map(reviews.map(review => [String(review.orderId), review]));
+  return res.json({ orders: orders.map(order => ({ ...order.toObject(), review: reviewByOrder.get(String(order._id)) || null })) });
 }
 
 async function listRestaurantOrders(req, res) {
