@@ -10,7 +10,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform. Delivery partne
 - Deployment target: GitHub + Render
 
 ## Important
-This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout, Razorpay online payments, saved orders, and restaurant order status updates through ready for pickup. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, delivery dispatch, and production hardening still need implementation.
+This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. The online choice is recorded as a preference only; the app does not collect online payments. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, delivery dispatch, and production hardening still need implementation.
 
 ## Requirements
 - Node.js 20+
@@ -33,14 +33,8 @@ This is a starter project, not a production marketplace. It includes customer re
 6. Open `http://localhost:5000/api/health`.
 7. Serve the `frontend` directory using a local static server (for example VS Code Live Server). Set `FRONTEND_ORIGIN` to that server's exact origin.
 
-## Online payments
-Online checkout uses Razorpay Standard Checkout for payment methods enabled on your Razorpay account, including UPI, cards, and net banking. Add these environment variables to the backend (never to frontend code):
-
-- `RAZORPAY_KEY_ID` — Razorpay test or live Key ID.
-- `RAZORPAY_KEY_SECRET` — matching secret; keep it private.
-- `RAZORPAY_WEBHOOK_SECRET` — webhook secret configured in the Razorpay Dashboard.
-
-Configure the Razorpay webhook URL as `https://<your-api-host>/api/orders/payment/webhook` and subscribe to `payment.captured` and `payment.failed`. Turn on automatic payment capture in Razorpay so orders are confirmed only after funds are captured. Test with test-mode keys before switching to live credentials. UPI, cards, and net banking must also be enabled for your merchant account in Razorpay.
+## Payment preference
+Checkout lets customers choose cash on delivery or select UPI, cards, and net banking as their preferred method. The online choice is stored with the order for the restaurant to see; no payment is started or collected.
 
 ## Initial admin
 For safety, there is no public admin registration endpoint. Create the first admin through a secure one-time local provisioning script or directly in a controlled database process. Do not expose an admin-creation route publicly.
@@ -61,10 +55,6 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `DELETE /api/restaurants/owner/menu/:id` — restaurant owner only
 - `PATCH /api/restaurants/owner/open` — restaurant owner sets open/closed (approved restaurants only)
 - `POST /api/orders` — authenticated customer creates an order (server calculates item prices)
-- `GET /api/orders/payment/config` — returns whether online checkout is configured and its public Key ID
-- `POST /api/orders/:id/payment/razorpay` — creates the provider order using the server-calculated amount
-- `POST /api/orders/:id/payment/verify` — validates the Razorpay signature and captured payment
-- `POST /api/orders/payment/webhook` — verifies Razorpay webhook signatures and updates captured/failed payments
 - `GET /api/orders/mine` — authenticated customer lists their orders
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
@@ -84,5 +74,4 @@ Order totals currently include menu item prices only; taxes and delivery fees ar
 - Public registration cannot choose a role.
 - Restaurant routes resolve the restaurant from the authenticated owner.
 - Never trust prices or totals from the browser.
-- Payment webhooks must verify provider signatures and handle retries idempotently.
 - Add comprehensive integration tests before production.

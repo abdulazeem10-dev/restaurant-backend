@@ -15,7 +15,7 @@ const createSchema = z.object({
     landmark: z.string().trim().max(120).optional().default(""),
     pincode: z.string().regex(/^\d{6}$/)
   }).strict(),
-  paymentMethod: z.enum(["cash_on_delivery", "razorpay"]).default("cash_on_delivery"),
+  paymentMethod: z.enum(["cash_on_delivery", "online", "razorpay"]).default("cash_on_delivery"),
   items: z.array(z.object({
     menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)
@@ -53,7 +53,7 @@ async function createOrder(req, res) {
     deliveryFeePaise: 0,
     taxPaise: 0,
     totalPaise: subtotalPaise,
-    status: parsed.data.paymentMethod === "razorpay" ? "awaiting_payment" : "placed"
+    status: "placed"
   });
   return res.status(201).json({ order });
 }

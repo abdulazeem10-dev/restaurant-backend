@@ -30,13 +30,13 @@
           <span class="payment-option-copy"><strong>Cash on delivery</strong><small>Pay the delivery partner when your order arrives.</small></span>
           <span class="payment-option-check" aria-hidden="true">✓</span>
         </label>
-        <label class="payment-option payment-option-disabled" data-payment-choice id="online-payment-choice">
-          <input type="radio" name="paymentMethod" value="razorpay" disabled>
+        <label class="payment-option" data-payment-choice id="online-payment-choice">
+          <input type="radio" name="paymentMethod" value="online">
           <span class="payment-option-icon" aria-hidden="true">💳</span>
-          <span class="payment-option-copy"><strong>UPI, cards &amp; net banking</strong><small id="online-payment-hint">Checking online payment availability…</small></span>
-          <span class="payment-coming-soon" id="online-payment-status">Loading</span>
+          <span class="payment-option-copy"><strong>UPI, cards &amp; net banking</strong><small>Choose this as your preferred payment method. No payment is collected online.</small></span>
+          <span class="payment-option-check" aria-hidden="true">✓</span>
         </label>
-        <p class="payment-security-note" id="payment-security-note">Cash on delivery is available. Online payment options depend on payment gateway setup.</p>
+        <p class="payment-security-note" id="payment-security-note">Choose how you prefer to pay. This order form does not collect online payments.</p>
       </section>
 
       <aside class="panel payment-summary" aria-label="Order summary">
@@ -44,8 +44,8 @@
         <h2 id="payment-restaurant">Order summary</h2>
         <div id="payment-items" class="payment-items"></div>
         <div class="payment-delivery"><strong>Delivering to</strong><span id="payment-recipient"></span><span id="payment-address" class="muted"></span></div>
-        <div class="payment-total"><span id="payment-total-label">Total to pay on delivery</span><strong id="payment-total"></strong></div>
-        <button id="confirm-order" class="cart-submit" type="button">Place cash-on-delivery order</button>
+        <div class="payment-total"><span id="payment-total-label">Order total</span><strong id="payment-total"></strong></div>
+        <button id="confirm-order" class="cart-submit" type="button">Place order</button>
         <p class="cart-checkout-note">The restaurant will confirm your order after you place it.</p>
       </aside>
     </div>
