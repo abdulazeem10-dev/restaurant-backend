@@ -3,6 +3,29 @@ const { z } = require("zod");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 
+const deliveryPartnerSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().regex(/^\+?[1-9]\d{7,14}$/)),
+  password: z.string().min(12).max(128)
+}).strict();
+
+async function createDeliveryPartner(req, res) {
+  const parsed = deliveryPartnerSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a name, valid email, phone number, and password of at least 12 characters" });
+  const email = parsed.data.email.toLowerCase();
+  if (await User.findOne({ email })) return res.status(409).json({ error: "An account already uses this email" });
+  const partner = await User.create({
+    name: parsed.data.name,
+    email,
+    phone: parsed.data.phone,
+    passwordHash: await bcrypt.hash(parsed.data.password, 12),
+    role: "delivery",
+    status: "active"
+  });
+  return res.status(201).json({ deliveryPartner: { id: partner._id, name: partner.name, email: partner.email, phone: partner.phone } });
+}
+
 const restaurantImageUrlSchema = z.string().trim().max(2048).optional().default("").refine(value => {
   if (!value) return true;
   try {
@@ -98,4 +121,4 @@ async function setRestaurantFoodType(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType };
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, createDeliveryPartner };

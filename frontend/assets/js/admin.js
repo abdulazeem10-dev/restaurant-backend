@@ -217,6 +217,28 @@ document
     }
   });
 
+document.querySelector("#delivery-partner-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  message.textContent = "";
+  const form = event.currentTarget;
+  const values = new FormData(form);
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const { deliveryPartner } = await adminRequest("/admin/delivery-partners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(["name", "email", "phone", "password"].map(key => [key, values.get(key)])))
+    });
+    form.reset();
+    message.textContent = `Delivery login created for ${deliveryPartner.name}. Share the login securely.`;
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
 loadRestaurants().catch(error => {
   message.textContent =
     `${error.message}. Sign in with an admin account.`;

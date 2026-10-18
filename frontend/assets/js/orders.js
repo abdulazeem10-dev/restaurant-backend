@@ -148,6 +148,16 @@ function renderOrders(orders) {
         ? "UPI QR selected (not collected)"
         : "Online payment selected (not collected)";
     card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment: ${paymentLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    if (order.deliveryPartnerId) {
+      const partner = document.createElement("p");
+      partner.textContent = `Delivery person: ${order.deliveryPartnerId.name}${order.deliveryPartnerId.phone ? ` · ${order.deliveryPartnerId.phone}` : ""}`;
+      card.append(partner);
+    } else if (!["delivered", "cancelled", "awaiting_payment"].includes(order.status)) {
+      const pending = document.createElement("p");
+      pending.className = "muted";
+      pending.textContent = "A delivery person will be assigned shortly.";
+      card.append(pending);
+    }
     card.append(renderOrderProgress(order));
     const button = document.createElement("button");
     button.type = "button";

@@ -15,7 +15,7 @@ const orderSchema = new mongoose.Schema({
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true, index: true },
   deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
   deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
-  deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
   items: [{
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },
     name: { type: String, required: true },

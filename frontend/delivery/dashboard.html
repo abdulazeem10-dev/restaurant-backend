@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Delivery Dashboard</title><link rel="stylesheet" href="../assets/css/style.css"></head>
-<body><header><h1>Delivery Dashboard</h1><a href="../customer/index.html">Customer site</a></header>
-<main><h2>My deliveries</h2><p>Starter placeholder. Implement assigned-delivery APIs, partner verification, status transitions, and location permissions.</p></main>
+<body><header><h1>Delivery Dashboard</h1><nav><a href="../customer/index.html">Customer site</a><button id="logout" class="secondary" type="button">Log out</button></nav></header>
+<main><p id="message" role="status" aria-live="polite"></p><h2>My deliveries</h2><p class="muted">Assigned orders with restaurant pickup and customer delivery details. This page refreshes every 15 seconds.</p><section id="deliveries" class="grid" aria-live="polite"></section></main><script src="../assets/js/common.js"></script><script src="../assets/js/delivery.js"></script>
 </body></html>

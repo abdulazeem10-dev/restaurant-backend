@@ -1,6 +1,6 @@
 # Food Platform Starter
 
-A starter MVP scaffold for a multi-restaurant ordering platform. Delivery partner integration is intentionally deferred.
+A starter MVP scaffold for a multi-restaurant ordering platform, including basic delivery-partner assignment and order handoff.
 
 ## Stack
 - Frontend: HTML, CSS, browser JavaScript
@@ -10,7 +10,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform. Delivery partne
 - Deployment target: GitHub + Render
 
 ## Important
-This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. The online choice is recorded as a preference only; the app does not collect online payments. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, delivery dispatch, and production hardening still need implementation.
+This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. New orders are assigned to the active delivery person with the fewest open assignments; delivery accounts are created by an admin. Delivery people see the customer's contact and address, restaurant pickup address, and ordered dishes, and can update pickup/delivery status. Online payment choices may be recorded as preferences only, depending on the configured flow. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, live GPS tracking, and production hardening still need implementation.
 
 ## Requirements
 - Node.js 20+
@@ -82,8 +82,11 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `DELETE /api/customer/addresses/:id` — customer deletes one of their saved addresses
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
+- `GET /api/orders/delivery/mine` — delivery person lists assigned orders and pickup/drop-off details
+- `PATCH /api/orders/delivery/:id` — assigned delivery person marks an order picked up or delivered
 - `GET /api/admin/restaurants` — admin lists restaurants
 - `POST /api/admin/restaurants` — admin creates a pending restaurant and owner login
+- `POST /api/admin/delivery-partners` — admin creates an active delivery login
 - `PATCH /api/admin/restaurants/:id/status` — admin approves, rejects, or suspends a restaurant
 
 The existing owner menu routes are mounted under `/api/restaurants/owner/menu`.
@@ -91,7 +94,7 @@ The existing owner menu routes are mounted under `/api/restaurants/owner/menu`.
 ## Local use
 Run the API and serve the `frontend` directory with a static server. Set `FRONTEND_ORIGIN` to that server's origin. You need an approved restaurant and an active restaurant-owner user in MongoDB before it appears publicly. Public self-registration creates customer accounts only. Restaurant account provisioning and approval are still manual and must be done through a controlled process.
 
-Order totals currently include menu item prices only; taxes and delivery fees are zero. Payment collection and delivery fulfillment are not implemented.
+Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; it does not include live GPS location, distance routing, dispatch notifications, or partner availability controls. Orders are rejected temporarily when no active delivery account exists; create one from the admin dashboard before accepting orders.
 
 ## Security baseline
 - Never commit `.env`.

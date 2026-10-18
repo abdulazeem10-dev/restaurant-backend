@@ -9,4 +9,6 @@ router.post("/", authenticate, authorize("customer"), asyncHandler(controller.cr
 router.get("/mine", authenticate, authorize("customer"), asyncHandler(controller.listMyOrders));
 router.get("/restaurant", authenticate, authorize("restaurant"), asyncHandler(controller.listRestaurantOrders));
 router.patch("/restaurant/:id", authenticate, authorize("restaurant"), asyncHandler(controller.updateRestaurantOrder));
+router.get("/delivery/mine", authenticate, authorize("delivery"), asyncHandler(controller.listDeliveryOrders));
+router.patch("/delivery/:id", authenticate, authorize("delivery"), asyncHandler(controller.updateDeliveryOrder));
 module.exports = router;

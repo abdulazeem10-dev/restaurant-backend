@@ -58,6 +58,7 @@ document.querySelector("#login-form").addEventListener("submit", async event => 
 function completeLogin(data) {
   sessionStorage.setItem(TOKEN_KEY, data.accessToken);
   if (data.user.role === "restaurant") location.href = "../restaurant/dashboard.html";
+  else if (data.user.role === "delivery") location.href = "../delivery/dashboard.html";
   else if (data.user.role === "admin") location.href = "../admin/dashboard.html";
   else location.href = new URLSearchParams(location.search).get("next") === "cart.html" ? "cart.html" : "index.html";
 }

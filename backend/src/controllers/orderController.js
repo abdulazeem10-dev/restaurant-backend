@@ -3,6 +3,7 @@ const Order = require("../models/Order");
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
 const Review = require("../models/Review");
+const User = require("../models/User");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 
 const createSchema = z.object({
@@ -49,11 +50,15 @@ async function createOrder(req, res) {
   });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
 
+  const deliveryPartner = await findLeastBusyDeliveryPartner();
+  if (!deliveryPartner) return res.status(503).json({ error: "Orders are temporarily unavailable because no delivery person is active. Please try again later." });
+
   const order = await Order.create({
     customerId: req.user._id,
     restaurantId: restaurant._id,
     deliveryAddress: parsed.data.deliveryAddress,
     deliveryDetails: parsed.data.deliveryDetails,
+    deliveryPartnerId: deliveryPartner._id,
     paymentMethod: parsed.data.paymentMethod,
     items,
     subtotalPaise,
@@ -63,11 +68,25 @@ async function createOrder(req, res) {
     status: "placed",
     statusHistory: [{ status: "placed", at: new Date() }]
   });
-  return res.status(201).json({ order });
+  return res.status(201).json({ order, deliveryAssigned: true });
+}
+
+async function findLeastBusyDeliveryPartner() {
+  const partners = await User.find({ role: "delivery", status: "active" }).select("_id").lean();
+  if (!partners.length) return null;
+  const activeCounts = await Order.aggregate([
+    { $match: { deliveryPartnerId: { $in: partners.map(partner => partner._id) }, status: { $nin: ["delivered", "cancelled", "awaiting_payment"] } } },
+    { $group: { _id: "$deliveryPartnerId", count: { $sum: 1 } } }
+  ]);
+  const countByPartner = new Map(activeCounts.map(row => [String(row._id), row.count]));
+  partners.sort((a, b) => (countByPartner.get(String(a._id)) || 0) - (countByPartner.get(String(b._id)) || 0));
+  const minimum = countByPartner.get(String(partners[0]._id)) || 0;
+  const leastBusy = partners.filter(partner => (countByPartner.get(String(partner._id)) || 0) === minimum);
+  return leastBusy[Math.floor(Math.random() * leastBusy.length)];
 }
 
 async function listMyOrders(req, res) {
-  const orders = await Order.find({ customerId: req.user._id }).populate("restaurantId", "name address").sort({ createdAt: -1 }).limit(100);
+  const orders = await Order.find({ customerId: req.user._id }).populate("restaurantId", "name address").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   const reviews = await Review.find({ customerId: req.user._id, orderId: { $in: orders.map(order => order._id) } }).select("orderId rating");
   const reviewByOrder = new Map(reviews.map(review => [String(review.orderId), review]));
   return res.json({ orders: orders.map(order => ({ ...order.toObject(), review: reviewByOrder.get(String(order._id)) || null })) });
@@ -76,7 +95,7 @@ async function listMyOrders(req, res) {
 async function listRestaurantOrders(req, res) {
   const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).populate("customerId", "name email").sort({ createdAt: -1 }).limit(100);
+  const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).populate("customerId", "name email").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   return res.json({ orders });
 }
 
@@ -103,4 +122,26 @@ async function updateRestaurantOrder(req, res) {
   return res.json({ order });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder };
+async function listDeliveryOrders(req, res) {
+  const orders = await Order.find({ deliveryPartnerId: req.user._id, status: { $nin: ["awaiting_payment", "cancelled"] } })
+    .populate("customerId", "name email")
+    .populate("restaurantId", "name address")
+    .sort({ createdAt: -1 }).limit(100);
+  return res.json({ orders });
+}
+
+async function updateDeliveryOrder(req, res) {
+  const { status } = req.body || {};
+  if (!['picked_up', 'delivered'].includes(status)) return res.status(400).json({ error: "Choose picked up or delivered" });
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Assigned delivery not found" });
+  const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
+  if (!order) return res.status(404).json({ error: "Assigned delivery not found" });
+  const allowed = { ready: "picked_up", picked_up: "delivered" };
+  if (allowed[order.status] !== status) return res.status(409).json({ error: status === "picked_up" ? "The restaurant must mark the order ready before pickup" : "Mark the order picked up before delivery" });
+  order.status = status;
+  order.statusHistory.push({ status, at: new Date() });
+  await order.save();
+  return res.json({ order });
+}
+
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder };
