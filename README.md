@@ -1,6 +1,6 @@
 # Food Platform Starter
 
-A starter MVP scaffold for a multi-restaurant ordering platform, including basic delivery-partner assignment and order handoff.
+A starter MVP scaffold for a multi-restaurant ordering platform, including basic delivery-partner assignment, payment collection state, and customer receipt confirmation.
 
 ## Stack
 - Frontend: HTML, CSS, browser JavaScript
@@ -10,7 +10,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 - Deployment target: GitHub + Render
 
 ## Important
-This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. New orders are assigned to the active delivery person with the fewest open assignments; delivery accounts are created by an admin. Delivery people see the customer's contact and address, restaurant pickup address, and ordered dishes, and can update pickup/delivery status. Online payment choices may be recorded as preferences only, depending on the configured flow. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, live GPS tracking, and production hardening still need implementation.
+This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. New orders are assigned to the active delivery person with the fewest open assignments; delivery accounts are created by an admin. Delivery people see the customer's contact and address, restaurant pickup address, ordered dishes, payment mode, and payment status; they can confirm COD cash collection while marking delivery. Customers can confirm receipt after delivery. UPI/card/net banking and UPI QR remain preferences only unless a payment integration is configured. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, live GPS tracking, and production hardening still need implementation.
 
 ## Requirements
 - Node.js 20+
@@ -83,7 +83,8 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
 - `GET /api/orders/delivery/mine` — delivery person lists assigned orders and pickup/drop-off details
-- `PATCH /api/orders/delivery/:id` — assigned delivery person marks an order picked up or delivered
+- `PATCH /api/orders/delivery/:id` — assigned delivery person marks pickup/delivery and records COD cash collection
+- `PATCH /api/orders/:id/received` — customer confirms they received a delivered order
 - `GET /api/admin/restaurants` — admin lists restaurants
 - `POST /api/admin/restaurants` — admin creates a pending restaurant and owner login
 - `POST /api/admin/delivery-partners` — admin creates an active delivery login

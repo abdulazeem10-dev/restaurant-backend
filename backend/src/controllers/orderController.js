@@ -131,17 +131,42 @@ async function listDeliveryOrders(req, res) {
 }
 
 async function updateDeliveryOrder(req, res) {
-  const { status } = req.body || {};
-  if (!['picked_up', 'delivered'].includes(status)) return res.status(400).json({ error: "Choose picked up or delivered" });
+  const parsed = z.object({
+    status: z.enum(["picked_up", "delivered"]).optional(),
+    cashCollected: z.boolean().optional()
+  }).strict().refine(value => value.status !== undefined || value.cashCollected === true).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose a delivery update" });
+  const { status, cashCollected } = parsed.data;
   if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Assigned delivery not found" });
   const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
   if (!order) return res.status(404).json({ error: "Assigned delivery not found" });
   const allowed = { ready: "picked_up", picked_up: "delivered" };
-  if (allowed[order.status] !== status) return res.status(409).json({ error: status === "picked_up" ? "The restaurant must mark the order ready before pickup" : "Mark the order picked up before delivery" });
-  order.status = status;
-  order.statusHistory.push({ status, at: new Date() });
+  if (status && allowed[order.status] !== status) return res.status(409).json({ error: status === "picked_up" ? "The restaurant must mark the order ready before pickup" : "Mark the order picked up before delivery" });
+  if (cashCollected) {
+    if (order.paymentMethod !== "cash_on_delivery") return res.status(400).json({ error: "Cash collection only applies to cash-on-delivery orders" });
+    if (status !== "delivered" && order.status !== "delivered") return res.status(409).json({ error: "Confirm cash after the order is delivered" });
+    if (order.paymentStatus === "paid") return res.status(409).json({ error: "This order is already marked paid" });
+    order.paymentStatus = "paid";
+    order.paymentCollectedAt = new Date();
+  }
+  if (status) {
+    order.status = status;
+    order.statusHistory.push({ status, at: new Date() });
+  }
   await order.save();
   return res.json({ order });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder };
+async function confirmOrderReceived(req, res) {
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Order not found" });
+  const order = await Order.findOne({ _id: req.params.id, customerId: req.user._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.status !== "delivered") return res.status(409).json({ error: "You can confirm receipt after the delivery person marks it delivered" });
+  if (!order.customerReceivedAt) {
+    order.customerReceivedAt = new Date();
+    await order.save();
+  }
+  return res.json({ order });
+}
+
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, confirmOrderReceived };

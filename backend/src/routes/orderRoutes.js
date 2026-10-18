@@ -11,4 +11,5 @@ router.get("/restaurant", authenticate, authorize("restaurant"), asyncHandler(co
 router.patch("/restaurant/:id", authenticate, authorize("restaurant"), asyncHandler(controller.updateRestaurantOrder));
 router.get("/delivery/mine", authenticate, authorize("delivery"), asyncHandler(controller.listDeliveryOrders));
 router.patch("/delivery/:id", authenticate, authorize("delivery"), asyncHandler(controller.updateDeliveryOrder));
+router.patch("/:id/received", authenticate, authorize("customer"), asyncHandler(controller.confirmOrderReceived));
 module.exports = router;

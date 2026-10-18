@@ -147,7 +147,8 @@ function renderOrders(orders) {
       : order.paymentMethod === "upi_qr"
         ? "UPI QR selected (not collected)"
         : "Online payment selected (not collected)";
-    card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment: ${paymentLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    const paymentStatusLabel = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
+    card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
     if (order.deliveryPartnerId) {
       const partner = document.createElement("p");
       partner.textContent = `Delivery person: ${order.deliveryPartnerId.name}${order.deliveryPartnerId.phone ? ` · ${order.deliveryPartnerId.phone}` : ""}`;
@@ -159,6 +160,30 @@ function renderOrders(orders) {
       card.append(pending);
     }
     card.append(renderOrderProgress(order));
+    if (order.customerReceivedAt) {
+      const received = document.createElement("p");
+      received.className = "order-review-status";
+      received.textContent = `You confirmed receipt on ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}.`;
+      card.append(received);
+    } else if (order.status === "delivered") {
+      const receivedButton = document.createElement("button");
+      receivedButton.type = "button";
+      receivedButton.className = "secondary";
+      receivedButton.textContent = "Confirm received";
+      receivedButton.addEventListener("click", async () => {
+        receivedButton.disabled = true;
+        try {
+          const response = await fetch(`${API_BASE}/orders/${encodeURIComponent(order._id)}/received`, { method: "PATCH", headers: authHeaders() });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not confirm receipt");
+          await loadOrders(true);
+        } catch (error) {
+          errorRoot.textContent = error.message;
+          receivedButton.disabled = false;
+        }
+      });
+      card.append(receivedButton);
+    }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "secondary reorder-button";
