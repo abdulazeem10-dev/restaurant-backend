@@ -127,6 +127,23 @@ article h3 { margin-top: 0; }
 .add-item-button { min-width: 86px; border: 1px solid #edc7ca; background: white; color: #df4056; }.add-item-button:hover { background: #fff3f3; }.add-item-button:disabled { border-color: #eee7e2; background: #faf8f6; color: #9b928b; opacity: 1; }
 .menu-cart-card { position: sticky; top: 96px; padding: 1.3rem; border: 1px solid #efe8e2; border-radius: 15px; background: white; box-shadow: 0 6px 20px #3424190a; }
 .cart-card-icon { font-size: 2rem; }.menu-cart-card h3 { margin: .55rem 0; }.menu-cart-card p { min-height: 1.3rem; font-size: .9rem; }
+
+/* Keep food filters easy to use on narrower screens. */
+@media (max-width: 880px) {
+  .discovery-heading { align-items: flex-start; flex-direction: column; }
+  .discovery-controls { width: 100%; }
+}
+@media (max-width: 580px) {
+  .discovery-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+  .food-filter, .sort-control { display: grid; min-width: 0; gap: .3rem; white-space: normal; }
+  .food-filter select, .sort-control select { width: 100%; min-width: 0; }
+  .menu-header-actions { width: 100%; }
+  .menu-food-filter { display: grid; width: 100%; min-width: 0; gap: .3rem; white-space: normal; }
+  .menu-food-filter select { width: 100%; min-width: 0; }
+}
+@media (max-width: 360px) {
+  .discovery-controls { grid-template-columns: minmax(0, 1fr); }
+}
 .cart-main { max-width: 1160px; margin: 2.5rem auto 5rem; padding: 0 1.25rem; }
 .cart-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.7rem; }
 .cart-heading h1 { margin: 0; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -.045em; }
