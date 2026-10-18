@@ -15,7 +15,7 @@ const createSchema = z.object({
     landmark: z.string().trim().max(120).optional().default(""),
     pincode: z.string().regex(/^\d{6}$/)
   }).strict(),
-  paymentMethod: z.enum(["cash_on_delivery", "online", "razorpay"]).default("cash_on_delivery"),
+  paymentMethod: z.enum(["cash_on_delivery", "online", "upi_qr", "razorpay"]).default("cash_on_delivery"),
   items: z.array(z.object({
     menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)

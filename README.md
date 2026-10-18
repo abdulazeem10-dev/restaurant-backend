@@ -34,7 +34,7 @@ This is a starter project, not a production marketplace. It includes customer re
 7. Serve the `frontend` directory using a local static server (for example VS Code Live Server). Set `FRONTEND_ORIGIN` to that server's exact origin.
 
 ## Payment preference
-Checkout lets customers choose cash on delivery or select UPI, cards, and net banking as their preferred method. The online choice is stored with the order for the restaurant to see; no payment is started or collected.
+Checkout lets customers choose online UPI/cards/net banking, UPI QR, or cash on delivery. The online and UPI QR choices are stored with the order as preferences for the restaurant to see; no payment is started, QR is generated, or money collected.
 
 ## Initial admin
 For safety, there is no public admin registration endpoint. Create the first admin through a secure one-time local provisioning script or directly in a controlled database process. Do not expose an admin-creation route publicly.

@@ -24,8 +24,10 @@ function updatePaymentChoice() {
   const online = method === "online";
   document.querySelector("#payment-total-label").textContent = "Order total";
   document.querySelector("#payment-security-note").textContent = online
-    ? "Online payment selected as your preference. No payment will be collected on this page."
-    : "Cash on delivery selected. Pay the delivery partner when your order arrives.";
+    ? "Online payment selected as your preference. No payment is collected on this page."
+    : method === "upi_qr"
+      ? "UPI QR selected as your preference. No QR code or payment is generated on this page."
+      : "Cash on delivery selected. Pay the delivery partner when your order arrives.";
   confirmOrderButton.textContent = "Place order";
 }
 
