@@ -20,6 +20,7 @@ function selectedPaymentMethod() {
 
 function updatePaymentChoice() {
   const method = selectedPaymentMethod();
+  sessionStorage.setItem("food-platform-payment-method", method);
   paymentChoices.forEach(choice => choice.classList.toggle("payment-option-selected", choice.querySelector("input")?.checked));
   const online = method === "online";
   document.querySelector("#payment-total-label").textContent = "Order total";
@@ -72,6 +73,11 @@ async function createOrder(paymentMethod) {
     })
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    sessionStorage.removeItem(TOKEN_KEY);
+    location.replace(`login.html?next=${encodeURIComponent("payment.html")}`);
+    throw new Error("Your sign-in expired. Sign in again to finish placing your order.");
+  }
   if (!response.ok) throw new Error(data.error || "Could not place your order");
   const order = data.order;
   document.querySelector("#payment-total").textContent = formatRupees(order.totalPaise);
@@ -82,13 +88,14 @@ async function placeOrder() {
   await createOrder(selectedPaymentMethod());
   localStorage.removeItem("food-platform-cart");
   sessionStorage.removeItem("food-platform-checkout");
+  sessionStorage.removeItem("food-platform-payment-method");
   location.href = "orders.html?placed=1";
 }
 
 confirmOrderButton.addEventListener("click", async () => {
   showPaymentError("");
   if (!getToken()) {
-    location.href = `login.html?next=${encodeURIComponent("cart.html")}`;
+    location.href = `login.html?next=${encodeURIComponent("payment.html")}`;
     return;
   }
   if (!paymentCart?.items?.length || !checkout?.deliveryDetails || !checkout?.deliveryAddress) {
@@ -107,6 +114,10 @@ confirmOrderButton.addEventListener("click", async () => {
   }
 });
 
+const savedPaymentMethod = sessionStorage.getItem("food-platform-payment-method");
+if (savedPaymentMethod && paymentChoices.some(choice => choice.querySelector("input")?.value === savedPaymentMethod)) {
+  document.querySelector(`input[name="paymentMethod"][value="${savedPaymentMethod}"]`).checked = true;
+}
 paymentChoices.forEach(choice => choice.querySelector("input").addEventListener("change", updatePaymentChoice));
 renderPaymentSummary();
 updatePaymentChoice();
