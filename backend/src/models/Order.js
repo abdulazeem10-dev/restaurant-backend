@@ -32,7 +32,11 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"],
     default: "placed"
-  }
+  },
+  statusHistory: [{
+    status: { type: String, enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"], required: true },
+    at: { type: Date, required: true, default: Date.now }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Order", orderSchema);

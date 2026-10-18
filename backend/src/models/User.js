@@ -17,6 +17,16 @@ const userSchema = new mongoose.Schema({
     enum: ["active", "pending", "suspended"],
     default: "active"
   },
+  savedAddresses: [{
+    label: { type: String, trim: true, maxlength: 40, default: "Home" },
+    recipientType: { type: String, enum: ["self", "other"], required: true, default: "self" },
+    name: { type: String, trim: true, required: true, maxlength: 100 },
+    phone: { type: String, required: true, match: /^\d{10}$/ },
+    flatBuilding: { type: String, trim: true, required: true, maxlength: 120 },
+    lane: { type: String, trim: true, required: true, maxlength: 180 },
+    landmark: { type: String, trim: true, maxlength: 120, default: "" },
+    pincode: { type: String, required: true, match: /^\d{6}$/ }
+  }],
   passwordResetTokenHash: { type: String, select: false },
   passwordResetExpires: { type: Date, select: false }
 }, { timestamps: true });

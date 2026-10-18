@@ -60,7 +60,8 @@ async function createOrder(req, res) {
     deliveryFeePaise: 0,
     taxPaise: 0,
     totalPaise: subtotalPaise,
-    status: "placed"
+    status: "placed",
+    statusHistory: [{ status: "placed", at: new Date() }]
   });
   return res.status(201).json({ order });
 }
@@ -97,6 +98,7 @@ async function updateRestaurantOrder(req, res) {
     return res.status(409).json({ error: `Cannot move order from ${order.status} to ${req.body.status}` });
   }
   order.status = req.body.status;
+  order.statusHistory.push({ status: req.body.status, at: new Date() });
   await order.save();
   return res.json({ order });
 }

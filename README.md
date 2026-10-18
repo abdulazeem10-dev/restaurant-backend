@@ -45,6 +45,9 @@ Restaurant owners can set weekly opening hours in India Standard Time and list t
 ## Ratings and reviews
 Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
 
+## Order tracking and saved addresses
+Customer orders show a progress timeline and refresh automatically while the orders page is open. Restaurant status changes are timestamped. Customers can save up to 10 delivery addresses, select one at checkout, or remove saved addresses. Reordering checks the current menu and excludes dishes that are no longer available.
+
 ## Menu availability
 Restaurant owners can switch each menu item between available and unavailable from the dashboard. Unavailable dishes are hidden from customers and cannot be added to a new order.
 
@@ -74,6 +77,9 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `POST /api/reviews` — customer reviews one of their ready orders
 - `POST /api/orders` — authenticated customer creates an order (server calculates item prices)
 - `GET /api/orders/mine` — authenticated customer lists their orders
+- `GET /api/customer/addresses` — customer lists their saved delivery addresses
+- `POST /api/customer/addresses` — customer saves a delivery address (up to 10)
+- `DELETE /api/customer/addresses/:id` — customer deletes one of their saved addresses
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
 - `GET /api/admin/restaurants` — admin lists restaurants

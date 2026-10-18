@@ -38,6 +38,10 @@
         <p class="eyebrow">DELIVERY DETAILS</p>
         <h2>Where should we deliver?</h2>
         <p class="muted">Add a contact and the complete address for this delivery.</p>
+        <div class="saved-address-picker">
+          <label for="saved-address-select">Use a saved address</label>
+          <div><select id="saved-address-select" name="savedAddress"><option value="">Enter a new address</option></select><button id="delete-saved-address" class="secondary" type="button" hidden>Delete</button></div>
+        </div>
         <fieldset class="order-for-choice">
           <legend>Ordering for</legend>
           <label><input type="radio" name="recipientType" value="self" checked> Myself</label>
@@ -64,6 +68,8 @@
             <input id="delivery-pincode" name="pincode" type="text" inputmode="numeric" autocomplete="postal-code" required pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN code" title="Enter a 6-digit PIN code">
           </label>
         </div>
+        <label class="save-address-choice"><input name="saveAddress" type="checkbox"><span>Save this address for next time</span></label>
+        <label class="saved-address-label" for="saved-address-label">Address label <span class="muted">(e.g. Home or Work)</span><input id="saved-address-label" name="addressLabel" type="text" maxlength="40" value="Home" placeholder="Home, Work…"></label>
         <div id="total" class="cart-total"></div>
         <button type="submit" class="cart-submit">Continue to payment</button>
         <p class="cart-checkout-note">You’ll be asked to sign in if you haven’t already.</p>

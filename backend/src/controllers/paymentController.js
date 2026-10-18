@@ -5,6 +5,11 @@ const Payment = require("../models/Payment");
 
 const PROVIDER = "razorpay";
 
+function recordStatus(order, status) {
+  order.statusHistory ||= [];
+  if (order.statusHistory.at(-1)?.status !== status) order.statusHistory.push({ status, at: new Date() });
+}
+
 function paymentCredentials() {
   return {
     keyId: process.env.RAZORPAY_KEY_ID,
@@ -103,7 +108,10 @@ async function markPaymentCaptured(payment, order, paymentId) {
   payment.status = "paid";
   await payment.save();
   order.paymentStatus = "paid";
-  if (order.status === "awaiting_payment") order.status = "placed";
+  if (order.status === "awaiting_payment") {
+    order.status = "placed";
+    recordStatus(order, "placed");
+  }
   await order.save();
 }
 
@@ -136,7 +144,10 @@ async function verifyRazorpayPayment(req, res) {
   if (payment.status === "paid" && payment.providerPaymentId === parsed.data.razorpay_payment_id) {
     if (order.paymentStatus !== "paid" || order.status === "awaiting_payment") {
       order.paymentStatus = "paid";
-      if (order.status === "awaiting_payment") order.status = "placed";
+      if (order.status === "awaiting_payment") {
+        order.status = "placed";
+        recordStatus(order, "placed");
+      }
       await order.save();
     }
     return res.json({ paid: true, orderId: order._id });
@@ -180,6 +191,7 @@ async function cancelPendingPayment(req, res) {
   if (order.status === "awaiting_payment") {
     order.status = "cancelled";
     order.paymentStatus = "failed";
+    recordStatus(order, "cancelled");
     await order.save();
     await Payment.updateOne({ orderId: order._id, provider: PROVIDER, status: "pending" }, { $set: { status: "failed" } });
   }

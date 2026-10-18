@@ -1,6 +1,86 @@
 const linesRoot = document.querySelector("#cart-lines");
 const checkoutForm = document.querySelector("#checkout-form");
+const addressSelect = document.querySelector("#saved-address-select");
+let savedAddresses = [];
 
+function fillSavedAddress(address) {
+  if (!address) return;
+  const recipientRadio = checkoutForm.querySelector(`input[name="recipientType"][value="${address.recipientType}"]`);
+  if (recipientRadio) {
+    recipientRadio.checked = true;
+    recipientRadio.dispatchEvent(new Event("change"));
+  }
+  checkoutForm.elements.recipientName.value = address.name || "";
+  checkoutForm.elements.recipientPhone.value = address.phone || "";
+  checkoutForm.elements.flatBuilding.value = address.flatBuilding || "";
+  checkoutForm.elements.lane.value = address.lane || "";
+  checkoutForm.elements.landmark.value = address.landmark || "";
+  checkoutForm.elements.pincode.value = address.pincode || "";
+  checkoutForm.elements.addressLabel.value = address.label || "Home";
+  checkoutForm.elements.saveAddress.checked = false;
+}
+
+function renderSavedAddresses() {
+  const chosenId = addressSelect.value;
+  addressSelect.replaceChildren(new Option("Enter a new address", ""));
+  for (const address of savedAddresses) {
+    addressSelect.add(new Option(`${address.label} · ${address.flatBuilding}, ${address.pincode}`, address._id));
+  }
+  if (savedAddresses.some(address => address._id === chosenId)) addressSelect.value = chosenId;
+  document.querySelector("#delete-saved-address").hidden = !addressSelect.value;
+}
+
+async function loadSavedAddresses() {
+  if (!getToken()) return;
+  try {
+    const response = await fetch(`${API_BASE}/customer/addresses`, { headers: authHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not load saved addresses");
+    savedAddresses = data.addresses || [];
+    renderSavedAddresses();
+    const profileResponse = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
+    if (profileResponse.ok) {
+      const { user } = await profileResponse.json();
+      if (user?.name && !checkoutForm.elements.recipientName.value) checkoutForm.elements.recipientName.value = user.name;
+      const phoneDigits = String(user?.phone || "").replace(/\D/g, "");
+      if (phoneDigits.length >= 10 && !checkoutForm.elements.recipientPhone.value) checkoutForm.elements.recipientPhone.value = phoneDigits.slice(-10);
+    }
+  } catch (error) {
+    document.querySelector("#error").textContent = error.message;
+  }
+}
+
+addressSelect.addEventListener("change", () => {
+  const address = savedAddresses.find(item => item._id === addressSelect.value);
+  if (address) fillSavedAddress(address);
+  document.querySelector("#delete-saved-address").hidden = !address;
+  document.querySelector(".save-address-choice").hidden = Boolean(address);
+});
+
+document.querySelector("#delete-saved-address").addEventListener("click", async () => {
+  const id = addressSelect.value;
+  if (!id || !confirm("Delete this saved address?")) return;
+  const error = document.querySelector("#error");
+  try {
+    const response = await fetch(`${API_BASE}/customer/addresses/${encodeURIComponent(id)}`, { method: "DELETE", headers: authHeaders() });
+    if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Could not delete this address"); }
+    savedAddresses = savedAddresses.filter(item => item._id !== id);
+    addressSelect.value = "";
+    renderSavedAddresses();
+    document.querySelector(".save-address-choice").hidden = false;
+    error.textContent = "Saved address deleted.";
+  } catch (deleteError) { error.textContent = deleteError.message; }
+});
+
+for (const field of ["recipientName", "recipientPhone", "flatBuilding", "lane", "landmark", "pincode"]) {
+  checkoutForm.elements[field].addEventListener("input", () => {
+    if (!addressSelect.value) return;
+    addressSelect.value = "";
+    document.querySelector("#delete-saved-address").hidden = true;
+    document.querySelector(".save-address-choice").hidden = false;
+    checkoutForm.elements.saveAddress.checked = false;
+  });
+}
 checkoutForm.querySelectorAll('input[name="recipientType"]').forEach(input => {
   input.addEventListener("change", () => {
     const isOther = checkoutForm.querySelector('input[name="recipientType"]:checked').value === "other";
@@ -13,6 +93,11 @@ checkoutForm.querySelectorAll('input[name="recipientType"]').forEach(input => {
 });
 
 function renderCart() {
+  const reorderNote = sessionStorage.getItem("food-platform-reorder-note");
+  if (reorderNote) {
+    document.querySelector("#notice").textContent = reorderNote;
+    sessionStorage.removeItem("food-platform-reorder-note");
+  }
   const cart = readCart();
   updateCartCount();
   linesRoot.replaceChildren();
@@ -153,6 +238,24 @@ checkoutForm.addEventListener("submit", async event => {
     if (data.restaurant.deliveryPincodes?.length && !data.restaurant.deliveryPincodes.includes(deliveryDetails.pincode)) {
       throw new Error(`This restaurant does not deliver to PIN code ${deliveryDetails.pincode}. Please update the address or choose another restaurant.`);
     }
+    if (formData.get("saveAddress") === "on" && !addressSelect.value) {
+      const saveResponse = await fetch(`${API_BASE}/customer/addresses`, {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          label: String(formData.get("addressLabel") || "Home").trim() || "Home",
+          recipientType: deliveryDetails.recipientType,
+          name: deliveryDetails.name,
+          phone: deliveryDetails.phone,
+          flatBuilding: deliveryDetails.flatBuilding,
+          lane: deliveryDetails.lane,
+          landmark: deliveryDetails.landmark,
+          pincode: deliveryDetails.pincode
+        })
+      });
+      const savedData = await saveResponse.json();
+      if (!saveResponse.ok) throw new Error(savedData.error || "Could not save this address");
+    }
     sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
     location.href = "payment.html";
   } catch (submitError) {
@@ -162,3 +265,5 @@ checkoutForm.addEventListener("submit", async event => {
 });
 
 renderCart();
+document.querySelector(".save-address-choice").hidden = false;
+loadSavedAddresses();
