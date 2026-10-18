@@ -56,7 +56,6 @@ article h3 { margin-top: 0; }
 .plate span { font-size: 7.2rem; filter: drop-shadow(0 8px 6px #7d3d3040); }
 .hero-sticker { position: absolute; display: grid; place-items: center; width: 88px; height: 88px; border-radius: 50%; background: #fff; color: #aa604a; font-size: .78rem; font-weight: 800; line-height: 1.15; text-align: center; box-shadow: 0 8px 24px #73402b1c; transform: rotate(9deg); }
 .sticker-one { top: 16px; right: 5px; }.sticker-two { bottom: 3px; left: 7px; background: #e83d55; color: #fff; transform: rotate(-8deg); }
-@media (prefers-reduced-motion: reduce) { .hero-video { display: none; }.hero-video-art { background: url("../videos/food-platform-hero-poster.jpg") center / cover no-repeat; border-radius: 24px; } }
 .discovery-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 3.25rem 0 1.3rem; }
 .discovery-heading h2, .menu-header h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.25rem); letter-spacing: -.04em; }
 .muted { color: #857c74; }
