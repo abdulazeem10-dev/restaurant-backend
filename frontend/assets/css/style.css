@@ -50,8 +50,6 @@ article h3 { margin-top: 0; }
 .hero-cta { display: inline-flex; align-items: center; gap: .8rem; padding: .85rem 1.1rem; border-radius: 11px; background: #e83d55; color: #fff; font-weight: 700; box-shadow: 0 8px 18px #e83d5530; }
 .hero-cta:hover { background: #cc2c45; text-decoration: none; }
 .hero-art { display: grid; width: 320px; height: 280px; place-items: center; position: relative; margin-right: 5%; }
-.hero-video-art { width: min(40vw, 420px); height: 300px; margin-right: 2%; }
-.hero-video { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 24px; object-fit: cover; box-shadow: 0 20px 40px #9b543b24; }
 .plate { display: grid; width: 230px; height: 230px; place-items: center; border: 12px solid #fff; border-radius: 50%; background: radial-gradient(circle at 48% 46%, #ffd978 0 34%, #ed7853 35% 51%, #f2b35c 52% 66%, #e78362 67%); box-shadow: 0 20px 40px #9b543b24; transform: rotate(-8deg); }
 .plate span { font-size: 7.2rem; filter: drop-shadow(0 8px 6px #7d3d3040); }
 .hero-sticker { position: absolute; display: grid; place-items: center; width: 88px; height: 88px; border-radius: 50%; background: #fff; color: #aa604a; font-size: .78rem; font-weight: 800; line-height: 1.15; text-align: center; box-shadow: 0 8px 24px #73402b1c; transform: rotate(9deg); }
