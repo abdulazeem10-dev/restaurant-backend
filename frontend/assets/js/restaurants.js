@@ -9,10 +9,11 @@ function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const matches = allRestaurants.filter(restaurant => {
     const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
-    const foodType = restaurant.foodType === "veg" ? "veg" : "both";
-    const foodTypeMatches = foodTypeFilter.value === "all" ||
-      (foodTypeFilter.value === "veg" && (foodType === "veg" || foodType === "both")) ||
-      (foodTypeFilter.value === "nonVeg" && foodType === "both");
+    // Treat missing foodType values from older records as mixed restaurants.
+    const foodType = ["veg", "nonVeg", "both"].includes(restaurant.foodType)
+      ? restaurant.foodType
+      : "both";
+    const foodTypeMatches = foodTypeFilter.value === "all" || foodType === foodTypeFilter.value;
     return searchMatches && foodTypeMatches;
   });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
@@ -48,7 +49,8 @@ function renderRestaurants() {
     open.textContent = "Open now";
     const delivery = document.createElement("span");
     delivery.className = "muted";
-    delivery.textContent = restaurant.foodType === "veg" ? "Veg" : "Veg & Non-Veg";
+    const labels = { veg: "Veg only", nonVeg: "Non-Veg only", both: "Veg & Non-Veg" };
+    delivery.textContent = labels[restaurant.foodType] || labels.both;
     meta.append(open, delivery);
 
     const title = document.createElement("h3");
@@ -74,7 +76,12 @@ function renderRestaurants() {
     const title = document.createElement("h3");
     const message = document.createElement("p");
     if (!allRestaurants.length) { title.textContent = "Mumbai menus are on the way"; message.textContent = "Restaurants will appear here once they’re approved and open for orders."; }
-    else { title.textContent = "No restaurants found"; message.textContent = "Try another restaurant name or area."; }
+    else {
+      title.textContent = "No restaurants found";
+      message.textContent = foodTypeFilter.value === "all"
+        ? "Try another restaurant name or area."
+        : `No ${foodTypeFilter.options[foodTypeFilter.selectedIndex].text} restaurants match. Try another food type or search.`;
+    }
     empty.append(icon, title, message);
     restaurantGrid.append(empty);
   }
