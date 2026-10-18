@@ -144,29 +144,8 @@ checkoutForm.addEventListener("submit", async event => {
   const deliveryAddress = [deliveryDetails.flatBuilding, deliveryDetails.lane, deliveryDetails.landmark, deliveryDetails.pincode]
     .filter(Boolean).join(", ");
   const button = checkoutForm.querySelector("button[type=submit]");
-  button.disabled = true;
-  button.textContent = "Placing order…";
-
-  try {
-    const response = await fetch(`${API_BASE}/orders`, {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        restaurantId: cart.restaurantId,
-        deliveryAddress,
-        deliveryDetails,
-        items: cart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity }))
-      })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Could not place order");
-    localStorage.removeItem("food-platform-cart");
-    location.href = "orders.html?placed=1";
-  } catch (err) {
-    error.textContent = err.message;
-    button.disabled = false;
-    button.textContent = "Place order";
-  }
+  sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
+  location.href = "payment.html";
 });
 
 renderCart();

@@ -14,7 +14,8 @@ async function loadOrders() {
     for (const order of data.orders) {
       const card = document.createElement("article");
       const lines = order.items.map(item => `${item.quantity} × ${escapeHtml(item.name)}`).join(", ");
-      card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><small>${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+      const paymentLabel = order.paymentMethod === "cash_on_delivery" ? "Cash on delivery" : "Online payment";
+      card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment: ${paymentLabel}</p><small>${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
       root.append(card);
     }
   } catch (err) { error.textContent = err.message; }

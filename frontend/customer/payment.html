@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf5">
+  <title>Payment | Food Platform</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="customer-page payment-page">
+  <header class="site-header">
+    <a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a>
+    <nav class="site-nav" aria-label="Main navigation"><a href="index.html">Restaurants</a><a href="orders.html">My orders</a><a href="cart.html" class="login-link">Back to cart</a></nav>
+  </header>
+
+  <main class="payment-main">
+    <div class="payment-heading">
+      <div><p class="eyebrow">ONE LAST STEP</p><h1>Choose how to pay</h1><p class="muted">Review your delivery details and payment method.</p></div>
+      <a class="back-link" href="cart.html">← Edit your order</a>
+    </div>
+    <p id="payment-error" class="error-message" role="alert"></p>
+
+    <div class="payment-layout">
+      <section class="panel payment-method-panel" aria-labelledby="payment-method-heading">
+        <p class="eyebrow">PAYMENT METHOD</p>
+        <h2 id="payment-method-heading">Select a payment option</h2>
+        <label class="payment-option payment-option-selected">
+          <input type="radio" name="paymentMethod" value="cash_on_delivery" checked>
+          <span class="payment-option-icon" aria-hidden="true">💵</span>
+          <span class="payment-option-copy"><strong>Cash on delivery</strong><small>Pay the delivery partner when your order arrives.</small></span>
+          <span class="payment-option-check" aria-hidden="true">✓</span>
+        </label>
+        <div class="payment-option payment-option-disabled" aria-disabled="true">
+          <span class="payment-option-icon" aria-hidden="true">💳</span>
+          <span class="payment-option-copy"><strong>UPI, cards &amp; net banking</strong><small>Online payment is coming soon.</small></span>
+          <span class="payment-coming-soon">Coming soon</span>
+        </div>
+        <p class="payment-security-note">You won’t be charged online. Pay in cash when the order is delivered.</p>
+      </section>
+
+      <aside class="panel payment-summary" aria-label="Order summary">
+        <p class="eyebrow">YOUR ORDER</p>
+        <h2 id="payment-restaurant">Order summary</h2>
+        <div id="payment-items" class="payment-items"></div>
+        <div class="payment-delivery"><strong>Delivering to</strong><span id="payment-recipient"></span><span id="payment-address" class="muted"></span></div>
+        <div class="payment-total"><span>Total to pay on delivery</span><strong id="payment-total"></strong></div>
+        <button id="confirm-order" class="cart-submit" type="button">Place cash-on-delivery order</button>
+        <p class="cart-checkout-note">The restaurant will confirm your order after you place it.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="site-footer"><a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a><span>Fresh food from your neighbourhood</span></footer>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/payment.js"></script>
+</body>
+</html>

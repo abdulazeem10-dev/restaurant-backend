@@ -15,6 +15,7 @@ const createSchema = z.object({
     landmark: z.string().trim().max(120).optional().default(""),
     pincode: z.string().regex(/^\d{6}$/)
   }).strict(),
+  paymentMethod: z.enum(["cash_on_delivery"]).default("cash_on_delivery"),
   items: z.array(z.object({
     menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)
@@ -46,6 +47,7 @@ async function createOrder(req, res) {
     restaurantId: restaurant._id,
     deliveryAddress: parsed.data.deliveryAddress,
     deliveryDetails: parsed.data.deliveryDetails,
+    paymentMethod: parsed.data.paymentMethod,
     items,
     subtotalPaise,
     deliveryFeePaise: 0,
