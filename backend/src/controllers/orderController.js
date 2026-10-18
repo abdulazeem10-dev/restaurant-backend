@@ -15,7 +15,7 @@ const createSchema = z.object({
     landmark: z.string().trim().max(120).optional().default(""),
     pincode: z.string().regex(/^\d{6}$/)
   }).strict(),
-  paymentMethod: z.enum(["cash_on_delivery"]).default("cash_on_delivery"),
+  paymentMethod: z.enum(["cash_on_delivery", "razorpay"]).default("cash_on_delivery"),
   items: z.array(z.object({
     menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)
@@ -53,7 +53,7 @@ async function createOrder(req, res) {
     deliveryFeePaise: 0,
     taxPaise: 0,
     totalPaise: subtotalPaise,
-    status: "placed"
+    status: parsed.data.paymentMethod === "razorpay" ? "awaiting_payment" : "placed"
   });
   return res.status(201).json({ order });
 }
@@ -66,7 +66,7 @@ async function listMyOrders(req, res) {
 async function listRestaurantOrders(req, res) {
   const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const orders = await Order.find({ restaurantId: restaurant._id }).populate("customerId", "name email").sort({ createdAt: -1 }).limit(100);
+  const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).populate("customerId", "name email").sort({ createdAt: -1 }).limit(100);
   return res.json({ orders });
 }
 

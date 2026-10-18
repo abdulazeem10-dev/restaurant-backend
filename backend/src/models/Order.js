@@ -26,11 +26,11 @@ const orderSchema = new mongoose.Schema({
   deliveryFeePaise: { type: Number, required: true, min: 0, default: 0 },
   taxPaise: { type: Number, required: true, min: 0, default: 0 },
   totalPaise: { type: Number, required: true, min: 0 },
-  paymentMethod: { type: String, enum: ["cash_on_delivery"], default: "cash_on_delivery" },
+  paymentMethod: { type: String, enum: ["cash_on_delivery", "razorpay"], default: "cash_on_delivery" },
   paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
   status: {
     type: String,
-    enum: ["placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"],
+    enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"],
     default: "placed"
   }
 }, { timestamps: true });

@@ -25,7 +25,12 @@ app.use(cors({
   }
 }));
 
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({
+  limit: "100kb",
+  verify(req, res, buffer) {
+    req.rawBody = Buffer.from(buffer);
+  }
+}));
 app.use("/api", rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,

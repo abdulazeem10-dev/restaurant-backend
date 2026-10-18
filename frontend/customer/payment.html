@@ -24,18 +24,19 @@
       <section class="panel payment-method-panel" aria-labelledby="payment-method-heading">
         <p class="eyebrow">PAYMENT METHOD</p>
         <h2 id="payment-method-heading">Select a payment option</h2>
-        <label class="payment-option payment-option-selected">
+        <label class="payment-option payment-option-selected" data-payment-choice>
           <input type="radio" name="paymentMethod" value="cash_on_delivery" checked>
           <span class="payment-option-icon" aria-hidden="true">💵</span>
           <span class="payment-option-copy"><strong>Cash on delivery</strong><small>Pay the delivery partner when your order arrives.</small></span>
           <span class="payment-option-check" aria-hidden="true">✓</span>
         </label>
-        <div class="payment-option payment-option-disabled" aria-disabled="true">
+        <label class="payment-option payment-option-disabled" data-payment-choice id="online-payment-choice">
+          <input type="radio" name="paymentMethod" value="razorpay" disabled>
           <span class="payment-option-icon" aria-hidden="true">💳</span>
-          <span class="payment-option-copy"><strong>UPI, cards &amp; net banking</strong><small>Online payment is coming soon.</small></span>
-          <span class="payment-coming-soon">Coming soon</span>
-        </div>
-        <p class="payment-security-note">You won’t be charged online. Pay in cash when the order is delivered.</p>
+          <span class="payment-option-copy"><strong>UPI, cards &amp; net banking</strong><small id="online-payment-hint">Checking online payment availability…</small></span>
+          <span class="payment-coming-soon" id="online-payment-status">Loading</span>
+        </label>
+        <p class="payment-security-note" id="payment-security-note">Cash on delivery is available. Online payment options depend on payment gateway setup.</p>
       </section>
 
       <aside class="panel payment-summary" aria-label="Order summary">
@@ -43,7 +44,7 @@
         <h2 id="payment-restaurant">Order summary</h2>
         <div id="payment-items" class="payment-items"></div>
         <div class="payment-delivery"><strong>Delivering to</strong><span id="payment-recipient"></span><span id="payment-address" class="muted"></span></div>
-        <div class="payment-total"><span>Total to pay on delivery</span><strong id="payment-total"></strong></div>
+        <div class="payment-total"><span id="payment-total-label">Total to pay on delivery</span><strong id="payment-total"></strong></div>
         <button id="confirm-order" class="cart-submit" type="button">Place cash-on-delivery order</button>
         <p class="cart-checkout-note">The restaurant will confirm your order after you place it.</p>
       </aside>
