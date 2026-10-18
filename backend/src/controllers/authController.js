@@ -69,6 +69,65 @@ const loginSchema = z.object({
   password: z.string().min(1).max(128)
 }).strict();
 
+const phoneOtpRequestSchema = z.object({
+  phone: z.string().trim().min(8).max(25)
+}).strict();
+
+const phoneOtpVerifySchema = phoneOtpRequestSchema.extend({
+  code: z.string().regex(/^\d{6}$/)
+}).strict();
+
+function normalizePhoneNumber(value) {
+  const phone = value.replace(/[\s().-]/g, "");
+  if (/^\d{10}$/.test(phone)) return `+91${phone}`;
+  if (/^\+?[1-9]\d{7,14}$/.test(phone)) return phone.startsWith("+") ? phone : `+${phone}`;
+  return null;
+}
+
+function phoneLookupCandidates(phone) {
+  const digits = phone.replace(/\D/g, "");
+  const candidates = [phone, digits];
+  if (digits.startsWith("91") && digits.length === 12) candidates.push(digits.slice(2));
+  return [...new Set(candidates)];
+}
+
+function twilioVerifyConfig() {
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } = process.env;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) return null;
+  return { accountSid: TWILIO_ACCOUNT_SID, authToken: TWILIO_AUTH_TOKEN, serviceSid: TWILIO_VERIFY_SERVICE_SID };
+}
+
+async function twilioVerifyRequest(config, resource, values) {
+  const credentials = Buffer.from(`${config.accountSid}:${config.authToken}`).toString("base64");
+  const response = await fetch(`https://verify.twilio.com/v2/Services/${config.serviceSid}/${resource}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams(values)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.error("Twilio Verify request failed with status:", response.status);
+    throw new Error("SMS verification is temporarily unavailable");
+  }
+  return data;
+}
+
+function loginResponse(user) {
+  return {
+    accessToken: jwt.sign(
+      { sub: String(user._id) },
+      process.env.JWT_SECRET,
+      { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
+    ),
+    tokenType: "Bearer",
+    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
+  };
+}
+
 async function register(req, res) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid registration details" });
@@ -108,18 +167,50 @@ async function login(req, res) {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  const token = jwt.sign(
-    { sub: String(user._id) },
-    process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-  );
+  return res.json(loginResponse(user));
+}
 
-  return res.json({
-    accessToken: token,
-    tokenType: "Bearer",
-    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
-    user: { id: user._id, name: user.name, email: user.email, role: user.role }
-  });
+async function requestPhoneOtp(req, res) {
+  const parsed = phoneOtpRequestSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a valid phone number" });
+  const phone = normalizePhoneNumber(parsed.data.phone);
+  if (!phone) return res.status(400).json({ error: "Enter a valid phone number, such as +919876543210" });
+  const config = twilioVerifyConfig();
+  if (!config) return res.status(503).json({ error: "Phone login is not configured yet. Use email/password or Google sign-in for now." });
+
+  const user = await User.findOne({ phone: { $in: phoneLookupCandidates(phone) }, role: "customer", status: "active" });
+  if (user) {
+    try {
+      await twilioVerifyRequest(config, "Verifications", { To: phone, Channel: "sms" });
+    } catch {
+      return res.status(502).json({ error: "Could not send the code. Please try again later." });
+    }
+  }
+
+  return res.json({ message: "If an active customer account uses that number, an OTP has been sent." });
+}
+
+async function verifyPhoneOtp(req, res) {
+  const parsed = phoneOtpVerifySchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a valid phone number and the 6-digit code" });
+  const phone = normalizePhoneNumber(parsed.data.phone);
+  if (!phone) return res.status(400).json({ error: "Enter a valid phone number" });
+  const config = twilioVerifyConfig();
+  if (!config) return res.status(503).json({ error: "Phone login is not configured yet. Use email/password or Google sign-in for now." });
+
+  let verification;
+  try {
+    verification = await twilioVerifyRequest(config, "VerificationCheck", { To: phone, Code: parsed.data.code });
+  } catch {
+    return res.status(401).json({ error: "That code is invalid or expired. Request a new one and try again." });
+  }
+  if (verification.status !== "approved") {
+    return res.status(401).json({ error: "That code is invalid or expired. Request a new one and try again." });
+  }
+
+  const user = await User.findOne({ phone: { $in: phoneLookupCandidates(phone) }, role: "customer", status: "active" });
+  if (!user) return res.status(401).json({ error: "That code is invalid or expired. Request a new one and try again." });
+  return res.json(loginResponse(user));
 }
 
 async function googleLogin(req, res) {
@@ -241,4 +332,4 @@ function me(req, res) {
   });
 }
 
-module.exports = { register, login, googleLogin, requestPasswordReset, resetPassword, me };
+module.exports = { register, login, requestPhoneOtp, verifyPhoneOtp, googleLogin, requestPasswordReset, resetPassword, me };

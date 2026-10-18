@@ -36,6 +36,9 @@ This is a starter project, not a production marketplace. It includes customer re
 ## Payment preference
 Checkout lets customers choose online UPI/cards/net banking, UPI QR, or cash on delivery. The online and UPI QR choices are stored with the order as preferences for the restaurant to see; no payment is started, QR is generated, or money collected.
 
+## Customer phone sign-in
+Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Create a Verify Service, then configure these backend environment variables (keep the auth token private): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID`. Phone sign-in is for active customer accounts and accepts Indian 10-digit numbers or E.164 numbers such as `+919876543210`. Password and Google sign-in remain available.
+
 ## Initial admin
 For safety, there is no public admin registration endpoint. Create the first admin through a secure one-time local provisioning script or directly in a controlled database process. Do not expose an admin-creation route publicly.
 
@@ -45,6 +48,8 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/health`
 - `POST /api/auth/register` — customer registration only
 - `POST /api/auth/login`
+- `POST /api/auth/phone/otp/request` — sends a rate-limited sign-in code to a matching active customer account
+- `POST /api/auth/phone/otp/verify` — verifies the SMS code and creates a customer session
 - `GET /api/auth/me`
 - `GET /api/restaurants`
 - `GET /api/restaurants/:id`
