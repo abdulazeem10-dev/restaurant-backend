@@ -121,19 +121,26 @@ function renderRestaurants() {
     delivery.textContent = labels[restaurant.foodType] || labels.both;
     meta.append(open, delivery);
 
+    const identity = document.createElement("div");
+    identity.className = "restaurant-identity";
     const title = document.createElement("h3");
     title.textContent = restaurant.name;
+    identity.append(title);
     const address = document.createElement("p");
     address.className = "restaurant-address";
     address.textContent = restaurant.address;
     const description = document.createElement("p");
     description.className = "restaurant-description";
     description.textContent = restaurant.description || "Freshly prepared favourites from your local kitchen.";
-    const rating = document.createElement("p");
+    const rating = document.createElement("span");
     rating.className = "restaurant-rating";
     rating.textContent = restaurant.ratingCount
       ? `★ ${Number(restaurant.ratingAverage).toFixed(1)} · ${restaurant.ratingCount} ${restaurant.ratingCount === 1 ? "review" : "reviews"}`
-      : "No reviews yet";
+      : "New";
+    rating.setAttribute("aria-label", restaurant.ratingCount
+      ? `Rated ${Number(restaurant.ratingAverage).toFixed(1)} out of 5 from ${restaurant.ratingCount} ${restaurant.ratingCount === 1 ? "review" : "reviews"}`
+      : "New restaurant, no reviews yet");
+    identity.append(rating);
     const hours = document.createElement("p");
     hours.className = "restaurant-service-detail muted";
     hours.textContent = formatTodayHours(restaurant.openingHours);
@@ -144,7 +151,14 @@ function renderRestaurants() {
     link.className = "card-action";
     link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;
     link.textContent = "View menu";
-    details.append(meta, title, rating, address, description, hours, coverage, link);
+    const service = document.createElement("div");
+    service.className = "restaurant-service-list";
+    const hoursLine = document.createElement("span");
+    hoursLine.textContent = `◷ ${hours.textContent}`;
+    const coverageLine = document.createElement("span");
+    coverageLine.textContent = `⌖ ${coverage.textContent}`;
+    service.append(hoursLine, coverageLine);
+    details.append(meta, identity, address, description, service, link);
     card.append(cover, details);
     restaurantGrid.append(card);
   }

@@ -10,6 +10,8 @@ This guide records the visual language in the current frontend CSS and the UX pr
 - **Surfaces:** warm near-white backgrounds, white cards, light beige borders, and dark warm text.
 - Use food imagery where available; avoid decorative visuals that push menu, address, status, or payment information out of view.
 
+The customer home page now uses a more editorial marketplace presentation: a confident discovery headline, a focused food-type choice, one compact sort/coverage panel, and image-led restaurant cards. Use these patterns to improve trust and scanability while keeping Food Platform's own coral-and-warm-neutral identity.
+
 ## Current CSS palette
 
 | Token | Current value | Use |
