@@ -1418,6 +1418,26 @@ body { color: var(--foodway-ink); }
 .customer-page .restaurant-card { border-color: var(--foodway-line); border-radius: 19px; background: #fff; box-shadow: 0 8px 24px #2025210a; }
 .customer-page .restaurant-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px #20252115; }
 .customer-page .restaurant-cover { height: 205px; }
+.customer-page .restaurant-card-skeleton { min-height: 480px; border-color: var(--foodway-line); background: #fff; box-shadow: 0 8px 24px #2025210a; }
+.customer-page .restaurant-card-skeleton .skeleton-cover,
+.customer-page .restaurant-card-skeleton .skeleton-details span {
+  background: linear-gradient(100deg, #edf0e9 28%, #f8f9f6 48%, #edf0e9 68%);
+  background-size: 220% 100%;
+  animation: restaurant-loading 1.35s ease-in-out infinite;
+}
+.customer-page .restaurant-card-skeleton .skeleton-cover { height: 205px; }
+.customer-page .restaurant-card-skeleton .skeleton-details { display: grid; gap: .8rem; padding: 1.2rem; }
+.customer-page .restaurant-card-skeleton .skeleton-details span { height: .8rem; border-radius: 999px; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:first-child { width: 42%; height: 1rem; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:nth-child(2) { width: 67%; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:nth-child(3) { width: 36%; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:nth-child(4) { width: 88%; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:nth-child(5) { width: 62%; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:nth-child(6) { width: 73%; }
+.customer-page .restaurant-card-skeleton .skeleton-details span:last-child { width: 34%; height: 1rem; margin-top: .3rem; }
+.customer-page .restaurant-load-error .hero-cta { margin-top: .8rem; border: 0; color: #fff; cursor: pointer; }
+.customer-page .restaurant-load-error .hero-cta:hover { background: #c93d2d; }
+@keyframes restaurant-loading { to { background-position-x: -220%; } }
 .customer-page .restaurant-card h3 { color: var(--foodway-ink); }
 .customer-page .restaurant-rating { background: #edf3e8; color: #315d3d; }
 .customer-page .card-action { border-color: transparent; background: transparent; color: var(--foodway-green); }

@@ -184,15 +184,45 @@ function renderRestaurants() {
 
 async function loadRestaurants() {
   const error = document.querySelector("#error");
+  restaurantGrid.setAttribute("aria-busy", "true");
+  resultCount.textContent = "Finding restaurants nearby…";
+  restaurantGrid.replaceChildren(...Array.from({ length: 3 }, () => {
+    const card = document.createElement("article");
+    card.className = "restaurant-card restaurant-card-skeleton";
+    card.setAttribute("aria-hidden", "true");
+    const cover = document.createElement("div");
+    cover.className = "skeleton-cover";
+    const details = document.createElement("div");
+    details.className = "skeleton-details";
+    for (let index = 0; index < 7; index += 1) details.append(document.createElement("span"));
+    card.append(cover, details);
+    return card;
+  }));
   try {
     const response = await fetch(`${API_BASE}/restaurants`);
     if (!response.ok) throw new Error("Unable to load restaurants");
     const data = await response.json();
     allRestaurants = data.restaurants || [];
+    restaurantGrid.setAttribute("aria-busy", "false");
     renderRestaurants();
+    error.textContent = "";
   } catch {
+    restaurantGrid.setAttribute("aria-busy", "false");
     resultCount.textContent = "";
-    error.textContent = "We couldn’t load restaurants. Check that the API is running, then refresh.";
+    const state = document.createElement("div");
+    state.className = "empty-state restaurant-load-error";
+    const title = document.createElement("h3");
+    title.textContent = "Restaurants aren’t available right now";
+    const message = document.createElement("p");
+    message.textContent = "Check your connection and try again.";
+    const retry = document.createElement("button");
+    retry.className = "hero-cta";
+    retry.type = "button";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", loadRestaurants, { once: true });
+    state.append(title, message, retry);
+    restaurantGrid.replaceChildren(state);
+    error.textContent = "";
   }
 }
 
