@@ -2,6 +2,11 @@
 
 A starter MVP scaffold for a multi-restaurant ordering platform, including basic delivery-partner assignment, payment collection state, and customer receipt confirmation.
 
+## Project documentation
+- [Product requirements](prd.md)
+- [Architecture](architect.md)
+- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+
 ## Stack
 - Frontend: HTML, CSS, browser JavaScript
 - Backend: Node.js, Express, Mongoose
