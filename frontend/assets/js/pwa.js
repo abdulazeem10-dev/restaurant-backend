@@ -27,4 +27,5 @@ window.addEventListener("appinstalled", () => {
   if (installHelp) installHelp.hidden = true;
 });
 
-if (/Android/i.test(navigator.userAgent) && installHelp && !window.matchMedia("(display-mode: standalone)").matches) installHelp.hidden = false;
+const isFoodwayAndroidApp = /FoodwayAndroidApp/i.test(navigator.userAgent);
+if (/Android/i.test(navigator.userAgent) && !isFoodwayAndroidApp && installHelp && !window.matchMedia("(display-mode: standalone)").matches) installHelp.hidden = false;

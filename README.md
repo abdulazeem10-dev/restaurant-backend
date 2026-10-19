@@ -140,3 +140,15 @@ Order totals currently include menu item prices only; taxes and delivery fees ar
 - Enable automated database backups/snapshots with the database host, set a retention period, and regularly test restoring a backup to a separate staging database. Protect exported backups because they contain customer and order data.
 - Add end-to-end tests for checkout, restaurant status updates, delivery completion, cancellation/help, and payment webhooks before launch. The current automated suite is only a small smoke test.
 - Use HTTPS in production. Delivery GPS sharing will not work on plain HTTP except localhost.
+## Android APK
+
+The Android app is a native WebView wrapper for the deployed Foodway site at `https://foodway-ten.vercel.app/customer/index.html`. It uses the same backend and accounts as the website; pages and data are loaded from the live site. The app requests location permission only when a Foodway page asks to share GPS location.
+
+### Build and download the APK
+
+1. Push the repository changes to GitHub.
+2. Open the repository’s **Actions** tab and choose **Build Android APK**. For an automatic build, pushing a change under `android/` also starts it.
+3. Open the completed run and download the `foodway-android-apk` artifact.
+4. Extract the ZIP on your computer or phone to get `app-debug.apk`, then install it on Android. Android may ask you to allow installation from the browser or file manager used to open it.
+
+This workflow creates a debug APK for direct testing. A Play Store release needs a signed release build and a protected signing key.
