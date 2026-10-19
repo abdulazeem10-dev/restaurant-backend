@@ -126,6 +126,13 @@ async function updateRestaurantOrder(req, res) {
   order.status = req.body.status;
   order.statusHistory.push({ status: req.body.status, at: new Date() });
   await order.save();
+  const statusLabels = { confirmed: "confirmed", preparing: "being prepared", ready: "ready for pickup", out_for_delivery: "out for delivery", cancelled: "cancelled" };
+  await notifyOrderParticipants(order, {
+    type: "order_status_updated",
+    title: req.body.status === "cancelled" ? "Order cancelled" : "Order status updated",
+    customerMessage: `Order #${String(order._id).slice(-6)} from ${restaurant.name} is ${statusLabels[order.status]}.`,
+    audiences: ["customer"]
+  });
   return res.json({ order });
 }
 

@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: true },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true },
   audience: { type: String, enum: ["customer", "restaurant"], required: true },
-  type: { type: String, enum: ["order_delivered", "cancellation_requested", "cancellation_reviewed", "order_help_requested", "order_help_resolved"], required: true },
+  type: { type: String, enum: ["order_delivered", "order_status_updated", "cancellation_requested", "cancellation_reviewed", "order_help_requested", "order_help_resolved"], required: true },
   title: { type: String, required: true, maxlength: 120 },
   message: { type: String, required: true, maxlength: 300 },
   readAt: { type: Date, default: null }
