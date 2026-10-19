@@ -18,8 +18,10 @@ app.disable("x-powered-by");
 app.set("trust proxy", 1);
 app.use(helmet());
 
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5500")
+const configuredOrigins = (process.env.FRONTEND_ORIGIN || "http://127.0.0.1:5500")
   .split(",").map(value => value.trim()).filter(Boolean);
+// The Android WebView loads bundled frontend files from this secure local origin.
+const allowedOrigins = [...new Set([...configuredOrigins, "https://appassets.androidplatform.net"])];
 
 app.use(cors({
   origin(origin, callback) {

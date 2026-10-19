@@ -11,32 +11,49 @@ import android.webkit.GeolocationPermissions;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import androidx.webkit.WebViewAssetLoader;
 
 public class MainActivity extends Activity {
     private static final int LOCATION_PERMISSION_REQUEST = 7101;
     private static final int FILE_CHOOSER_REQUEST = 7102;
-    private static final String HOME_URL = "https://foodway-ten.vercel.app/customer/index.html";
-    private static final String ALLOWED_HOST = "foodway-ten.vercel.app";
+    private static final String HOME_URL = "https://appassets.androidplatform.net/customer/index.html";
+    private static final String ALLOWED_HOST = "appassets.androidplatform.net";
+
     private WebView webView;
+    private WebViewAssetLoader assetLoader;
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
     private ValueCallback<Uri[]> fileChooserCallback;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        assetLoader = new WebViewAssetLoader.Builder()
+                .setDomain(ALLOWED_HOST)
+                .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
+
         webView = new WebView(this);
         setContentView(webView);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setGeolocationEnabled(true);
+        settings.setAllowFileAccess(false);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " FoodwayAndroidApp/1.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " FoodwayAndroidApp/1.1");
+
         webView.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return interceptAppAsset(request.getUrl());
+            }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                return interceptAppAsset(Uri.parse(url));
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleUrl(request.getUrl());
             }
@@ -44,9 +61,14 @@ public class MainActivity extends Activity {
                 return handleUrl(Uri.parse(url));
             }
         });
+
         webView.setWebChromeClient(new WebChromeClient() {
             @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (!"https".equalsIgnoreCase(Uri.parse(origin).getScheme()) || !ALLOWED_HOST.equalsIgnoreCase(Uri.parse(origin).getHost())) { callback.invoke(origin, false, false); return; }
+                Uri originUri = Uri.parse(origin);
+                if (!"https".equalsIgnoreCase(originUri.getScheme()) || !ALLOWED_HOST.equalsIgnoreCase(originUri.getHost())) {
+                    callback.invoke(origin, false, false);
+                    return;
+                }
                 if (hasLocationPermission()) callback.invoke(origin, true, false);
                 else {
                     pendingGeoOrigin = origin;
@@ -65,8 +87,14 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
         if (savedInstanceState == null) webView.loadUrl(HOME_URL);
         else webView.restoreState(savedInstanceState);
+    }
+
+    private WebResourceResponse interceptAppAsset(Uri uri) {
+        if (!ALLOWED_HOST.equalsIgnoreCase(uri.getHost())) return null;
+        return assetLoader.shouldInterceptRequest(uri);
     }
 
     private boolean handleUrl(Uri uri) {
@@ -105,4 +133,3 @@ public class MainActivity extends Activity {
     @Override public void onBackPressed() { if (webView.canGoBack()) webView.goBack(); else super.onBackPressed(); }
     @Override protected void onDestroy() { if (webView != null) webView.destroy(); super.onDestroy(); }
 }
-

@@ -1,7 +1,0 @@
-com.foodway.app-pngs-0 D:\food-platform-starter\android\app\build\generated\res\pngs\debug
-com.foodway.app-resValues-1 D:\food-platform-starter\android\app\build\generated\res\resValues\debug
-com.foodway.app-packageDebugResources-2 D:\food-platform-starter\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.foodway.app-packageDebugResources-3 D:\food-platform-starter\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.foodway.app-debug-4 D:\food-platform-starter\android\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.foodway.app-debug-5 D:\food-platform-starter\android\app\src\debug\res
-com.foodway.app-main-6 D:\food-platform-starter\android\app\src\main\res

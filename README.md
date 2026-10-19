@@ -152,3 +152,15 @@ The Android app is a native WebView wrapper for the deployed Foodway site at `ht
 4. Extract the ZIP on your computer or phone to get `app-debug.apk`, then install it on Android. Android may ask you to allow installation from the browser or file manager used to open it.
 
 This workflow creates a debug APK for direct testing. A Play Store release needs a signed release build and a protected signing key.
+## Android APK
+
+The Android app bundles the current `frontend` files and serves them from Android's secure local WebView origin. API requests go to the existing backend at `https://foodway-ten.vercel.app/api`, so accounts and order data are shared with the website. The backend allows the Android WebView's local origin for API requests.
+
+### Build and download the APK
+
+1. Push the repository changes to GitHub.
+2. Open the repository’s **Actions** tab and select **Build Android APK**. A push to `frontend/` or `android/` starts a build automatically.
+3. Open the completed run and download the `foodway-android-apk` artifact.
+4. Extract the ZIP and install `app-debug.apk`. If Android refuses to update the earlier APK, uninstall that version first and install the new one.
+
+Frontend changes are included in the next APK build, so install the new APK to update its screens. The app continues using the live backend data. This workflow creates a debug APK for testing; Play Store distribution requires a signed release build and protected signing key.
