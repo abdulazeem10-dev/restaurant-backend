@@ -5,6 +5,7 @@ const foodTypeFilter = document.querySelector("#food-type-filter");
 const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter");
 const resultCount = document.querySelector("#results-count");
 const clearFiltersButton = document.querySelector("#clear-filters");
+const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
 let allRestaurants = [];
 
 async function setupHomeAccountNav() {
@@ -68,6 +69,9 @@ function renderRestaurants() {
   const hasCompletePin = /^\d{6}$/.test(pin);
   const hasActiveFilters = Boolean(term || pin || foodTypeFilter.value !== "all" || sortSelect.value !== "name");
   clearFiltersButton.hidden = !hasActiveFilters;
+  quickFoodFilters.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.quickFood === foodTypeFilter.value));
+  });
   const matches = allRestaurants.filter(restaurant => {
     const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
     // Treat missing foodType values from older records as mixed restaurants.
@@ -183,6 +187,10 @@ searchInput.addEventListener("input", renderRestaurants);
 sortSelect.addEventListener("change", renderRestaurants);
 foodTypeFilter.addEventListener("change", renderRestaurants);
 deliveryPincodeFilter.addEventListener("input", renderRestaurants);
+quickFoodFilters.forEach(button => button.addEventListener("click", () => {
+  foodTypeFilter.value = button.dataset.quickFood;
+  renderRestaurants();
+}));
 clearFiltersButton.addEventListener("click", () => {
   searchInput.value = "";
   deliveryPincodeFilter.value = "";
