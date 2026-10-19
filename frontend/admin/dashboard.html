@@ -1,7 +1,72 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Platform admin | Food Platform</title><link rel="stylesheet" href="../assets/css/style.css"></head>
-<body><header><h1>Platform Admin</h1><nav><a href="../customer/index.html">Customer site</a><button id="logout" class="secondary">Log out</button></nav></header><main>
-<p id="message" role="status"></p><section class="panel"><h2>Onboard a restaurant</h2><p>Create the restaurant’s owner account. Give the owner their login credentials securely.</p><form id="restaurant-form" class="form-grid">
-<label>Restaurant name<br><input name="restaurantName" required maxlength="150"></label><label>Restaurant address<br><input name="address" required minlength="5" maxlength="500"></label><label>Description<br><input name="description" maxlength="2000"></label><label>Food type<br><select name="foodType" required><option value="" selected disabled>Choose food type</option><option value="veg">Veg only</option><option value="nonVeg">Non-Veg only</option><option value="both">Veg &amp; Non-Veg</option></select></label><label>Restaurant image URL (HTTPS)<br><input name="imageUrl" type="url" maxlength="2048" placeholder="https://…"></label><label>Owner name<br><input name="ownerName" required maxlength="100"></label><label>Owner email / username<br><input name="email" type="email" required maxlength="254"></label><label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><button type="submit">Create pending restaurant</button></form><p class="muted">Paste a publicly accessible image link. The image must already be hosted online.</p></section>
-<section class="panel"><h2>Add a delivery person</h2><p>Create a delivery login. New orders are assigned automatically to the active person with the fewest open deliveries.</p><form id="delivery-partner-form" class="form-grid"><label>Full name<br><input name="name" required maxlength="100" autocomplete="name"></label><label>Email / login<br><input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>Mobile number<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel"></label><label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><button type="submit">Create delivery login</button></form></section>
-<section><h2>Restaurants</h2><div id="restaurants" class="grid"></div></section></main><script src="../assets/js/common.js"></script><script src="../assets/js/admin.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf5">
+  <title>Admin Home | Food Platform</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="admin-brand" href="dashboard.html"><span class="wordmark-icon">F</span><span>Platform Admin</span></a>
+    <nav aria-label="Admin account"><a href="../customer/index.html?view=customer">Customer site</a><button id="logout" class="secondary" type="button">Log out</button></nav>
+  </header>
+
+  <main class="admin-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+      <p class="admin-sidebar-label">WORKSPACE</p>
+      <button type="button" data-admin-view="overview" aria-current="page"><span aria-hidden="true">▦</span> Overview</button>
+      <button type="button" data-admin-view="add-restaurant"><span aria-hidden="true">＋</span> Add restaurant</button>
+      <button type="button" data-admin-view="create-account"><span aria-hidden="true">♙</span> Create account</button>
+      <button type="button" data-admin-view="restaurants"><span aria-hidden="true">▤</span> Restaurants</button>
+      <div class="admin-sidebar-help"><strong>Need the customer view?</strong><a href="../customer/index.html?view=customer">Open customer site →</a></div>
+    </aside>
+
+    <div class="admin-content">
+      <div class="admin-page-heading"><div><p class="eyebrow">FOOD PLATFORM MANAGEMENT</p><h1 id="admin-page-title">Admin overview</h1><p id="admin-page-description" class="muted">Manage restaurants, accounts, and approvals from one place.</p></div><span class="admin-access-badge">Administrator</span></div>
+      <p id="message" class="admin-message" role="status" aria-live="polite"></p>
+
+      <section class="admin-view" data-admin-section="overview">
+        <div class="admin-stat-grid" aria-label="Restaurant totals">
+          <article class="admin-stat"><span>Total restaurants</span><strong id="stat-total">—</strong><small>All restaurants on the platform</small></article>
+          <article class="admin-stat"><span>Approved</span><strong id="stat-approved">—</strong><small>Approved to serve customers</small></article>
+          <article class="admin-stat"><span>Pending review</span><strong id="stat-pending">—</strong><small>Waiting for an admin decision</small></article>
+        </div>
+        <section class="panel admin-shortcuts"><div><p class="eyebrow">QUICK ACTIONS</p><h2>What would you like to do?</h2><p class="muted">Add a restaurant and create its owner login, set up a delivery login, or review existing restaurants.</p></div><div class="admin-shortcut-actions"><button type="button" data-open-admin-view="add-restaurant">Add restaurant</button><button type="button" class="secondary" data-open-admin-view="create-account">Create account</button><button type="button" class="secondary" data-open-admin-view="restaurants">Manage restaurants</button></div></section>
+      </section>
+
+      <section class="admin-view" data-admin-section="add-restaurant" hidden>
+        <section class="panel admin-form-panel"><p class="eyebrow">RESTAURANT ONBOARDING</p><h2>Add a restaurant</h2><p>Create the restaurant and its owner account together. Give the owner their login credentials securely.</p><form id="restaurant-form" class="form-grid">
+          <label>Restaurant name<br><input name="restaurantName" required maxlength="150"></label>
+          <label>Restaurant address<br><input name="address" required minlength="5" maxlength="500"></label>
+          <label>Description<br><input name="description" maxlength="2000"></label>
+          <label>Food type<br><select name="foodType" required><option value="" selected disabled>Choose food type</option><option value="veg">Veg only</option><option value="nonVeg">Non-Veg only</option><option value="both">Veg &amp; Non-Veg</option></select></label>
+          <label>Restaurant image URL (HTTPS)<br><input name="imageUrl" type="url" maxlength="2048" placeholder="https://…"></label>
+          <label>Owner name<br><input name="ownerName" required maxlength="100"></label>
+          <label>Owner email / username<br><input name="email" type="email" required maxlength="254"></label>
+          <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+          <button type="submit">Create pending restaurant</button>
+        </form><p class="muted admin-form-note">Paste a publicly accessible image link. The image must already be hosted online. The restaurant will need approval before it appears to customers.</p></section>
+      </section>
+
+      <section class="admin-view" data-admin-section="create-account" hidden>
+        <section class="panel admin-form-panel"><p class="eyebrow">TEAM ACCOUNTS</p><h2>Create a delivery account</h2><p>Delivery accounts can sign in to see assigned orders, pickup and delivery addresses, food details, and payment mode.</p><form id="delivery-partner-form" class="form-grid">
+          <label>Full name<br><input name="name" required maxlength="100" autocomplete="name"></label>
+          <label>Email / login<br><input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+          <label>Mobile number<br><input name="phone" type="tel" required minlength="8" maxlength="20" autocomplete="tel" placeholder="+91 9876543210"></label>
+          <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+          <button type="submit">Create delivery login</button>
+        </form><div class="admin-inline-note"><strong>Restaurant owner accounts</strong><span>Owner login details are created with each restaurant. Use <button type="button" class="admin-text-button" data-open-admin-view="add-restaurant">Add restaurant</button> to set one up.</span></div></section>
+      </section>
+
+      <section class="admin-view" data-admin-section="restaurants" hidden>
+        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurants</h2><p class="muted">Review status, update food type and images, and approve or suspend restaurants.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Add restaurant</button></div>
+        <div id="restaurants" class="grid admin-restaurant-grid"></div>
+      </section>
+    </div>
+  </main>
+  <script src="../assets/js/common.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

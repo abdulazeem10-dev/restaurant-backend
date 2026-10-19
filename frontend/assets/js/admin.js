@@ -1,4 +1,31 @@
 const message = document.querySelector("#message");
+const adminPageTitles = {
+  overview: ["Admin overview", "Manage restaurants, accounts, and approvals from one place."],
+  "add-restaurant": ["Add restaurant", "Create a restaurant and its owner account."],
+  "create-account": ["Create account", "Set up a delivery-person login for your platform."],
+  restaurants: ["Restaurants", "Review restaurant details and manage approvals."]
+};
+
+function showAdminView(view) {
+  if (!adminPageTitles[view]) return;
+  document.querySelectorAll("[data-admin-section]").forEach(section => {
+    section.hidden = section.dataset.adminSection !== view;
+  });
+  document.querySelectorAll("[data-admin-view]").forEach(button => {
+    if (button.dataset.adminView === view) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  document.querySelector("#admin-page-title").textContent = adminPageTitles[view][0];
+  document.querySelector("#admin-page-description").textContent = adminPageTitles[view][1];
+  if (view !== "overview") document.querySelector("#message").textContent = "";
+}
+
+document.querySelectorAll("[data-admin-view]").forEach(button => {
+  button.addEventListener("click", () => showAdminView(button.dataset.adminView));
+});
+document.querySelectorAll("[data-open-admin-view]").forEach(button => {
+  button.addEventListener("click", () => showAdminView(button.dataset.openAdminView));
+});
 
 if (!getToken()) {
   location.href = "../customer/login.html";
@@ -37,6 +64,10 @@ async function updateRestaurantStatus(restaurantId, status) {
 async function loadRestaurants() {
   const { restaurants } = await adminRequest("/admin/restaurants");
   const root = document.querySelector("#restaurants");
+
+  document.querySelector("#stat-total").textContent = restaurants.length;
+  document.querySelector("#stat-approved").textContent = restaurants.filter(item => item.status === "approved").length;
+  document.querySelector("#stat-pending").textContent = restaurants.filter(item => item.status === "pending").length;
 
   root.replaceChildren();
 
@@ -212,6 +243,7 @@ document
         "Restaurant and owner account created. The restaurant is pending approval.";
 
       await loadRestaurants();
+      showAdminView("restaurants");
     } catch (error) {
       message.textContent = error.message;
     }
@@ -243,3 +275,5 @@ loadRestaurants().catch(error => {
   message.textContent =
     `${error.message}. Sign in with an admin account.`;
 });
+
+showAdminView("overview");
