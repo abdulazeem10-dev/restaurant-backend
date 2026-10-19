@@ -43,7 +43,8 @@ async function sendPasswordResetEmail(email, token) {
       subject: "Reset your Food Platform password",
       text: `Use this link to reset your password. It expires in 30 minutes: ${link}\n\nIf you did not request this, you can ignore this email.`,
       html: `<p>Use the link below to reset your Food Platform password. It expires in 30 minutes.</p><p><a href="${link}">Reset password</a></p><p>If you did not request this, you can ignore this email.</p>`
-    })
+    }),
+    signal: AbortSignal.timeout(8000)
   });
 
   if (!response.ok) {
@@ -105,7 +106,8 @@ async function twilioVerifyRequest(config, resource, values) {
       Authorization: `Basic ${credentials}`,
       "Content-Type": "application/x-www-form-urlencoded"
     },
-    body: new URLSearchParams(values)
+    body: new URLSearchParams(values),
+    signal: AbortSignal.timeout(8000)
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {

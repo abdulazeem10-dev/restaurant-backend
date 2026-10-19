@@ -30,7 +30,8 @@ async function razorpayRequest(path, { method = "GET", body } = {}) {
       Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString("base64")}`,
       ...(body ? { "Content-Type": "application/json" } : {})
     },
-    ...(body ? { body: JSON.stringify(body) } : {})
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(8000)
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {

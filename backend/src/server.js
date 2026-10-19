@@ -9,7 +9,13 @@ if (require.main === module) {
     }
     await connectDatabase();
     const port = Number(process.env.PORT) || 5000;
-    app.listen(port, () => console.log(`API listening on port ${port}`));
+    const server = app.listen(port, () => console.log(`API listening on port ${port}`));
+    // Bound slow/incomplete HTTP requests for the standalone Node server.
+    // Serverless hosts enforce their own platform-level request timeouts.
+    server.headersTimeout = 10_000;
+    server.requestTimeout = 30_000;
+    server.keepAliveTimeout = 5_000;
+    server.maxRequestsPerSocket = 100;
   }
 
   start().catch(error => {

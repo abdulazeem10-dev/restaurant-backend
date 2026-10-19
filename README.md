@@ -144,7 +144,9 @@ Order totals currently include menu item prices only; taxes and delivery fees ar
 - Public registration cannot choose a role.
 - Restaurant routes resolve the restaurant from the authenticated owner.
 - Never trust prices or totals from the browser.
-- Rate limits, password reset, OTP limits, Helmet, CORS allow-listing, and the API health endpoint are present; review settings against the actual production deployment.
+- The API limits request bodies and general request rates, with tighter limits on login, registration, Google sign-in, OTP, and password reset. The built-in rate-limit store is in-memory per Node process; use a shared store when running multiple instances so limits cannot reset or diverge across instances.
+- Put the production API behind the hosting provider's DDoS protection and a web application firewall/CDN with request, connection, and bandwidth limits. Application middleware reduces abusive HTTP traffic but cannot absorb a large network flood by itself.
+- Outbound email, SMS, and payment-provider calls have bounded timeouts. The standalone Node server also bounds slow HTTP requests; serverless hosting applies its own request timeout controls.
 - Set `FRONTEND_ORIGIN`, `JWT_SECRET`, MongoDB credentials, and provider credentials in the deployment platform's secret manager. Never expose backend secrets in frontend files.
 - Enable automated database backups/snapshots with the database host, set a retention period, and regularly test restoring a backup to a separate staging database. Protect exported backups because they contain customer and order data.
 - Add end-to-end tests for checkout, restaurant status updates, delivery completion, cancellation/help, and payment webhooks before launch. The current automated suite is only a small smoke test.

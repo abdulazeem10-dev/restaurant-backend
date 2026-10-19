@@ -11,7 +11,13 @@ async function connectDatabase() {
   if (mongoose.connection.readyState === 1) return mongoose.connection;
 
   if (!cache.promise) {
-    cache.promise = mongoose.connect(process.env.MONGODB_URI)
+    cache.promise = mongoose.connect(process.env.MONGODB_URI, {
+      // Bound resource usage per app instance and fail quickly during an
+      // unavailable database instead of holding API requests indefinitely.
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000
+    })
       .then(() => {
         console.log("MongoDB connected");
         return mongoose.connection;

@@ -30,17 +30,74 @@ app.use(cors({
   }
 }));
 
+app.use("/api", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 240,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait before trying again." }
+}));
+
+// Keep expensive authentication endpoints below the general API budget.
+// These run before the database connection middleware to avoid opening DB
+// work for requests already over their limit.
+app.post("/api/auth/login", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please wait 15 minutes and try again." }
+}));
+app.post("/api/auth/register", rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many account creation attempts. Please try again later." }
+}));
+app.post("/api/auth/google", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many sign-in attempts. Please wait 15 minutes and try again." }
+}));
+app.post("/api/auth/phone/otp/request", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many code requests. Please wait 15 minutes and try again." }
+}));
+app.post("/api/auth/phone/otp/verify", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many code attempts. Please wait 15 minutes and try again." }
+}));
+app.post("/api/auth/password-reset/request", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false
+}));
+app.post("/api/auth/password-reset/confirm", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+}));
+
 app.use(express.json({
   limit: "100kb",
   verify(req, res, buffer) {
-    req.rawBody = Buffer.from(buffer);
+    // Keep an untouched copy only for the signed provider webhook. Copying
+    // every parsed body doubles memory use on all API requests.
+    if (req.originalUrl.split("?", 1)[0] === "/api/payments/webhook") {
+      req.rawBody = Buffer.from(buffer);
+    }
   }
-}));
-app.use("/api", rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 300,
-  standardHeaders: true,
-  legacyHeaders: false
 }));
 
 // Connect inside the request lifecycle as well as local server startup. This
