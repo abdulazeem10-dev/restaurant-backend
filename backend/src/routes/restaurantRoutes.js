@@ -14,6 +14,7 @@ router.patch("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), async
 router.delete("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.deleteMenuItem));
 router.patch("/owner/open", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnOpenStatus));
 router.patch("/owner/service-settings", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnServiceSettings));
+router.get("/owner/reports", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.getOwnReports));
 // Only the restaurant's primary owner can create or remove staff accounts.
 router.get("/owner/staff", authenticate, authorize("restaurant"), asyncHandler(controller.listOwnStaff));
 router.post("/owner/staff", authenticate, authorize("restaurant"), asyncHandler(controller.createOwnStaff));

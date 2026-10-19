@@ -13,6 +13,8 @@ router.patch("/restaurant/:id", authenticate, authorizeRestaurant("orders"), asy
 router.patch("/restaurant/:id/cancellation", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.reviewCancellationRequest));
 router.patch("/restaurant/:id/help/:requestId", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.resolveOrderHelpRequest));
 router.get("/delivery/mine", authenticate, authorize("delivery"), asyncHandler(controller.listDeliveryOrders));
+router.patch("/delivery/location", authenticate, authorize("delivery"), asyncHandler(controller.updateDeliveryLocation));
+router.delete("/delivery/location", authenticate, authorize("delivery"), asyncHandler(controller.clearDeliveryLocation));
 router.patch("/delivery/:id", authenticate, authorize("delivery"), asyncHandler(controller.updateDeliveryOrder));
 router.patch("/:id/received", authenticate, authorize("customer"), asyncHandler(controller.confirmOrderReceived));
 router.post("/:id/cancellation-request", authenticate, authorize("customer"), asyncHandler(controller.requestOrderCancellation));

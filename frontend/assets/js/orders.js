@@ -198,6 +198,26 @@ function renderOrders(orders) {
     const paymentStatusLabel = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled", awaiting_payment: "Waiting for payment" };
     card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    if (order.estimatedDeliveryAt && !["delivered", "cancelled"].includes(order.status)) {
+      const eta = document.createElement("p"); eta.className = "order-eta";
+      eta.textContent = `Estimated delivery: ${new Date(order.estimatedDeliveryAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+      card.append(eta);
+    }
+    const location = order.deliveryLocation;
+    if (location && ["out_for_delivery", "picked_up"].includes(order.status) && Number.isFinite(location.latitude) && Number.isFinite(location.longitude)) {
+      const updatedAt = new Date(location.updatedAt);
+      const ageMinutes = Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / 60000));
+      const tracking = document.createElement("p");
+      if (ageMinutes > 2) {
+        tracking.textContent = `Rider location stopped updating ${ageMinutes} minutes ago.`;
+      } else {
+        const map = document.createElement("a");
+        map.href = `https://www.google.com/maps?q=${encodeURIComponent(`${location.latitude},${location.longitude}`)}`;
+        map.target = "_blank"; map.rel = "noopener noreferrer"; map.textContent = "View latest rider location";
+        tracking.textContent = "Rider is sharing location · "; tracking.append(map);
+      }
+      card.append(tracking);
+    }
     if (order.deliveryPartnerId) {
       const partner = document.createElement("p");
       partner.textContent = `Delivery person: ${order.deliveryPartnerId.name}${order.deliveryPartnerId.phone ? ` · ${order.deliveryPartnerId.phone}` : ""}`;

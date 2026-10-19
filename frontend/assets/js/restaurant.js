@@ -10,6 +10,7 @@ const restaurantViewInfo = {
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
   orders: ["Incoming orders", "Review customer and delivery details and update order progress."],
+  reports: ["Sales reports", "Track paid sales, completed orders, and best-selling dishes."],
   notifications: ["Notifications", "Order completion updates for your restaurant."]
 };
 function showRestaurantView(view) {
@@ -171,6 +172,8 @@ async function loadMenu() {
   document.querySelector("#restaurant-title").textContent = restaurant.name;
   document.querySelector("#restaurant-state").textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
   renderOpeningHours(restaurant.openingHours);
+  document.querySelector('#delivery-times-form [name="prepTimeMinutes"]').value = restaurant.prepTimeMinutes || 30;
+  document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]').value = restaurant.deliveryTimeMinutes || 30;
   document.querySelector("#delivery-pincodes").value = (restaurant.deliveryPincodes || []).join(", ");
   const toggle = document.querySelector("#open-toggle");
   if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
@@ -260,6 +263,21 @@ document.querySelector("#hours-form").addEventListener("submit", async event => 
     button.disabled = false;
   }
 });
+document.querySelector("#delivery-times-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const values = new FormData(form);
+    await api("/restaurants/owner/service-settings", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prepTimeMinutes: Number(values.get("prepTimeMinutes")), deliveryTimeMinutes: Number(values.get("deliveryTimeMinutes")) })
+    });
+    msg.textContent = "Preparation and delivery estimates saved.";
+  } catch (error) { msg.textContent = error.message; }
+  finally { button.disabled = false; }
+});
 document.querySelector("#delivery-area-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -290,6 +308,67 @@ document.querySelector("#delivery-area-form").addEventListener("submit", async e
     button.disabled = false;
   }
 });
+
+function setDefaultReportDates() {
+  const form = document.querySelector("#reports-filter");
+  if (form.elements.from.value && form.elements.to.value) return;
+  const today = new Date();
+  const from = new Date(today); from.setDate(today.getDate() - 6);
+  const dateValue = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  form.elements.from.value = dateValue(from);
+  form.elements.to.value = dateValue(today);
+}
+
+async function loadReports() {
+  const form = document.querySelector("#reports-filter");
+  setDefaultReportDates();
+  const params = new URLSearchParams({ from: form.elements.from.value, to: form.elements.to.value });
+  const message = document.querySelector("#reports-message");
+  message.textContent = "Loading report…";
+  try {
+    const data = await api(`/restaurants/owner/reports?${params}`);
+    const summary = document.querySelector("#reports-summary");
+    summary.replaceChildren();
+    const paidSales = document.createElement("article"); paidSales.className = "report-metric";
+    paidSales.innerHTML = `<span>Paid sales</span><strong>${formatRupees(data.summary.paidSalesPaise || 0)}</strong>`;
+    const delivered = document.createElement("article"); delivered.className = "report-metric";
+    delivered.innerHTML = `<span>Delivered orders</span><strong>${data.summary.delivered || 0}</strong>`;
+    const total = document.createElement("article"); total.className = "report-metric";
+    total.innerHTML = `<span>All orders</span><strong>${data.summary.orders || 0}</strong>`;
+    const cancelled = document.createElement("article"); cancelled.className = "report-metric";
+    cancelled.innerHTML = `<span>Cancelled</span><strong>${data.summary.cancelled || 0}</strong>`;
+    summary.append(paidSales, delivered, total, cancelled);
+
+    const statuses = document.querySelector("#report-status-counts"); statuses.replaceChildren();
+    if (!data.statusCounts.length) statuses.textContent = "No orders in this date range.";
+    else {
+      const list = document.createElement("ul"); list.className = "report-status-list";
+      const labels = { placed: "Order placed", confirmed: "Confirmed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Picked up", delivered: "Delivered", cancelled: "Cancelled" };
+      for (const row of data.statusCounts) { const li = document.createElement("li"); li.textContent = `${labels[row._id] || row._id} · ${row.count}`; list.append(li); }
+      statuses.append(list);
+    }
+
+    const daily = document.querySelector("#report-daily"); daily.replaceChildren();
+    if (!data.daily.length) daily.textContent = "No orders in this date range.";
+    else {
+      const table = document.createElement("table"); table.className = "report-table";
+      table.innerHTML = "<thead><tr><th>Date</th><th>Orders</th><th>Paid sales</th></tr></thead>";
+      const tbody = document.createElement("tbody");
+      for (const day of data.daily) { const row = document.createElement("tr"); row.innerHTML = `<td>${escapeHtml(new Date(`${day._id}T00:00:00`).toLocaleDateString("en-IN"))}</td><td>${day.orders}</td><td>${formatRupees(day.paidSalesPaise)}</td>`; tbody.append(row); }
+      table.append(tbody); daily.append(table);
+    }
+    const top = document.querySelector("#report-top-items"); top.replaceChildren();
+    if (!data.topItems.length) top.textContent = "No paid delivered dishes in this date range.";
+    else {
+      const list = document.createElement("ol"); list.className = "report-top-list";
+      for (const item of data.topItems) { const li = document.createElement("li"); li.textContent = `${item.name} · ${item.quantity} sold · ${formatRupees(item.salesPaise)}`; list.append(li); }
+      top.append(list);
+    }
+    message.textContent = `Report from ${form.elements.from.value} to ${form.elements.to.value}.`;
+  } catch (error) { message.textContent = error.message; }
+}
+
+document.querySelector("#reports-filter").addEventListener("submit", event => { event.preventDefault(); loadReports(); });
 function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
@@ -461,7 +540,7 @@ async function initializeRestaurantDashboard() {
   }
   if (restaurantStaffRole) {
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "notifications"]
+      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "reports", "notifications"]
       : ["overview", "menu", "reviews", "orders", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
@@ -475,7 +554,9 @@ async function initializeRestaurantDashboard() {
     await loadStaffAccounts();
   }
   showRestaurantView("overview");
-  await Promise.all([loadMenu(), loadOrders(), loadReviews(), loadNotifications()]);
+  const dashboardLoads = [loadMenu(), loadOrders(), loadReviews(), loadNotifications()];
+  if (!restaurantStaffRole || restaurantStaffRole === "secondary_admin") dashboardLoads.push(loadReports());
+  await Promise.all(dashboardLoads);
 }
 initializeRestaurantDashboard().catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
 setInterval(() => { if (getToken()) { loadOrders().catch(error => { msg.textContent = error.message; }); loadNotifications().catch(error => { msg.textContent = error.message; }); } }, 20000);

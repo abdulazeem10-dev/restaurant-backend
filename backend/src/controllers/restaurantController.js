@@ -4,6 +4,7 @@ const Review = require("../models/Review");
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
+const Order = require("../models/Order");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -21,8 +22,10 @@ const openingHoursInputSchema = z.object(Object.fromEntries(
 )).strict();
 const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
-  deliveryPincodes: z.array(z.string().regex(/^\d{6}$/)).max(100).optional()
-}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined);
+  deliveryPincodes: z.array(z.string().regex(/^\d{6}$/)).max(100).optional(),
+  prepTimeMinutes: z.number().int().min(5).max(180).optional(),
+  deliveryTimeMinutes: z.number().int().min(5).max(180).optional()
+}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined || value.prepTimeMinutes !== undefined || value.deliveryTimeMinutes !== undefined);
 const restaurantStaffSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
@@ -158,14 +161,71 @@ async function updateOwnServiceSettings(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (parsed.data.openingHours) restaurant.openingHours = parsed.data.openingHours;
   if (parsed.data.deliveryPincodes) restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
+  if (parsed.data.prepTimeMinutes !== undefined) restaurant.prepTimeMinutes = parsed.data.prepTimeMinutes;
+  if (parsed.data.deliveryTimeMinutes !== undefined) restaurant.deliveryTimeMinutes = parsed.data.deliveryTimeMinutes;
   await restaurant.save();
   return res.json({
     restaurant: {
       id: restaurant._id,
       openingHours: restaurant.openingHours,
-      deliveryPincodes: restaurant.deliveryPincodes
+      deliveryPincodes: restaurant.deliveryPincodes,
+      prepTimeMinutes: restaurant.prepTimeMinutes,
+      deliveryTimeMinutes: restaurant.deliveryTimeMinutes
     }
   });
+}
+
+async function getOwnReports(req, res) {
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  const fromText = req.query.from;
+  const toText = req.query.to;
+  if (typeof fromText !== "string" || typeof toText !== "string" || !datePattern.test(fromText) || !datePattern.test(toText)) {
+    return res.status(400).json({ error: "Choose a valid report date range" });
+  }
+  const from = new Date(`${fromText}T00:00:00.000Z`);
+  const to = new Date(`${toText}T00:00:00.000Z`);
+  const rangeDays = (to - from) / 86_400_000;
+  if (!Number.isFinite(from.getTime()) || !Number.isFinite(to.getTime()) || from.toISOString().slice(0, 10) !== fromText || to.toISOString().slice(0, 10) !== toText || !Number.isFinite(rangeDays) || rangeDays < 0 || rangeDays > 365) return res.status(400).json({ error: "Choose a valid date range of up to 366 days" });
+  const end = new Date(to.getTime() + 86_400_000);
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const match = { restaurantId: restaurant._id, createdAt: { $gte: from, $lt: end }, status: { $ne: "awaiting_payment" } };
+  const [summaryRows, topItems, daily, statusCounts] = await Promise.all([
+    Order.aggregate([
+      { $match: match },
+      { $group: {
+        _id: null,
+        orders: { $sum: 1 },
+        delivered: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+        cancelled: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+        paidSalesPaise: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "delivered"] }, { $eq: ["$paymentStatus", "paid"] }] }, "$totalPaise", 0] } }
+      } }
+    ]),
+    Order.aggregate([
+      { $match: { ...match, status: "delivered", paymentStatus: "paid" } },
+      { $unwind: "$items" },
+      { $group: { _id: "$items.name", quantity: { $sum: "$items.quantity" }, salesPaise: { $sum: { $multiply: ["$items.quantity", "$items.unitPricePaise"] } } } },
+      { $sort: { quantity: -1, salesPaise: -1 } },
+      { $limit: 10 },
+      { $project: { _id: 0, name: "$_id", quantity: 1, salesPaise: 1 } }
+    ]),
+    Order.aggregate([
+      { $match: match },
+      { $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } },
+        orders: { $sum: 1 },
+        paidSalesPaise: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "delivered"] }, { $eq: ["$paymentStatus", "paid"] }] }, "$totalPaise", 0] } }
+      } },
+      { $sort: { _id: 1 } }
+    ]),
+    Order.aggregate([
+      { $match: match },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ])
+  ]);
+  const summary = summaryRows[0] || { orders: 0, delivered: 0, cancelled: 0, paidSalesPaise: 0 };
+  return res.json({ from: fromText, to: toText, summary, topItems, daily, statusCounts });
 }
 
 async function getOwnMenu(req, res) {
@@ -181,7 +241,9 @@ async function getOwnMenu(req, res) {
       isOpenNow: isRestaurantOpenNow(restaurant),
       status: restaurant.status,
       openingHours: restaurant.openingHours,
-      deliveryPincodes: restaurant.deliveryPincodes
+      deliveryPincodes: restaurant.deliveryPincodes,
+      prepTimeMinutes: restaurant.prepTimeMinutes,
+      deliveryTimeMinutes: restaurant.deliveryTimeMinutes
     },
     items
   });
@@ -292,5 +354,5 @@ async function deleteMenuItem(req, res) {
 module.exports = {
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
-  listOwnStaff, createOwnStaff, removeOwnStaff
+  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports
 };

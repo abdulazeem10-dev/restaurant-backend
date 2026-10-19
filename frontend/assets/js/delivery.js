@@ -1,5 +1,10 @@
 const deliveryRoot = document.querySelector("#deliveries");
 const deliveryMessage = document.querySelector("#message");
+const locationButton = document.querySelector("#location-sharing");
+let locationWatchId = null;
+let lastLocationSentAt = 0;
+let locationUpdateInFlight = false;
+let locationUpdateController = null;
 
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => {
@@ -16,6 +21,63 @@ async function deliveryApi(path, options = {}) {
   if (!response.ok) throw new Error(data.error || "Could not load deliveries");
   return data;
 }
+
+function stopLocationSharing(clearRemote = false) {
+  if (locationWatchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatchId);
+  locationWatchId = null;
+  locationUpdateController?.abort();
+  locationUpdateController = null;
+  locationButton.textContent = "Start sharing live location";
+  locationButton.disabled = false;
+  if (clearRemote && getToken()) {
+    fetch(`${API_BASE}/orders/delivery/location`, { method: "DELETE", headers: authHeaders(), keepalive: true })
+      .catch(() => { deliveryMessage.textContent = "Sharing stopped on this device. The last shared location will expire from customer view shortly."; });
+  }
+}
+
+locationButton.addEventListener("click", () => {
+  if (locationWatchId !== null) {
+    stopLocationSharing(true);
+    deliveryMessage.textContent = "Live location sharing stopped.";
+    return;
+  }
+  if (!window.isSecureContext || !navigator.geolocation) {
+    deliveryMessage.textContent = "Live location requires browser location access on HTTPS (or localhost).";
+    return;
+  }
+  locationButton.disabled = true;
+  deliveryMessage.textContent = "Waiting for location permission…";
+  locationWatchId = navigator.geolocation.watchPosition(async position => {
+    if (locationWatchId === null) return;
+    locationButton.disabled = false;
+    locationButton.textContent = "Stop sharing live location";
+    if (locationUpdateInFlight || Date.now() - lastLocationSentAt < 12000) return;
+    locationUpdateInFlight = true;
+    locationUpdateController = new AbortController();
+    try {
+      const { updatedAt } = await deliveryApi("/orders/delivery/location", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+        signal: locationUpdateController.signal
+      });
+      lastLocationSentAt = Date.now();
+      deliveryMessage.textContent = `Live location shared at ${new Date(updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.`;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      deliveryMessage.textContent = error.message;
+      if (error.message.includes("no active deliveries")) stopLocationSharing();
+    } finally { locationUpdateInFlight = false; locationUpdateController = null; }
+  }, error => {
+    locationButton.disabled = false;
+    deliveryMessage.textContent = error.code === error.PERMISSION_DENIED
+      ? "Location permission was denied. Allow location access in your browser settings to share it."
+      : "Could not read your location. Check that location services are enabled and try again.";
+    stopLocationSharing(true);
+  }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+  locationButton.disabled = false;
+});
+
+window.addEventListener("pagehide", () => stopLocationSharing(true));
 
 function renderDelivery(order) {
   const card = document.createElement("article");
@@ -88,6 +150,9 @@ async function loadDeliveries() {
   if (!getToken()) return;
   try {
     const { orders } = await deliveryApi("/orders/delivery/mine");
+    const hasActiveRoute = orders.some(order => ["out_for_delivery", "picked_up"].includes(order.status));
+    locationButton.disabled = !hasActiveRoute && locationWatchId === null;
+    if (!hasActiveRoute && locationWatchId !== null) stopLocationSharing();
     deliveryRoot.replaceChildren();
     if (!orders.length) {
       deliveryRoot.textContent = "No assigned deliveries right now.";

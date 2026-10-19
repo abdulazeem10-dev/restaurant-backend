@@ -16,6 +16,12 @@ const orderSchema = new mongoose.Schema({
   deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
   deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
   deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
+  deliveryLocation: {
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
+    updatedAt: { type: Date, default: null }
+  },
+  estimatedDeliveryAt: { type: Date, default: null },
   items: [{
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },
     name: { type: String, required: true },

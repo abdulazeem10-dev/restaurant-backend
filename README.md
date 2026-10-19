@@ -10,7 +10,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 - Deployment target: GitHub + Render
 
 ## Important
-This is a starter project, not a production marketplace. It includes customer registration/login, public restaurant/menu browsing, admin restaurant onboarding and approval, restaurant-owned menu management, customer checkout with cash or online payment preference, saved orders, and restaurant order status updates through ready for pickup. New orders are assigned to the active delivery person with the fewest open assignments; delivery accounts are created by an admin. Delivery people see the customer's contact and address, restaurant pickup address, ordered dishes, payment mode, and payment status; they can confirm COD cash collection while marking delivery. Customers can confirm receipt after delivery. UPI/card/net banking and UPI QR remain preferences only unless a payment integration is configured. Customer authentication currently stores a short-lived access token in sessionStorage; use a production session strategy before launch. Tax and fee configuration, notifications, refunds, live GPS tracking, and production hardening still need implementation.
+This is a starter project, not a production marketplace. It includes customer registration/login, restaurant onboarding and management, orders, delivery assignment, order status notifications, optional email/SMS alerts, opt-in delivery location sharing, ETA estimates, cancellation/help requests, and restaurant sales reports. Some external capabilities require provider credentials. UPI/card/net banking choices remain preferences unless the payment provider is configured. Authentication uses short-lived access tokens in sessionStorage; review the production checklist below before launch.
 
 ## Requirements
 - Node.js 20+
@@ -39,8 +39,13 @@ Checkout lets customers choose online UPI/cards/net banking, UPI QR, or cash on 
 ## Customer phone sign-in
 Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Create a Verify Service, then configure these backend environment variables (keep the auth token private): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID`. Phone sign-in is for active customer accounts and accepts Indian 10-digit numbers or E.164 numbers such as `+919876543210`. Password and Google sign-in remain available.
 
+## Order alerts
+In-app notifications are stored in MongoDB. Optional email alerts use Resend (`RESEND_API_KEY` and `EMAIL_FROM`); optional order SMS alerts use Twilio Messaging (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`). SMS delivery depends on Twilio account status, verified destinations in trial mode, and regional messaging rules. Copy `backend/.env.example` to `backend/.env` and keep provider credentials only in the backend environment. No SMS or email is sent until these values are configured.
+
 ## Restaurant hours and delivery areas
 Restaurant owners can set weekly opening hours in India Standard Time and list the 6-digit PIN codes they deliver to. Customers can filter restaurants by PIN, see today's hours and listed delivery areas, and checkout/order requests are checked against the restaurant's hours and delivery PIN list. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
+
+Owners and secondary admins can configure typical preparation and delivery times. Customers see an estimated delivery time; the estimate is reset when the restaurant marks the order ready. It is a restaurant-configured estimate, not a guaranteed arrival time.
 
 The platform admin creates each restaurant's primary admin account (the owner). The primary admin can then create one account for each additional role: secondary admin, biller/modifier, and viewer, and can remove accounts to free a role for a replacement. Secondary admins can manage restaurant settings, menus, and orders. Biller/modifier accounts can manage menus and update order statuses. Viewers have read-only access.
 
@@ -48,7 +53,9 @@ The platform admin creates each restaurant's primary admin account (the owner). 
 Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
 
 ## Order tracking and saved addresses
-Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. Restaurant status changes, delivery, cancellation requests/reviews, and help requests/replies create in-app notifications for the relevant customer or restaurant team, visible on the My orders page or restaurant Notifications sidebar section. Notifications keep the latest update per order and audience. Restaurant status changes are timestamped. Customers can save up to 10 delivery addresses, select one at checkout, or remove saved addresses. Reordering checks the current menu and excludes dishes that are no longer available.
+Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. Delivery people can explicitly start GPS sharing from their dashboard; the latest coordinates are visible only to the customer on that assigned active order, and are cleared when delivery is marked done. Location sharing requires HTTPS (or localhost) and browser permission. This is periodic location sharing, not turn-by-turn navigation or a continuously rendered map. Restaurant status changes, delivery, cancellation requests/reviews, and help requests/replies create in-app notifications for the relevant customer or restaurant team. Customers can save up to 10 delivery addresses and reorder from the current menu.
+
+Restaurant owners and secondary admins can view a date-filtered sales report with paid delivered sales, daily activity, order statuses, and best-selling dishes. The report is based on orders in the selected range and excludes unpaid orders from revenue.
 
 Customers can request cancellation before delivery and send an order-specific help request. Restaurant staff with order-management permission can approve or decline cancellation requests and reply to and resolve help requests. Paid orders cannot be cancelled from this workflow because a refund must be processed through the payment provider; the app does not currently issue refunds.
 
@@ -91,6 +98,7 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
 - `GET /api/orders/delivery/mine` — delivery person lists assigned orders and pickup/drop-off details
 - `PATCH /api/orders/delivery/:id` — assigned delivery person marks delivery done and records COD cash collection
+- `PATCH /api/orders/delivery/location` — delivery person shares coordinates to assigned active orders
 - `GET /api/notifications/mine` — lists the signed-in user's in-app notifications
 - `PATCH /api/notifications/mine/:id/read` — marks one of the signed-in user's notifications as read
 - `PATCH /api/orders/:id/received` — customer confirms they received a delivered order
@@ -98,6 +106,7 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `POST /api/orders/:id/help` — customer sends an order issue to the restaurant
 - `PATCH /api/orders/restaurant/:id/cancellation` — restaurant reviews a pending cancellation request
 - `PATCH /api/orders/restaurant/:id/help/:requestId` — restaurant replies to and resolves a customer help request
+- `GET /api/restaurants/owner/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` — owner or secondary admin gets sales and order summaries
 - `GET /api/admin/restaurants` — admin lists restaurants
 - `POST /api/admin/restaurants` — admin creates a pending restaurant and owner login
 - `POST /api/admin/delivery-partners` — admin creates an active delivery login
@@ -108,11 +117,15 @@ The existing owner menu routes are mounted under `/api/restaurants/owner/menu`.
 ## Local use
 Run the API and serve the `frontend` directory with a static server. Set `FRONTEND_ORIGIN` to that server's origin. You need an approved restaurant and an active restaurant-owner user in MongoDB before it appears publicly. Public self-registration creates customer accounts only. Restaurant account provisioning and approval are still manual and must be done through a controlled process.
 
-Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; it does not include live GPS location, distance routing, dispatch notifications, or partner availability controls. Orders are rejected temporarily when no active delivery account exists; create one from the admin dashboard before accepting orders.
+Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; there is no distance routing or dispatch optimization. Orders are rejected temporarily when no active delivery account exists; create one from the admin dashboard before accepting orders.
 
 ## Security baseline
 - Never commit `.env`.
 - Public registration cannot choose a role.
 - Restaurant routes resolve the restaurant from the authenticated owner.
 - Never trust prices or totals from the browser.
-- Add comprehensive integration tests before production.
+- Rate limits, password reset, OTP limits, Helmet, CORS allow-listing, and the API health endpoint are present; review settings against the actual production deployment.
+- Set `FRONTEND_ORIGIN`, `JWT_SECRET`, MongoDB credentials, and provider credentials in the deployment platform's secret manager. Never expose backend secrets in frontend files.
+- Enable automated database backups/snapshots with the database host, set a retention period, and regularly test restoring a backup to a separate staging database. Protect exported backups because they contain customer and order data.
+- Add end-to-end tests for checkout, restaurant status updates, delivery completion, cancellation/help, and payment webhooks before launch. The current automated suite is only a small smoke test.
+- Use HTTPS in production. Delivery GPS sharing will not work on plain HTTP except localhost.

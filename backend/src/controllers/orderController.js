@@ -6,6 +6,7 @@ const Review = require("../models/Review");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { isWithinOpeningHours } = require("../utils/openingHours");
+const { sendOrderAlerts } = require("../utils/orderAlerts");
 
 const createSchema = z.object({
   restaurantId: z.string().regex(/^[a-f\d]{24}$/i),
@@ -54,12 +55,15 @@ async function createOrder(req, res) {
   const deliveryPartner = await findLeastBusyDeliveryPartner();
   if (!deliveryPartner) return res.status(503).json({ error: "Orders are temporarily unavailable because no delivery person is active. Please try again later." });
 
+  const placedAt = new Date();
+
   const order = await Order.create({
     customerId: req.user._id,
     restaurantId: restaurant._id,
     deliveryAddress: parsed.data.deliveryAddress,
     deliveryDetails: parsed.data.deliveryDetails,
     deliveryPartnerId: deliveryPartner._id,
+    estimatedDeliveryAt: new Date(placedAt.getTime() + ((restaurant.prepTimeMinutes || 30) + (restaurant.deliveryTimeMinutes || 30)) * 60_000),
     paymentMethod: parsed.data.paymentMethod,
     items,
     subtotalPaise,
@@ -67,7 +71,7 @@ async function createOrder(req, res) {
     taxPaise: 0,
     totalPaise: subtotalPaise,
     status: "placed",
-    statusHistory: [{ status: "placed", at: new Date() }]
+    statusHistory: [{ status: "placed", at: placedAt }]
   });
   return res.status(201).json({ order, deliveryAssigned: true });
 }
@@ -125,6 +129,8 @@ async function updateRestaurantOrder(req, res) {
   }
   order.status = req.body.status;
   order.statusHistory.push({ status: req.body.status, at: new Date() });
+  if (req.body.status === "ready") order.estimatedDeliveryAt = new Date(Date.now() + (restaurant.deliveryTimeMinutes || 30) * 60_000);
+  if (req.body.status === "cancelled") order.estimatedDeliveryAt = null;
   await order.save();
   const statusLabels = { confirmed: "confirmed", preparing: "being prepared", ready: "ready for pickup", out_for_delivery: "out for delivery", cancelled: "cancelled" };
   await notifyOrderParticipants(order, {
@@ -154,6 +160,7 @@ async function updateDeliveryOrder(req, res) {
   if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Assigned delivery not found" });
   const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
   if (!order) return res.status(404).json({ error: "Assigned delivery not found" });
+  const wasAlreadyDelivered = order.status === "delivered";
   if (status && !["out_for_delivery", "picked_up", "delivered"].includes(order.status)) return res.status(409).json({ error: "The restaurant must mark the order out for delivery before you can mark it delivered" });
   if (cashCollected) {
     if (order.paymentMethod !== "cash_on_delivery") return res.status(400).json({ error: "Cash collection only applies to cash-on-delivery orders" });
@@ -166,10 +173,38 @@ async function updateDeliveryOrder(req, res) {
   if (status && order.status !== status) {
     order.status = status;
     order.statusHistory.push({ status, at: new Date() });
+    if (status === "delivered") {
+      order.estimatedDeliveryAt = null;
+      order.deliveryLocation = undefined;
+    }
   }
   await order.save();
-  if (order.status === "delivered") await notifyOrderDelivered(order);
+  if (order.status === "delivered" && !wasAlreadyDelivered) await notifyOrderDelivered(order);
   return res.json({ order });
+}
+
+async function updateDeliveryLocation(req, res) {
+  const parsed = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180)
+  }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Send valid GPS coordinates" });
+  const activeOrders = await Order.find({ deliveryPartnerId: req.user._id, status: { $in: ["out_for_delivery", "picked_up"] } }).select("_id").lean();
+  if (!activeOrders.length) return res.status(409).json({ error: "You have no active deliveries to share location for" });
+  const updatedAt = new Date();
+  await Order.updateMany(
+    { _id: { $in: activeOrders.map(order => order._id) }, deliveryPartnerId: req.user._id, status: { $in: ["out_for_delivery", "picked_up"] } },
+    { $set: { deliveryLocation: { ...parsed.data, updatedAt } } }
+  );
+  return res.json({ updatedAt, activeOrderCount: activeOrders.length });
+}
+
+async function clearDeliveryLocation(req, res) {
+  await Order.updateMany(
+    { deliveryPartnerId: req.user._id, status: { $in: ["out_for_delivery", "picked_up"] } },
+    { $unset: { deliveryLocation: 1 } }
+  );
+  return res.json({ cleared: true });
 }
 
 async function notifyOrderDelivered(order) {
@@ -187,16 +222,19 @@ async function notifyOrderParticipants(order, event) {
     const restaurant = await Restaurant.findById(order.restaurantId).select("ownerId name").lean();
     if (!restaurant) return;
     const recipients = [];
+    let restaurantStaff = [];
+    let customer = null;
+    if (event.audiences.includes("customer")) customer = await User.findById(order.customerId).select("name email phone").lean();
     if (event.audiences.includes("customer")) recipients.push({ userId: order.customerId, audience: "customer", title: event.customerTitle || event.title, message: event.customerMessage });
     if (event.audiences.includes("restaurant")) {
-      const staff = await User.find({
+      restaurantStaff = await User.find({
         status: "active",
         $or: [
           { _id: restaurant.ownerId, role: "restaurant" },
           { restaurantId: restaurant._id, role: "restaurant_staff" }
         ]
-      }).select("_id").lean();
-      recipients.push(...staff.map(member => ({ userId: member._id, audience: "restaurant", title: event.restaurantTitle || event.title, message: event.restaurantMessage })));
+      }).select("_id email").lean();
+      recipients.push(...restaurantStaff.map(member => ({ userId: member._id, audience: "restaurant", title: event.restaurantTitle || event.title, message: event.restaurantMessage })));
     }
     if (!recipients.length) return;
     await Notification.bulkWrite(recipients.map(recipient => ({
@@ -207,6 +245,7 @@ async function notifyOrderParticipants(order, event) {
         upsert: true
       }
     })), { ordered: false });
+    await sendOrderAlerts({ order, event, customer, restaurantStaff });
   } catch (error) {
     console.error("Could not save order activity notification:", error.message);
   }
@@ -313,4 +352,4 @@ async function resolveOrderHelpRequest(req, res) {
   return res.json({ order, request: support });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
