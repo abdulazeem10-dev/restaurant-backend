@@ -293,6 +293,21 @@ async function updateOwnProfile(req, res) {
   return res.json({ restaurant: { id: restaurant._id, name: restaurant.name }, user: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
 }
 
+async function deactivateOwnProfile(req, res) {
+  const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (restaurant.profileDeactivatedAt || req.user.profileDeactivatedAt) return res.status(409).json({ error: "This profile is already deactivated" });
+  restaurant.statusBeforeProfileDeactivation = restaurant.status;
+  restaurant.status = "suspended";
+  restaurant.isOpen = false;
+  restaurant.profileDeactivatedAt = new Date();
+  req.user.statusBeforeProfileDeactivation = req.user.status;
+  req.user.status = "suspended";
+  req.user.profileDeactivatedAt = new Date();
+  await Promise.all([restaurant.save(), req.user.save()]);
+  return res.status(204).end();
+}
+
 async function getOwnMenu(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -421,5 +436,5 @@ async function deleteMenuItem(req, res) {
 module.exports = {
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
-  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports, updateOwnProfile
+  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };

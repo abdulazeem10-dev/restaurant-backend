@@ -35,7 +35,7 @@ const profileFieldsSchema = z.object({
 
 async function listDeliveryPartners(req, res) {
   const deliveryPartners = await User.find({ role: "delivery" })
-    .select("name email phone status createdAt")
+    .select("name email phone status profileDeactivatedAt createdAt")
     .sort({ createdAt: -1 }).limit(200).lean();
   return res.json({ deliveryPartners });
 }
@@ -66,6 +66,28 @@ async function updateDeliveryPartner(req, res) {
   return res.json({ deliveryPartner: { id: partner._id, name: partner.name, email: partner.email, phone: partner.phone } });
 }
 
+const profileStatusSchema = z.object({ active: z.boolean() }).strict();
+
+async function setDeliveryPartnerProfileStatus(req, res) {
+  const parsed = profileStatusSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose whether to activate or deactivate the account" });
+  const partner = await User.findOne({ _id: req.params.id, role: "delivery" });
+  if (!partner) return res.status(404).json({ error: "Delivery account not found" });
+  if (parsed.data.active) {
+    if (!partner.profileDeactivatedAt) return res.status(409).json({ error: "This account is not deactivated" });
+    partner.status = partner.statusBeforeProfileDeactivation || "active";
+    partner.profileDeactivatedAt = null;
+    partner.statusBeforeProfileDeactivation = null;
+  } else {
+    if (partner.profileDeactivatedAt) return res.status(409).json({ error: "This account is already deactivated" });
+    partner.statusBeforeProfileDeactivation = partner.status;
+    partner.status = "suspended";
+    partner.profileDeactivatedAt = new Date();
+  }
+  await partner.save();
+  return res.json({ deliveryPartner: { id: partner._id, status: partner.status, profileDeactivatedAt: partner.profileDeactivatedAt } });
+}
+
 async function updateRestaurantProfile(req, res) {
   const parsed = z.object({
     restaurantName: z.string().trim().min(1).max(150),
@@ -91,6 +113,36 @@ async function updateRestaurantProfile(req, res) {
   }
   await restaurant.save();
   return res.json({ restaurant, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+}
+
+async function setRestaurantProfileStatus(req, res) {
+  const parsed = profileStatusSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose whether to activate or deactivate the profile" });
+  const restaurant = await Restaurant.findById(req.params.id);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const owner = await User.findOne({ _id: restaurant.ownerId, role: "restaurant" });
+  if (!owner) return res.status(404).json({ error: "Restaurant owner account not found" });
+  if (parsed.data.active) {
+    if (!restaurant.profileDeactivatedAt || !owner.profileDeactivatedAt) return res.status(409).json({ error: "This profile is not deactivated" });
+    restaurant.status = restaurant.statusBeforeProfileDeactivation || "approved";
+    restaurant.statusBeforeProfileDeactivation = null;
+    restaurant.profileDeactivatedAt = null;
+    owner.status = owner.statusBeforeProfileDeactivation || "active";
+    owner.statusBeforeProfileDeactivation = null;
+    owner.profileDeactivatedAt = null;
+    await Promise.all([restaurant.save(), owner.save()]);
+  } else {
+    if (restaurant.profileDeactivatedAt || owner.profileDeactivatedAt) return res.status(409).json({ error: "This profile is already deactivated" });
+    restaurant.statusBeforeProfileDeactivation = restaurant.status;
+    restaurant.status = "suspended";
+    restaurant.isOpen = false;
+    restaurant.profileDeactivatedAt = new Date();
+    owner.statusBeforeProfileDeactivation = owner.status;
+    owner.status = "suspended";
+    owner.profileDeactivatedAt = new Date();
+    await Promise.all([restaurant.save(), owner.save()]);
+  }
+  return res.json({ restaurant: { id: restaurant._id, status: restaurant.status, profileDeactivatedAt: restaurant.profileDeactivatedAt }, owner: { id: owner._id, status: owner.status } });
 }
 
 const restaurantImageUrlSchema = z.string().trim().max(2048).optional().default("").refine(value => {
@@ -203,4 +255,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile };
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile, setDeliveryPartnerProfileStatus, setRestaurantProfileStatus };

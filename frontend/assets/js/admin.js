@@ -117,6 +117,31 @@ async function loadRestaurants() {
     });
     card.append(profileForm);
 
+    const deactivateProfile = document.createElement("button");
+    deactivateProfile.type = "button";
+    deactivateProfile.className = restaurant.profileDeactivatedAt ? "" : "secondary";
+    deactivateProfile.textContent = restaurant.profileDeactivatedAt ? "Reactivate restaurant & owner" : "Deactivate restaurant & owner";
+    deactivateProfile.addEventListener("click", async () => {
+      const active = Boolean(restaurant.profileDeactivatedAt);
+      const prompt = active
+        ? `Reactivate ${restaurant.name} and its owner login?`
+        : `Deactivate ${restaurant.name} and its owner login? The restaurant will stop accepting orders, but its data and order history will be kept.`;
+      if (!confirm(prompt)) return;
+      deactivateProfile.disabled = true;
+      try {
+        await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/profile-status`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active })
+        });
+        message.textContent = active ? "Restaurant and owner profile reactivated." : "Restaurant and owner profile deactivated. Data and order history were retained.";
+        await loadRestaurants();
+      } catch (error) {
+        message.textContent = error.message;
+        deactivateProfile.disabled = false;
+      }
+    });
+    card.append(deactivateProfile);
+
     const foodTypeLabel = document.createElement("label");
     foodTypeLabel.textContent = "Food type";
     const foodTypeSelect = document.createElement("select");
@@ -210,7 +235,9 @@ async function loadRestaurants() {
     });
     card.append(imageForm);
 
-    if (restaurant.status === "pending") {
+    if (restaurant.profileDeactivatedAt) {
+      // The dedicated reactivation action also restores the owner's login.
+    } else if (restaurant.status === "pending") {
       for (const status of ["approved", "rejected"]) {
         const button = document.createElement("button");
 
@@ -309,7 +336,29 @@ async function loadDeliveryPartners() {
         button.disabled = false;
       }
     });
-    card.append(heading, status, accountId, form);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = partner.profileDeactivatedAt ? "" : "secondary";
+    toggle.textContent = partner.profileDeactivatedAt ? "Reactivate delivery account" : "Deactivate delivery account";
+    toggle.addEventListener("click", async () => {
+      const active = Boolean(partner.profileDeactivatedAt);
+      const prompt = active
+        ? `Reactivate the delivery login for ${partner.name}?`
+        : `Deactivate the delivery login for ${partner.name}? Their account and order history will be kept.`;
+      if (!confirm(prompt)) return;
+      toggle.disabled = true;
+      try {
+        await adminRequest(`/admin/delivery-partners/${encodeURIComponent(partner._id)}/profile-status`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active })
+        });
+        message.textContent = active ? "Delivery account reactivated." : "Delivery account deactivated. Its data was retained.";
+        await loadDeliveryPartners();
+      } catch (error) {
+        message.textContent = error.message;
+        toggle.disabled = false;
+      }
+    });
+    card.append(heading, status, accountId, form, toggle);
     root.append(card);
   }
 }

@@ -95,7 +95,9 @@ const restaurantSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "approved", "rejected", "suspended"],
       default: "pending"
-    }
+    },
+    profileDeactivatedAt: { type: Date, default: null },
+    statusBeforeProfileDeactivation: { type: String, enum: ["pending", "approved", "rejected", "suspended"], default: null }
   },
   { timestamps: true }
 );
