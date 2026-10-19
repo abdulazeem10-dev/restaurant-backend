@@ -143,6 +143,8 @@ Order totals currently include menu item prices only; taxes and delivery fees ar
 - Keep real credentials in the deployment platform's secret manager or an ignored local `.env`; never put them in frontend files, screenshots, issue reports, or commits. `.env.example` must contain placeholders only.
 - The `Secret scan` GitHub Actions workflow scans repository history on pushes and pull requests. It detects leaks after they reach GitHub; enable GitHub Secret Scanning and Push Protection in repository Settings to block supported secrets before a push is accepted.
 - If a credential is ever committed or shared, revoke/rotate it immediately. Removing it from the latest file does not invalidate it or remove it from Git history.
+- MongoDB filters are built from validated fields rather than client-supplied filter objects. API JSON/query input containing MongoDB operator keys (`$...`) or dotted field names is rejected before database work.
+- This app currently uses MongoDB/Mongoose, so SQL injection does not apply to its current data layer. If SQL is added later, use parameterized queries and never build SQL strings from user input.
 - Public registration cannot choose a role.
 - Restaurant routes resolve the restaurant from the authenticated owner.
 - Never trust prices or totals from the browser.

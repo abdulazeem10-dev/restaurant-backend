@@ -10,6 +10,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const errorHandler = require("./middleware/errorHandler");
+const rejectMongoOperators = require("./middleware/rejectMongoOperators");
 const connectDatabase = require("./config/database");
 
 const app = express();
@@ -99,6 +100,7 @@ app.use(express.json({
     }
   }
 }));
+app.use("/api", rejectMongoOperators);
 
 // Connect inside the request lifecycle as well as local server startup. This
 // ensures Vercel requests do not query Mongoose before the database is ready.
