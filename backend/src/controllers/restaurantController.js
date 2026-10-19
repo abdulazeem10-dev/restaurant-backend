@@ -243,6 +243,7 @@ async function getOwnMenu(req, res) {
       name: restaurant.name,
       isOpen: restaurant.isOpen,
       isOpenNow: isRestaurantOpenNow(restaurant),
+      cuisine: restaurant.cuisine || "other",
       status: restaurant.status,
       openingHours: restaurant.openingHours,
       deliveryPincodes: restaurant.deliveryPincodes,
