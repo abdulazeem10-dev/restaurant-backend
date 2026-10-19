@@ -1,8 +1,10 @@
 const restaurantId = new URLSearchParams(location.search).get("id");
 const menuRoot = document.querySelector("#menu-items");
 const categoryRoot = document.querySelector("#category-nav");
+const menuFoodButtons = [...document.querySelectorAll("[data-menu-food]")];
 let currentRestaurant = null;
 let allMenuItems = [];
+let selectedMenuFood = "all";
 
 function formatTodayHours(openingHours) {
   if (!openingHours) return "Opening hours have not been set.";
@@ -18,7 +20,10 @@ function formatTodayHours(openingHours) {
 
 function renderFilteredMenu() {
   if (!currentRestaurant) return;
-  const filter = document.querySelector("#menu-food-filter").value;
+  const filter = selectedMenuFood;
+  menuFoodButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.menuFood === filter));
+  });
   const filtered = filter === "all" ? allMenuItems : allMenuItems.filter(item => item.foodType === filter);
   renderMenu(filtered, currentRestaurant, filter);
 }
@@ -218,5 +223,8 @@ async function loadStorefront() {
   } catch (errorValue) { error.textContent = errorValue.message || "Could not load this restaurant."; }
 }
 
+menuFoodButtons.forEach(button => button.addEventListener("click", () => {
+  selectedMenuFood = button.dataset.menuFood;
+  renderFilteredMenu();
+}));
 loadStorefront();
-document.querySelector("#menu-food-filter").addEventListener("change", renderFilteredMenu);
