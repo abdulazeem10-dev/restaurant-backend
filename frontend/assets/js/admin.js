@@ -2,7 +2,7 @@ const message = document.querySelector("#message");
 const adminPageTitles = {
   overview: ["Admin overview", "Manage restaurants, accounts, and approvals from one place."],
   "add-restaurant": ["Add restaurant", "Create a restaurant and its owner account."],
-  "create-account": ["Create account", "Set up a delivery-person login for your platform."],
+  "create-account": ["Create account", "Set up delivery logins and update delivery-person contact details."],
   restaurants: ["Restaurants", "Review restaurant details and manage approvals."]
 };
 
@@ -89,6 +89,33 @@ async function loadRestaurants() {
         <strong>${escapeHtml(restaurant.status)}</strong>
       </p>
     `;
+
+    const profileForm = document.createElement("form");
+    profileForm.className = "form-grid admin-profile-form";
+    profileForm.innerHTML = `
+      <label>Restaurant name<br><input name="restaurantName" required maxlength="150" value="${escapeHtml(restaurant.name || "")}"></label>
+      <label>Owner name<br><input name="ownerName" required maxlength="100" value="${escapeHtml(owner.name || "")}"></label>
+      <label>Owner email / login<br><input name="email" type="email" required maxlength="254" value="${escapeHtml(owner.email || "")}"></label>
+      <label>Owner phone<br><input name="phone" type="tel" maxlength="20" value="${escapeHtml(owner.phone || "")}"></label>
+      <button type="submit">Save restaurant &amp; owner details</button>`;
+    profileForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = profileForm.querySelector('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const values = new FormData(profileForm);
+        await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/profile`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(["restaurantName", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
+        });
+        message.textContent = "Restaurant name and owner contact details updated.";
+        await loadRestaurants();
+      } catch (error) {
+        message.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    card.append(profileForm);
 
     const foodTypeLabel = document.createElement("label");
     foodTypeLabel.textContent = "Food type";
@@ -241,6 +268,52 @@ async function loadRestaurants() {
   }
 }
 
+async function loadDeliveryPartners() {
+  const { deliveryPartners } = await adminRequest("/admin/delivery-partners");
+  const root = document.querySelector("#delivery-partners");
+  root.replaceChildren();
+  if (!deliveryPartners.length) {
+    root.textContent = "No delivery accounts have been created yet.";
+    return;
+  }
+  for (const partner of deliveryPartners) {
+    const card = document.createElement("article");
+    card.className = "panel admin-delivery-account";
+    const heading = document.createElement("h3");
+    heading.textContent = partner.name;
+    const status = document.createElement("p");
+    status.textContent = `Status: ${partner.status || "active"}`;
+    const accountId = document.createElement("p");
+    accountId.className = "muted admin-account-id";
+    accountId.textContent = `Account ID: ${partner._id} · System generated`;
+    const form = document.createElement("form");
+    form.className = "form-grid admin-profile-form";
+    form.innerHTML = `<label>Full name<br><input name="name" required maxlength="100" value="${escapeHtml(partner.name || "")}"></label>
+      <label>Email / login<br><input name="email" type="email" required maxlength="254" value="${escapeHtml(partner.email || "")}"></label>
+      <label>Phone number<br><input name="phone" type="tel" maxlength="20" value="${escapeHtml(partner.phone || "")}"></label>
+      <button type="submit">Save delivery details</button>`;
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      try {
+        const values = new FormData(form);
+        await adminRequest(`/admin/delivery-partners/${encodeURIComponent(partner._id)}/profile`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.fromEntries(["name", "email", "phone"].map(key => [key, values.get(key)])))
+        });
+        message.textContent = `Delivery account for ${values.get("name")} updated.`;
+        await loadDeliveryPartners();
+      } catch (error) {
+        message.textContent = error.message;
+        button.disabled = false;
+      }
+    });
+    card.append(heading, status, accountId, form);
+    root.append(card);
+  }
+}
+
 document
   .querySelector("#restaurant-form")
   .addEventListener("submit", async event => {
@@ -298,6 +371,7 @@ document.querySelector("#delivery-partner-form").addEventListener("submit", asyn
     });
     form.reset();
     message.textContent = `Delivery login created for ${deliveryPartner.name}. Share the login securely.`;
+    await loadDeliveryPartners();
   } catch (error) {
     message.textContent = error.message;
   } finally {
@@ -309,5 +383,6 @@ loadRestaurants().catch(error => {
   message.textContent =
     `${error.message}. Sign in with an admin account.`;
 });
+loadDeliveryPartners().catch(error => { message.textContent = error.message; });
 
 showAdminView("overview");

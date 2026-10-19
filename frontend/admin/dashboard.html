@@ -60,10 +60,11 @@
           <label>Initial password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
           <button type="submit">Create delivery login</button>
         </form><div class="admin-inline-note"><strong>Restaurant owner accounts</strong><span>Owner login details are created with each restaurant. Use <button type="button" class="admin-text-button" data-open-admin-view="add-restaurant">Add restaurant</button> to set one up.</span></div></section>
+        <section class="panel admin-form-panel"><p class="eyebrow">DELIVERY TEAM</p><h2>Delivery accounts</h2><p class="muted">Update a delivery person’s name, phone number, or email login. Passwords remain private and are changed through password reset.</p><div id="delivery-partners" class="grid admin-restaurant-grid"></div></section>
       </section>
 
       <section class="admin-view" data-admin-section="restaurants" hidden>
-        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurants</h2><p class="muted">Review status, update food type and images, and approve or suspend restaurants.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Add restaurant</button></div>
+        <div class="admin-list-heading"><div><p class="eyebrow">PLATFORM DIRECTORY</p><h2>Restaurants</h2><p class="muted">Edit restaurant and owner contact details, food type and images, and review approvals.</p></div><button type="button" data-open-admin-view="add-restaurant">+ Add restaurant</button></div>
         <div id="restaurants" class="grid admin-restaurant-grid"></div>
       </section>
     </div>

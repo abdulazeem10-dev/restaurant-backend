@@ -265,6 +265,34 @@ async function getOwnReports(req, res) {
   return res.json({ from: fromText, to: toText, summary, topItems, daily, statusCounts });
 }
 
+async function updateOwnProfile(req, res) {
+  const parsed = z.object({
+    restaurantName: z.string().trim().min(1).max(150),
+    ownerName: z.string().trim().min(1).max(100),
+    email: z.string().trim().email().max(254),
+    phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
+  }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a restaurant name, owner name, valid email, and valid phone number" });
+  const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const owner = await User.findOne({ _id: req.user._id, role: "restaurant" });
+  if (!owner) return res.status(404).json({ error: "Owner account not found" });
+  const email = parsed.data.email.toLowerCase();
+  if (await User.exists({ email, _id: { $ne: owner._id } })) return res.status(409).json({ error: "Another account already uses this email / login" });
+  restaurant.name = parsed.data.restaurantName;
+  owner.name = parsed.data.ownerName;
+  owner.email = email;
+  owner.phone = parsed.data.phone;
+  try {
+    await owner.save();
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ error: "Another account already uses this email / login" });
+    throw error;
+  }
+  await restaurant.save();
+  return res.json({ restaurant: { id: restaurant._id, name: restaurant.name }, user: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+}
+
 async function getOwnMenu(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -274,6 +302,7 @@ async function getOwnMenu(req, res) {
     restaurant: {
       id: restaurant._id,
       name: restaurant.name,
+      address: restaurant.address,
       isOpen: restaurant.isOpen,
       isOpenNow: isRestaurantOpenNow(restaurant),
       cuisine: restaurant.cuisine || "other",
@@ -392,5 +421,5 @@ async function deleteMenuItem(req, res) {
 module.exports = {
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
-  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports
+  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports, updateOwnProfile
 };

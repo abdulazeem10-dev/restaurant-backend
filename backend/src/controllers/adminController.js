@@ -27,6 +27,72 @@ async function createDeliveryPartner(req, res) {
   return res.status(201).json({ deliveryPartner: { id: partner._id, name: partner.name, email: partner.email, phone: partner.phone } });
 }
 
+const profileFieldsSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
+}).strict();
+
+async function listDeliveryPartners(req, res) {
+  const deliveryPartners = await User.find({ role: "delivery" })
+    .select("name email phone status createdAt")
+    .sort({ createdAt: -1 }).limit(200).lean();
+  return res.json({ deliveryPartners });
+}
+
+async function updateAccountProfile(user, input) {
+  const parsed = profileFieldsSchema.safeParse(input);
+  if (!parsed.success) return { error: "Enter a name, valid email, and valid phone number" };
+  const email = parsed.data.email.toLowerCase();
+  if (await User.exists({ email, _id: { $ne: user._id } })) return { conflict: true };
+  user.name = parsed.data.name;
+  user.email = email;
+  user.phone = parsed.data.phone;
+  try {
+    await user.save();
+    return { user };
+  } catch (error) {
+    if (error.code === 11000) return { conflict: true };
+    throw error;
+  }
+}
+
+async function updateDeliveryPartner(req, res) {
+  const partner = await User.findOne({ _id: req.params.id, role: "delivery" });
+  if (!partner) return res.status(404).json({ error: "Delivery account not found" });
+  const result = await updateAccountProfile(partner, req.body);
+  if (result.error) return res.status(400).json({ error: result.error });
+  if (result.conflict) return res.status(409).json({ error: "Another account already uses this email / login" });
+  return res.json({ deliveryPartner: { id: partner._id, name: partner.name, email: partner.email, phone: partner.phone } });
+}
+
+async function updateRestaurantProfile(req, res) {
+  const parsed = z.object({
+    restaurantName: z.string().trim().min(1).max(150),
+    ownerName: z.string().trim().min(1).max(100),
+    email: z.string().trim().email().max(254),
+    phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
+  }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a restaurant name, owner name, valid email, and valid phone number" });
+  const restaurant = await Restaurant.findById(req.params.id).populate("ownerId");
+  if (!restaurant || !restaurant.ownerId) return res.status(404).json({ error: "Restaurant not found" });
+  const owner = restaurant.ownerId;
+  const email = parsed.data.email.toLowerCase();
+  if (await User.exists({ email, _id: { $ne: owner._id } })) return res.status(409).json({ error: "Another account already uses this email / login" });
+  restaurant.name = parsed.data.restaurantName;
+  owner.name = parsed.data.ownerName;
+  owner.email = email;
+  owner.phone = parsed.data.phone;
+  try {
+    await owner.save();
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ error: "Another account already uses this email / login" });
+    throw error;
+  }
+  await restaurant.save();
+  return res.json({ restaurant, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+}
+
 const restaurantImageUrlSchema = z.string().trim().max(2048).optional().default("").refine(value => {
   if (!value) return true;
   try {
@@ -81,7 +147,7 @@ async function createRestaurant(req, res) {
 }
 
 async function listRestaurants(req, res) {
-  const restaurants = await Restaurant.find().populate("ownerId", "name email status").sort({ createdAt: -1 }).limit(200);
+  const restaurants = await Restaurant.find().populate("ownerId", "name email phone status").sort({ createdAt: -1 }).limit(200);
   return res.json({ restaurants });
 }
 
@@ -137,4 +203,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner };
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile };

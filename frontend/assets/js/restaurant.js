@@ -2,6 +2,7 @@ const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
 let restaurantOrdersCache = [];
+let restaurantCurrentUser = null;
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
@@ -129,6 +130,29 @@ async function loadStaffAccounts() {
   document.querySelector("#staff-roles-complete").hidden = availableRoles.length > 0;
 }
 
+const restaurantProfileForm = document.querySelector("#restaurant-profile-form");
+if (restaurantProfileForm) restaurantProfileForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const values = new FormData(form);
+  button.disabled = true;
+  msg.textContent = "";
+  try {
+    const { restaurant, user } = await api("/restaurants/owner/profile", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(["restaurantName", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
+    });
+    restaurantCurrentUser = user;
+    document.querySelector("#restaurant-title").textContent = restaurant.name;
+    msg.textContent = "Restaurant and owner profile updated.";
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.querySelector("#owner-staff-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -170,6 +194,12 @@ function renderOpeningHours(schedule = {}) {
 async function loadMenu() {
   const { restaurant, items } = await api("/restaurants/owner/menu"); const root = document.querySelector("#menu-items"); root.replaceChildren();
   document.querySelector("#restaurant-title").textContent = restaurant.name;
+  if (restaurantProfileForm) {
+    restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
+    restaurantProfileForm.elements.ownerName.value = restaurantCurrentUser?.name || "";
+    restaurantProfileForm.elements.email.value = restaurantCurrentUser?.email || "";
+    restaurantProfileForm.elements.phone.value = restaurantCurrentUser?.phone || "";
+  }
   document.querySelector("#restaurant-state").textContent = `Status: ${restaurant.status} · ${restaurant.isOpenNow ? "Open for orders" : "Closed"}`;
   renderOpeningHours(restaurant.openingHours);
   document.querySelector('#delivery-times-form [name="prepTimeMinutes"]').value = restaurant.prepTimeMinutes || 30;
@@ -566,6 +596,7 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
 });
 async function initializeRestaurantDashboard() {
   const { user } = await api("/auth/me");
+  restaurantCurrentUser = user;
   const isStaffDashboard = location.pathname.endsWith("/staff-dashboard.html");
   if (user.role === "restaurant_staff" && !isStaffDashboard) { location.replace("staff-dashboard.html"); return; }
   if (user.role === "restaurant" && isStaffDashboard) { location.replace("dashboard.html"); return; }
@@ -591,6 +622,7 @@ async function initializeRestaurantDashboard() {
     if (restaurantStaffRole === "viewer") document.querySelector("#menu-form").hidden = true;
   } else if (user.role === "restaurant") {
     document.querySelector("#staff-management-panel").hidden = false;
+    document.querySelector("#staff-management-panel-list").hidden = false;
     await loadStaffAccounts();
   }
   showRestaurantView("overview");
