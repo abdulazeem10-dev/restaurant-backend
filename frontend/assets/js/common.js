@@ -34,6 +34,14 @@ function createLiveTrackingMap(element, deliveryLocation, customerLocation) {
     map.fitBounds(points, { padding: [28, 28], maxZoom: 15 });
   } else if (points.length === 1) map.setView(points[0], 15);
   else map.setView([19.076, 72.8777], 11);
+  // Order cards are assembled off-DOM before being appended. Re-measure after
+  // the browser lays out the card so Leaflet requests tiles for the full map.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!element.isConnected) return;
+    map.invalidateSize({ pan: false });
+    if (points.length === 2) map.fitBounds(points, { padding: [28, 28], maxZoom: 15 });
+    else if (points.length === 1) map.setView(points[0], 15);
+  }));
   return map;
 }
 updateCartCount();
