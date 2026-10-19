@@ -1166,6 +1166,12 @@ body { color: var(--ink); text-rendering: optimizeLegibility; -webkit-font-smoot
 .customer-page .quick-food-filters button[aria-pressed="true"] { background: #fff2f3; color: #bd3048; }
 .customer-page .restaurant-card { border-color: #eee6df; box-shadow: 0 9px 28px #39291d09; }
 .customer-page .restaurant-card:hover { box-shadow: 0 20px 42px #39291d15; }
+.customer-page .restaurant-cover:not(.has-image) {
+  background: linear-gradient(180deg, #10251b08, #10251b24), url("../images/foodway-thali-hero.jpg") center 54% / cover no-repeat;
+}
+.customer-page .restaurant-cover:not(.has-image)::before,
+.customer-page .restaurant-cover:not(.has-image)::after,
+.customer-page .restaurant-cover:not(.has-image) span { display: none; }
 .customer-page .restaurant-card-content { padding: 1.15rem 1.2rem 1.2rem; }
 .customer-page .restaurant-card h3 { font-weight: 780; }
 .customer-page .restaurant-address { color: #756b63; }
