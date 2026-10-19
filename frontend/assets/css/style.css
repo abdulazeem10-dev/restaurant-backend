@@ -1573,3 +1573,60 @@ body { color: var(--foodway-ink); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Keep keyboard and hover feedback aligned with the green storefront identity. */
+.customer-page :is(a, button, input, select, textarea):focus-visible {
+  outline-color: #47765b66;
+}
+.customer-page .site-nav a:not(.login-link):hover,
+.customer-page .card-action:hover,
+.customer-page .restaurant-card .card-action:hover {
+  color: var(--foodway-green-deep);
+}
+.customer-page .restaurant-card .card-action:hover {
+  border-color: var(--foodway-green);
+  background: var(--foodway-green);
+  color: #fff;
+}
+.customer-page .quick-food-filters button:focus-visible,
+.customer-page .filter-reset:focus-visible {
+  outline-color: #47765b66;
+}
+.auth-page {
+  background:
+    radial-gradient(ellipse at 12% 18%, #e8efe0 0, transparent 34%),
+    radial-gradient(ellipse at 90% 82%, #f4eee2 0, transparent 30%),
+    var(--foodway-paper);
+}
+.auth-header > a:last-child:hover,
+.auth-page > main > p a,
+.auth-page form + p a {
+  color: var(--foodway-green);
+}
+.auth-page #show-phone-login:hover,
+.auth-page #show-password-login:hover {
+  border-color: #b7c8b4;
+  background: #f3f6ef;
+  color: var(--foodway-green);
+}
+
+@media (max-width: 600px) {
+  .customer-page .value-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .customer-page .value-strip > div {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: .85rem;
+    min-height: 0;
+    padding: .85rem 1rem;
+  }
+  .customer-page .value-strip > div + div {
+    border-top: 1px solid var(--foodway-line);
+  }
+  .customer-page .value-strip p {
+    margin: 0;
+  }
+}
