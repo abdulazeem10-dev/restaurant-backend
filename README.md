@@ -48,7 +48,7 @@ The platform admin creates each restaurant's primary admin account (the owner). 
 Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
 
 ## Order tracking and saved addresses
-Customer orders show a progress timeline and refresh automatically while the orders page is open. Restaurant status changes are timestamped. Customers can save up to 10 delivery addresses, select one at checkout, or remove saved addresses. Reordering checks the current menu and excludes dishes that are no longer available.
+Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. Restaurant status changes are timestamped. Customers can save up to 10 delivery addresses, select one at checkout, or remove saved addresses. Reordering checks the current menu and excludes dishes that are no longer available.
 
 ## Menu availability
 Restaurant owners can switch each menu item between available and unavailable from the dashboard. Unavailable dishes are hidden from customers and cannot be added to a new order.

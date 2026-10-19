@@ -16,9 +16,9 @@ async function createReview(req, res) {
   const order = await Order.findOne({
     _id: parsed.data.orderId,
     customerId: req.user._id,
-    status: "ready"
+    status: { $in: ["ready", "out_for_delivery", "picked_up", "delivered"] }
   }).select("restaurantId");
-  if (!order) return res.status(403).json({ error: "You can review an order after the restaurant marks it ready" });
+  if (!order) return res.status(403).json({ error: "You can review an order after the restaurant marks it ready for pickup" });
 
   try {
     const review = await Review.create({

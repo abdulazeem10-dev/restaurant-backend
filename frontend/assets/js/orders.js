@@ -1,19 +1,19 @@
 const orderRoot = document.querySelector("#orders");
 const errorRoot = document.querySelector("#error");
 const orderStages = [
-  ["placed", "Order received"],
-  ["confirmed", "Confirmed"],
+  ["placed", "Order placed"],
   ["preparing", "Preparing"],
-  ["ready", "Ready"]
+  ["ready", "Ready for pickup"],
+  ["out_for_delivery", "Out for delivery"],
+  ["delivered", "Delivery done"]
 ];
 
 function renderOrderProgress(order) {
   const history = order.statusHistory?.length
     ? order.statusHistory
     : [{ status: "placed", at: order.createdAt }, ...(order.status !== "placed" ? [{ status: order.status, at: order.updatedAt }] : [])];
-  const currentIndex = ["picked_up", "delivered"].includes(order.status)
-    ? orderStages.length - 1
-    : orderStages.findIndex(([status]) => status === order.status);
+  const currentStatus = order.status === "picked_up" ? "out_for_delivery" : order.status === "confirmed" ? "placed" : order.status;
+  const currentIndex = orderStages.findIndex(([status]) => status === currentStatus);
   const list = document.createElement("ol");
   list.className = "order-progress";
   if (order.status === "cancelled") {
@@ -36,7 +36,7 @@ function renderOrderProgress(order) {
     return list;
   }
   for (const [index, [status, label]] of orderStages.entries()) {
-    const event = [...history].reverse().find(item => item.status === status);
+    const event = [...history].reverse().find(item => item.status === status || (status === "out_for_delivery" && item.status === "picked_up"));
     const item = document.createElement("li");
     item.className = `order-step${index < currentIndex ? " is-complete" : ""}${index === currentIndex ? " is-current" : ""}`;
     const dot = document.createElement("span");
@@ -52,17 +52,6 @@ function renderOrderProgress(order) {
       content.append(time);
     }
     item.append(dot, content);
-    list.append(item);
-  }
-  if (["picked_up", "delivered"].includes(order.status)) {
-    const item = document.createElement("li");
-    item.className = "order-step is-current";
-    const dot = document.createElement("span");
-    dot.className = "order-step-dot";
-    dot.setAttribute("aria-hidden", "true");
-    const label = document.createElement("strong");
-    label.textContent = order.status === "delivered" ? "Delivered" : "Picked up";
-    item.append(dot, label);
     list.append(item);
   }
   return list;
@@ -108,7 +97,7 @@ function renderReview(order, card) {
     reviewed.className = "order-review-status";
     reviewed.textContent = `Your rating: ${order.review.rating} / 5`;
     card.append(reviewed);
-  } else if (order.status === "ready") {
+  } else if (["ready", "out_for_delivery", "picked_up", "delivered"].includes(order.status)) {
     const form = document.createElement("form");
     form.className = "order-review-form";
     form.innerHTML = `<label>Rate your order <select name="rating" required><option value="" selected disabled>Choose 1–5 stars</option><option value="5">★★★★★ — Excellent</option><option value="4">★★★★ — Good</option><option value="3">★★★ — Okay</option><option value="2">★★ — Poor</option><option value="1">★ — Bad</option></select></label><label>Review (optional)<textarea name="comment" maxlength="500" rows="3" placeholder="How was your order?"></textarea></label><button type="submit">Submit review</button>`;
@@ -148,7 +137,8 @@ function renderOrders(orders) {
         ? "UPI QR selected (not collected)"
         : "Online payment selected (not collected)";
     const paymentStatusLabel = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
-    card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled", awaiting_payment: "Waiting for payment" };
+    card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
     if (order.deliveryPartnerId) {
       const partner = document.createElement("p");
       partner.textContent = `Delivery person: ${order.deliveryPartnerId.name}${order.deliveryPartnerId.phone ? ` · ${order.deliveryPartnerId.phone}` : ""}`;

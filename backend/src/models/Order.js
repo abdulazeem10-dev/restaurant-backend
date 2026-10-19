@@ -32,11 +32,11 @@ const orderSchema = new mongoose.Schema({
   customerReceivedAt: { type: Date, default: null },
   status: {
     type: String,
-    enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"],
+    enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "out_for_delivery", "picked_up", "delivered", "cancelled"],
     default: "placed"
   },
   statusHistory: [{
-    status: { type: String, enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "picked_up", "delivered", "cancelled"], required: true },
+    status: { type: String, enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "out_for_delivery", "picked_up", "delivered", "cancelled"], required: true },
     at: { type: Date, required: true, default: Date.now }
   }]
 }, { timestamps: true });

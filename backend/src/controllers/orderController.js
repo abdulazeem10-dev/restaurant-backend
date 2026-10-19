@@ -102,7 +102,7 @@ async function listRestaurantOrders(req, res) {
 }
 
 async function updateRestaurantOrder(req, res) {
-  const validStatuses = ["confirmed", "preparing", "ready", "cancelled"];
+  const validStatuses = ["confirmed", "preparing", "ready", "out_for_delivery", "cancelled"];
   if (!validStatuses.includes(req.body?.status)) return res.status(400).json({ error: "Invalid order status" });
   const restaurant = req.user.role === "restaurant_staff"
     ? await Restaurant.findById(req.user.restaurantId)
@@ -112,10 +112,11 @@ async function updateRestaurantOrder(req, res) {
   if (!order) return res.status(404).json({ error: "Order not found" });
 
   const allowed = {
-    placed: ["confirmed", "cancelled"],
+    placed: ["preparing", "confirmed", "cancelled"],
     confirmed: ["preparing", "cancelled"],
     preparing: ["ready", "cancelled"],
-    ready: [], cancelled: []
+    ready: ["out_for_delivery", "cancelled"],
+    out_for_delivery: [], cancelled: []
   };
   if (!allowed[order.status]?.includes(req.body.status)) {
     return res.status(409).json({ error: `Cannot move order from ${order.status} to ${req.body.status}` });
@@ -136,7 +137,7 @@ async function listDeliveryOrders(req, res) {
 
 async function updateDeliveryOrder(req, res) {
   const parsed = z.object({
-    status: z.enum(["picked_up", "delivered"]).optional(),
+    status: z.enum(["delivered"]).optional(),
     cashCollected: z.boolean().optional()
   }).strict().refine(value => value.status !== undefined || value.cashCollected === true).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a delivery update" });
@@ -144,8 +145,7 @@ async function updateDeliveryOrder(req, res) {
   if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Assigned delivery not found" });
   const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
   if (!order) return res.status(404).json({ error: "Assigned delivery not found" });
-  const allowed = { ready: "picked_up", picked_up: "delivered" };
-  if (status && allowed[order.status] !== status) return res.status(409).json({ error: status === "picked_up" ? "The restaurant must mark the order ready before pickup" : "Mark the order picked up before delivery" });
+  if (status && !["out_for_delivery", "picked_up"].includes(order.status)) return res.status(409).json({ error: "The restaurant must mark the order out for delivery before you can mark it delivered" });
   if (cashCollected) {
     if (order.paymentMethod !== "cash_on_delivery") return res.status(400).json({ error: "Cash collection only applies to cash-on-delivery orders" });
     if (status !== "delivered" && order.status !== "delivered") return res.status(409).json({ error: "Confirm cash after the order is delivered" });

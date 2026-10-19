@@ -23,7 +23,8 @@ function renderDelivery(order) {
   const recipient = order.deliveryDetails || {};
   const restaurant = order.restaurantId || {};
   const customer = order.customerId || {};
-  const state = order.status.replaceAll("_", " ");
+  const stateLabels = { placed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
+  const state = stateLabels[order.status] || order.status.replaceAll("_", " ");
   const paymentMode = order.paymentMethod === "cash_on_delivery" ? "Cash on delivery" : order.paymentMethod === "upi_qr" ? "UPI QR preference" : order.paymentMethod === "razorpay" ? "Online payment" : "UPI / card / net banking preference";
   const paymentState = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Payment failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · collect cash on delivery" : "Not paid · selected preference only";
   const pickupMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address || "")}`;
@@ -32,8 +33,13 @@ function renderDelivery(order) {
 
   let nextStatus = null;
   let actionLabel = "";
-  if (order.status === "ready") { nextStatus = "picked_up"; actionLabel = "Confirm pickup"; }
-  if (order.status === "picked_up") { nextStatus = "delivered"; actionLabel = order.paymentMethod === "cash_on_delivery" && order.paymentStatus !== "paid" ? "Mark delivered & cash received" : "Mark delivered"; }
+  if (order.status === "out_for_delivery" || order.status === "picked_up") { nextStatus = "delivered"; actionLabel = order.paymentMethod === "cash_on_delivery" && order.paymentStatus !== "paid" ? "Mark delivered & cash received" : "Mark delivered"; }
+  if (order.status === "ready") {
+    const waiting = document.createElement("p");
+    waiting.className = "muted";
+    waiting.textContent = "Ready for pickup. The restaurant will mark the order out for delivery after handing it over.";
+    card.append(waiting);
+  }
   if (nextStatus) {
     const button = document.createElement("button");
     button.type = "button";
