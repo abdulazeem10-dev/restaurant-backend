@@ -1102,3 +1102,143 @@ body { color: var(--ink); text-rendering: optimizeLegibility; -webkit-font-smoot
 @media (max-width: 390px) {
   .customer-page .value-strip > div + div { border-top: 1px solid #f0e8e2; }
 }
+
+/* Foodway refinement: stronger hierarchy, cleaner controls, and complete auth styling. */
+:root {
+  --ink: #28231f;
+  --muted-ink: #6f655e;
+  --line: #e9dfd7;
+  --brand-coral: #e83d55;
+  --brand-coral-dark: #c92d47;
+  --brand-orange: #e85a17;
+  --surface-warm: #fffaf6;
+  --surface-white: #fff;
+  --shadow-card: 0 12px 34px #3021160b;
+  --shadow-float: 0 18px 44px #30211614;
+}
+
+body { color: var(--ink); }
+h1, h2, h3, h4 { color: var(--ink); text-wrap: balance; }
+p { line-height: 1.55; }
+.muted { color: var(--muted-ink); }
+a { text-underline-offset: .18em; }
+button, input, textarea, select { border-radius: 11px; }
+button { min-height: 44px; box-shadow: 0 2px 4px #26180e08; }
+button:not(:disabled):active { transform: translateY(1px); }
+button.secondary { border: 1px solid var(--line); }
+input, textarea, select { border-color: #ded3ca; color: var(--ink); }
+input::placeholder, textarea::placeholder { color: #8b8179; opacity: 1; }
+input:focus, textarea:focus, select:focus { border-color: #dc6b76; }
+article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
+
+.wordmark { letter-spacing: -.035em; }
+.wordmark-icon { width: 38px; height: 38px; border-radius: 13px 13px 13px 4px; box-shadow: 0 5px 12px #e83d552c; }
+.hero-banner { border: 1px solid #f1dfd5; }
+.plate { overflow: hidden; }
+.plate-art { display: block; width: 100%; height: 100%; filter: drop-shadow(0 14px 18px #75442a22); }
+.storefront-bowl-art { width: min(82%, 240px); height: auto; filter: drop-shadow(0 14px 18px #70452c24); }
+.hero-sticker { border: 1px solid #f3e8df; }
+.hero-sticker.sticker-two { border: 0; }
+.restaurant-card { display: flex; flex-direction: column; }
+.restaurant-card-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; }
+.restaurant-card .card-action { margin-top: auto; }
+.restaurant-cover { background-color: #f7efe8; }
+.restaurant-cover.has-image img { transition: transform .55s cubic-bezier(.2,.65,.3,1), filter .35s ease; }
+.restaurant-card:hover .restaurant-cover.has-image img { transform: scale(1.04); filter: saturate(1.04); }
+.restaurant-rating { white-space: nowrap; }
+.quick-food-filters button:focus-visible, .filter-reset:focus-visible { outline-color: #d73c53; }
+.site-footer { margin-top: 3rem; background: #fff; }
+
+/* Branded account screens use the same visual language as checkout. */
+.auth-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 12% 18%, #ffece6 0, transparent 34%),
+    radial-gradient(ellipse at 90% 82%, #fff1e7 0, transparent 30%),
+    #fffaf6;
+}
+.auth-page .auth-header {
+  min-height: 76px;
+  padding: .8rem max(5vw, calc((100vw - 1200px) / 2));
+  border-bottom: 1px solid #efe6df;
+  background: #ffffffd9;
+  backdrop-filter: blur(16px);
+}
+.auth-header > a:last-child { color: #655b54; font-size: .92rem; font-weight: 650; }
+.auth-header > a:last-child:hover { color: var(--brand-coral-dark); text-decoration: none; }
+.auth-page > main {
+  width: min(100% - 2rem, 520px);
+  margin: clamp(2.5rem, 7vh, 5rem) auto 4rem;
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+  border: 1px solid #eee1d7;
+  border-radius: 24px;
+  background: #ffffffed;
+  box-shadow: 0 24px 70px #4e2c1a12;
+}
+.auth-page > main h2 { margin: 0 0 .6rem; font-size: clamp(1.8rem, 4vw, 2.35rem); letter-spacing: -.045em; }
+.auth-page > main > p:first-of-type { margin: 0 0 1.5rem; color: var(--muted-ink); }
+.auth-page form { display: grid; gap: .9rem; }
+.auth-page form p { margin: 0; }
+.auth-page label { display: grid; gap: .4rem; color: #48403a; font-size: .9rem; font-weight: 680; }
+.auth-page label input { width: 100%; min-height: 49px; margin-top: .2rem; padding: .75rem .85rem; border-color: #e4d9d1; background: #fffdfa; }
+.auth-page form button { width: 100%; min-height: 50px; margin-top: .25rem; border-radius: 12px; background: var(--brand-coral); box-shadow: 0 8px 18px #e83d5529; }
+.auth-page form button:hover { background: var(--brand-coral-dark); }
+.auth-page section { padding: 1rem; border: 1px solid #f0e7e1; border-radius: 16px; background: #fffdfa; }
+.auth-page section h3 { margin-top: 0; }
+.auth-page section[hidden] { display: none; }
+.auth-page #show-phone-login, .auth-page #show-password-login { width: 100%; background: #fff; }
+.auth-page #show-phone-login:hover, .auth-page #show-password-login:hover { border-color: #eab6bc; background: #fff6f6; color: var(--brand-coral-dark); }
+.auth-page > main > p { color: var(--muted-ink); }
+.auth-page > main > p a, .auth-page form + p a { color: var(--brand-coral-dark); font-weight: 700; }
+.auth-page #message { min-height: 1.4rem; margin: .8rem 0; color: #a93436; }
+.auth-divider { display: flex; align-items: center; gap: .8rem; margin: 1.25rem 0; color: #8b8179; font-size: .82rem; }
+.auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: #eee5de; content: ""; }
+#google-signin-button { min-height: 42px; }
+
+/* Calm, consistent operations workspaces. */
+.admin-page, .restaurant-page, .delivery-page { color: #29251f; }
+.admin-header, .restaurant-header, .delivery-header { border-bottom-color: #eee5de; box-shadow: 0 6px 22px #30211608; }
+.admin-brand, .restaurant-brand, .delivery-brand { letter-spacing: -.025em; }
+.restaurant-brand .wordmark-icon { display: grid; padding: 0; border: 0; color: #fff; font-size: 1rem; font-weight: 800; }
+.restaurant-brand-copy { display: grid; gap: .08rem; padding-left: .65rem; border-left: 1px solid #e9dfd6; color: #29251f; font-size: 1.12rem; font-weight: 800; }
+.restaurant-brand-copy small { color: #81766e; font-size: .72rem; font-weight: 600; letter-spacing: .01em; }
+.admin-sidebar, .restaurant-sidebar { border-color: #eee5de; box-shadow: 0 10px 30px #3021160a; }
+.admin-sidebar button, .restaurant-sidebar button { min-height: 46px; border-radius: 10px; }
+.admin-sidebar button[aria-current="page"] { box-shadow: inset 3px 0 0 var(--brand-coral); }
+.restaurant-sidebar button[aria-current="page"] { box-shadow: inset 3px 0 0 var(--brand-orange); }
+.admin-page-heading h1, .restaurant-page-heading h1, .delivery-page-heading h1 { letter-spacing: -.045em; }
+.admin-access-badge, .restaurant-role-badge { border: 1px solid #f0d6d7; }
+.admin-stat, .report-metric { border-color: #eee4dd; background: linear-gradient(145deg, #fff, #fffdfa); box-shadow: 0 8px 24px #30211608; }
+.admin-stat > span, .report-metric > span { color: #70665e; }
+.admin-stat strong, .report-metric strong { letter-spacing: -.045em; }
+.admin-list-heading { padding-bottom: .9rem; border-bottom: 1px solid #eee6df; }
+.admin-restaurant-card, .restaurant-content .grid article { border-radius: 16px; }
+.admin-form-panel, .restaurant-content .panel { border-color: #eee4dd; }
+.admin-page input, .admin-page select, .admin-page textarea,
+.restaurant-page input, .restaurant-page select, .restaurant-page textarea,
+.delivery-page input, .delivery-page select, .delivery-page textarea { border-color: #e1d7cf; background-color: #fff; }
+.admin-page button:not(.secondary), .restaurant-page button:not(.secondary), .delivery-page button:not(.secondary) { box-shadow: 0 5px 12px #b94a1b18; }
+.restaurant-quick-links button { border-color: #eee4dd; background: linear-gradient(145deg, #fff, #fffdfa); }
+.restaurant-overview-card { box-shadow: 0 16px 36px #3021160a; }
+.delivery-location-bar, .live-tracking-panel { border-color: #eadfd6; background: #fff; box-shadow: 0 8px 24px #30211608; }
+.delivery-stop { background: #fffdfa; }
+.delivery-status-chip { letter-spacing: .01em; }
+.live-order-map { border-color: #e3d8cf; }
+
+@media (max-width: 760px) {
+  .auth-page .auth-header { min-height: 68px; padding-inline: 1rem; }
+  .auth-page > main { margin-top: 1.5rem; border-radius: 20px; }
+  .site-header { gap: .75rem; }
+  .restaurant-card-content { padding: 1rem; }
+}
+@media (max-width: 600px) {
+  .auth-page > main { width: min(100% - 1.25rem, 520px); padding: 1.25rem; }
+  .auth-header .wordmark { font-size: 1rem; }
+  .auth-header > a:last-child { font-size: .82rem; }
+  .restaurant-brand .wordmark-icon { display: grid; }
+  .restaurant-brand-copy { display: grid; }
+  .restaurant-brand-copy small { display: none; }
+  .admin-sidebar, .restaurant-sidebar { border-radius: 13px; }
+  .admin-page-heading, .restaurant-page-heading { gap: .55rem; }
+  .restaurant-meta { flex-wrap: wrap; }
+}

@@ -559,7 +559,7 @@ async function initializeRestaurantDashboard() {
   const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
   document.querySelector("#restaurant-role-badge").textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
   if (restaurantStaffRole) {
-    document.querySelector(".restaurant-brand span").textContent = `${roleNames[restaurantStaffRole]} workspace`;
+    document.querySelector(".restaurant-brand-copy small").textContent = `${roleNames[restaurantStaffRole]} workspace`;
     document.querySelector(".restaurant-page-heading .eyebrow").textContent = "RESTAURANT STAFF WORKSPACE";
   }
   if (restaurantStaffRole) {
