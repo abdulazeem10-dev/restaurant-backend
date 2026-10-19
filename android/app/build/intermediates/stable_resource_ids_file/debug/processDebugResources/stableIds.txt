@@ -1,0 +1,3 @@
+com.foodway.app:mipmap/ic_launcher = 0x7f030000
+com.foodway.app:drawable/ic_foodway_foreground = 0x7f020000
+com.foodway.app:color/launcher_background = 0x7f010000
