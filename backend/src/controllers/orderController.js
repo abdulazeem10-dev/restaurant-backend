@@ -103,7 +103,7 @@ async function listRestaurantOrders(req, res) {
     ? await Restaurant.findById(req.user.restaurantId)
     : await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).populate("customerId", "name email").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
+  const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).select("-deliveryLocation -customerLocation").populate("customerId", "name email").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   return res.json({ orders });
 }
 
@@ -227,6 +227,7 @@ async function updateDeliveryOrder(req, res) {
     if (status === "delivered") {
       order.estimatedDeliveryAt = null;
       order.deliveryLocation = undefined;
+      order.customerLocation = undefined;
     }
   }
   await order.save();
@@ -255,6 +256,33 @@ async function clearDeliveryLocation(req, res) {
     { deliveryPartnerId: req.user._id, status: { $in: ["out_for_delivery", "picked_up"] } },
     { $unset: { deliveryLocation: 1 } }
   );
+  return res.json({ cleared: true });
+}
+
+async function updateCustomerLocation(req, res) {
+  const parsed = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180)
+  }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ error: "Send a valid location" });
+  const order = await Order.findOne({ _id: req.params.id, customerId: req.user._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (!["out_for_delivery", "picked_up"].includes(order.status) || !order.deliveryPartnerId || (order.deliveryAssignmentStatus && order.deliveryAssignmentStatus !== "accepted")) {
+    return res.status(409).json({ error: "Customer location sharing is available after the delivery person accepts and starts the delivery" });
+  }
+  const updatedAt = new Date();
+  order.customerLocation = { ...parsed.data, updatedAt };
+  await order.save();
+  return res.json({ updatedAt });
+}
+
+async function clearCustomerLocation(req, res) {
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Order not found" });
+  const result = await Order.updateOne(
+    { _id: req.params.id, customerId: req.user._id },
+    { $unset: { customerLocation: 1 } }
+  );
+  if (!result.matchedCount) return res.status(404).json({ error: "Order not found" });
   return res.json({ cleared: true });
 }
 
@@ -403,4 +431,4 @@ async function resolveOrderHelpRequest(req, res) {
   return res.json({ order, request: support });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, updateCustomerLocation, clearCustomerLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };

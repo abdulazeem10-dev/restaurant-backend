@@ -8,4 +8,32 @@ function readCart() { try { return JSON.parse(localStorage.getItem("food-platfor
 function writeCart(cart) { localStorage.setItem("food-platform-cart", JSON.stringify(cart)); updateCartCount(); }
 function updateCartCount() { const el = document.querySelector("[data-cart-count]"); if (el) el.textContent = (readCart()?.items || []).reduce((sum, item) => sum + item.quantity, 0); }
 function escapeHtml(value) { const el = document.createElement("span"); el.textContent = value ?? ""; return el.innerHTML; }
+function createLiveTrackingMap(element, deliveryLocation, customerLocation) {
+  if (!window.L) {
+    element.textContent = "Map library could not load. Use the location links below instead.";
+    return null;
+  }
+  const points = [];
+  const map = L.map(element, { scrollWheelZoom: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'
+  }).addTo(map);
+  const markers = [];
+  const addPoint = (location, label, iconClass) => {
+    if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) return;
+    const point = [location.latitude, location.longitude];
+    points.push(point);
+    const icon = L.divIcon({ className: "live-map-marker-wrap", html: `<span class="live-map-marker ${iconClass}" aria-label="${label}"></span>`, iconSize: [24, 24], iconAnchor: [12, 12] });
+    markers.push(L.marker(point, { icon, title: label }).addTo(map).bindTooltip(label));
+  };
+  addPoint(deliveryLocation, "Delivery person", "is-rider");
+  addPoint(customerLocation, "Customer", "is-customer");
+  if (points.length === 2) {
+    L.polyline(points, { color: "#e94b61", weight: 4, opacity: 0.8, dashArray: "8 8" }).addTo(map);
+    map.fitBounds(points, { padding: [28, 28], maxZoom: 15 });
+  } else if (points.length === 1) map.setView(points[0], 15);
+  else map.setView([19.076, 72.8777], 11);
+  return map;
+}
 updateCartCount();

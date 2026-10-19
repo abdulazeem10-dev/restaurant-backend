@@ -450,6 +450,16 @@ article h3 { margin-top: 0; }
 .report-top-list, .report-status-list { padding-left: 1.3rem; }
 .report-top-list li, .report-status-list li { padding: .35rem 0; }
 .order-eta { font-weight: 700; color: #386b4b; }
+.live-tracking-panel { display: grid; gap: .65rem; margin: 1rem 0; padding: 1rem; border: 1px solid #f0e0d6; border-radius: 14px; background: #fffaf6; }
+.live-tracking-panel h4, .live-tracking-panel p { margin: 0; }
+.live-order-map { z-index: 0; width: 100%; height: 300px; overflow: hidden; border: 1px solid #eadbd0; border-radius: 11px; background: #f4eee8; }
+.live-order-map.is-empty { display: grid; place-items: center; padding: 1rem; color: #766b62; text-align: center; }
+.live-map-marker-wrap { border: 0; background: transparent; }
+.live-map-marker { display: grid; width: 27px; height: 27px; place-items: center; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 8px #1c191733; font-size: 16px; }
+.live-map-marker.is-rider { background: #ef4059; }
+.live-map-marker.is-rider::after { content: "🛵"; }
+.live-map-marker.is-customer { background: #2563eb; }
+.live-map-marker.is-customer::after { content: "⌂"; color: white; font-size: 18px; font-weight: 800; }
 @media (max-width: 900px) {
   .restaurant-shell { grid-template-columns: 1fr; gap: 1rem; }
   .restaurant-sidebar { position: static; display: flex; align-items: center; overflow-x: auto; gap: .3rem; padding: .55rem; }

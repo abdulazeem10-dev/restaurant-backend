@@ -5,6 +5,7 @@ let locationWatchId = null;
 let lastLocationSentAt = 0;
 let locationUpdateInFlight = false;
 let locationUpdateController = null;
+const trackingMaps = [];
 
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => {
@@ -92,6 +93,35 @@ function renderDelivery(order) {
   const pickupMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address || "")}`;
   const deliveryMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress || "")}`;
   card.innerHTML = `<p class="eyebrow">ORDER ${escapeHtml(order._id.slice(-6))}</p><h3>${escapeHtml(restaurant.name || "Restaurant")}</h3><p><strong>Pickup from</strong><br>${escapeHtml(restaurant.address || "Pickup address unavailable")}<br><a href="${pickupMap}" target="_blank" rel="noopener noreferrer">Open pickup in Maps</a></p><hr><p><strong>Customer</strong><br>${escapeHtml(customer.name || "Customer")}${customer.email ? ` · ${escapeHtml(customer.email)}` : ""}</p><p><strong>Deliver to ${recipient.recipientType === "other" ? "recipient" : "customer"}</strong><br>${escapeHtml(recipient.name || "")}${recipient.phone ? ` · <a href="tel:${encodeURIComponent(recipient.phone)}">${escapeHtml(recipient.phone)}</a>` : ""}</p><p><strong>Delivery address</strong><br>${escapeHtml(order.deliveryAddress)}${recipient.pincode ? `<br>PIN ${escapeHtml(recipient.pincode)}` : ""}<br><a href="${deliveryMap}" target="_blank" rel="noopener noreferrer">Open delivery location in Maps</a></p><p><strong>Food</strong><br>${items}</p><p><strong>Status:</strong> ${escapeHtml(state)} · ${formatRupees(order.totalPaise)}</p><p><strong>Payment mode:</strong> ${escapeHtml(paymentMode)}</p><p><strong>Payment status:</strong> ${escapeHtml(paymentState)}${order.paymentCollectedAt ? ` · ${new Date(order.paymentCollectedAt).toLocaleString("en-IN")}` : ""}</p>${order.customerReceivedAt ? `<p><strong>Customer confirmed receipt:</strong> ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}</p>` : order.status === "delivered" ? "<p>Waiting for customer to confirm receipt.</p>" : ""}`;
+
+  if (["out_for_delivery", "picked_up"].includes(order.status)) {
+    const tracking = document.createElement("section");
+    tracking.className = "live-tracking-panel";
+    const heading = document.createElement("h4");
+    heading.textContent = "Live customer location";
+    tracking.append(heading);
+    const map = document.createElement("div");
+    map.className = "live-order-map";
+    map.setAttribute("role", "img");
+    map.setAttribute("aria-label", "Live map showing your location and the customer-shared location");
+    const hasCoordinates = [order.deliveryLocation, order.customerLocation].some(point => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+    if (hasCoordinates) {
+      tracking.append(map);
+      const leafletMap = createLiveTrackingMap(map, order.deliveryLocation, order.customerLocation);
+      if (leafletMap) trackingMaps.push(leafletMap);
+    } else {
+      map.classList.add("is-empty");
+      map.textContent = "The map appears when GPS location is shared.";
+      tracking.append(map);
+    }
+    const customerNote = document.createElement("p");
+    customerNote.className = "muted";
+    customerNote.textContent = order.customerLocation?.updatedAt
+      ? `Customer location shared · updated ${new Date(order.customerLocation.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.`
+      : "The customer has not shared live location. Use the delivery address and Maps link above.";
+    tracking.append(customerNote);
+    card.append(tracking);
+  }
 
   if (order.deliveryAssignmentStatus === "offered") {
     const offer = document.createElement("section");
@@ -187,6 +217,7 @@ async function loadDeliveries() {
     const hasActiveRoute = orders.some(order => ["out_for_delivery", "picked_up"].includes(order.status));
     locationButton.disabled = !hasActiveRoute && locationWatchId === null;
     if (!hasActiveRoute && locationWatchId !== null) stopLocationSharing();
+    while (trackingMaps.length) trackingMaps.pop()?.remove();
     deliveryRoot.replaceChildren();
     if (!orders.length) {
       deliveryRoot.textContent = "No assigned deliveries right now.";

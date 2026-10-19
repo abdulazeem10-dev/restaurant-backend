@@ -1,5 +1,7 @@
 const orderRoot = document.querySelector("#orders");
 const errorRoot = document.querySelector("#error");
+const trackingMaps = [];
+const customerLocationWatches = new Map();
 const orderStages = [
   ["placed", "Order placed"],
   ["preparing", "Preparing"],
@@ -184,6 +186,7 @@ function renderOrderHelp(order, card) {
 }
 
 function renderOrders(orders) {
+  while (trackingMaps.length) trackingMaps.pop()?.remove();
   orderRoot.replaceChildren();
   if (!orders.length) { orderRoot.textContent = "You haven’t placed any orders yet."; return; }
   for (const order of orders) {
@@ -204,19 +207,53 @@ function renderOrders(orders) {
       card.append(eta);
     }
     const location = order.deliveryLocation;
-    if (location && ["out_for_delivery", "picked_up"].includes(order.status) && Number.isFinite(location.latitude) && Number.isFinite(location.longitude)) {
-      const updatedAt = new Date(location.updatedAt);
-      const ageMinutes = Math.max(0, Math.floor((Date.now() - updatedAt.getTime()) / 60000));
-      const tracking = document.createElement("p");
-      if (ageMinutes > 2) {
-        tracking.textContent = `Rider location stopped updating ${ageMinutes} minutes ago.`;
+    const customerLocation = order.customerLocation;
+    const activeRoute = ["out_for_delivery", "picked_up"].includes(order.status);
+    if (activeRoute) {
+      const tracking = document.createElement("section");
+      tracking.className = "live-tracking-panel";
+      const heading = document.createElement("h4");
+      heading.textContent = "Live delivery map";
+      tracking.append(heading);
+      const map = document.createElement("div");
+      map.className = "live-order-map";
+      map.setAttribute("role", "img");
+      map.setAttribute("aria-label", "Live map showing the delivery person and shared customer location");
+      const hasCoordinates = [location, customerLocation].some(point => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude));
+      if (hasCoordinates) {
+        tracking.append(map);
+        const leafletMap = createLiveTrackingMap(map, location, customerLocation);
+        if (leafletMap) trackingMaps.push(leafletMap);
       } else {
-        const map = document.createElement("a");
-        map.href = `https://www.google.com/maps?q=${encodeURIComponent(`${location.latitude},${location.longitude}`)}`;
-        map.target = "_blank"; map.rel = "noopener noreferrer"; map.textContent = "View latest rider location";
-        tracking.textContent = "Rider is sharing location · "; tracking.append(map);
+        map.classList.add("is-empty");
+        map.textContent = "The map will appear when GPS location is shared.";
+        tracking.append(map);
       }
+      if (location?.updatedAt) {
+        const ageMinutes = Math.max(0, Math.floor((Date.now() - new Date(location.updatedAt).getTime()) / 60000));
+        const freshness = document.createElement("p");
+        freshness.className = "muted";
+        freshness.textContent = ageMinutes > 2 ? `Rider location last updated ${ageMinutes} minutes ago.` : `Rider location is live · updated ${new Date(location.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.`;
+        tracking.append(freshness);
+      } else {
+        const waiting = document.createElement("p");
+        waiting.className = "muted";
+        waiting.textContent = "Waiting for the delivery person to share GPS location.";
+        tracking.append(waiting);
+      }
+      const share = document.createElement("button");
+      share.type = "button";
+      share.className = "secondary";
+      share.textContent = customerLocationWatches.has(String(order._id)) ? "Stop sharing my location" : "Share my live location with the delivery person";
+      share.addEventListener("click", () => toggleCustomerLocationShare(order._id, share));
+      tracking.append(share);
+      const privacy = document.createElement("small");
+      privacy.className = "muted";
+      privacy.textContent = "Your precise location is shared only with the delivery person assigned to this active order. You can stop sharing at any time.";
+      tracking.append(privacy);
       card.append(tracking);
+    } else if (customerLocationWatches.has(String(order._id))) {
+      stopCustomerLocationShare(order._id, true);
     }
     if (order.deliveryPartnerId) {
       const partner = document.createElement("p");
@@ -264,6 +301,65 @@ function renderOrders(orders) {
     orderRoot.append(card);
   }
 }
+
+async function stopCustomerLocationShare(orderId, clearRemote = true) {
+  const key = String(orderId);
+  const watch = customerLocationWatches.get(key);
+  if (watch && navigator.geolocation) navigator.geolocation.clearWatch(watch.id);
+  customerLocationWatches.delete(key);
+  if (clearRemote && getToken()) {
+    try {
+      await fetch(`${API_BASE}/orders/${encodeURIComponent(key)}/customer-location`, { method: "DELETE", headers: authHeaders(), keepalive: true });
+    } catch { /* The saved location is removed automatically when delivery completes. */ }
+  }
+}
+
+function toggleCustomerLocationShare(orderId, button) {
+  const key = String(orderId);
+  if (customerLocationWatches.has(key)) {
+    stopCustomerLocationShare(key, true);
+    button.textContent = "Share my live location with the delivery person";
+    errorRoot.textContent = "Live location sharing stopped.";
+    return;
+  }
+  if (!window.isSecureContext || !navigator.geolocation) {
+    errorRoot.textContent = "Live location requires browser permission on HTTPS (or localhost).";
+    return;
+  }
+  button.disabled = true;
+  errorRoot.textContent = "Waiting for location permission…";
+  const watch = { id: null, lastSentAt: 0, inFlight: false };
+  watch.id = navigator.geolocation.watchPosition(async position => {
+    if (!customerLocationWatches.has(key)) return;
+    button.disabled = false;
+    button.textContent = "Stop sharing my location";
+    if (watch.inFlight || Date.now() - watch.lastSentAt < 12000) return;
+    watch.inFlight = true;
+    try {
+      const response = await fetch(`${API_BASE}/orders/${encodeURIComponent(key)}/customer-location`, {
+        method: "PATCH", headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not share your location");
+      watch.lastSentAt = Date.now();
+      errorRoot.textContent = `Your live location is shared with the assigned delivery person · updated ${new Date(data.updatedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}.`;
+    } catch (error) {
+      errorRoot.textContent = error.message;
+      button.disabled = false;
+      await stopCustomerLocationShare(key, false);
+    } finally { watch.inFlight = false; }
+  }, async error => {
+    button.disabled = false;
+    errorRoot.textContent = error.code === error.PERMISSION_DENIED ? "Location permission was denied. Allow browser location access to share your location." : "Could not read your location. Check that location services are enabled.";
+    await stopCustomerLocationShare(key, true);
+  }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+  customerLocationWatches.set(key, watch);
+}
+
+window.addEventListener("pagehide", () => {
+  for (const orderId of customerLocationWatches.keys()) stopCustomerLocationShare(orderId, true);
+});
 
 function renderNotifications(notifications, unreadCount) {
   const list = document.querySelector("#customer-notifications");

@@ -23,6 +23,11 @@ const orderSchema = new mongoose.Schema({
     longitude: { type: Number, min: -180, max: 180 },
     updatedAt: { type: Date, default: null }
   },
+  customerLocation: {
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
+    updatedAt: { type: Date, default: null }
+  },
   estimatedDeliveryAt: { type: Date, default: null },
   items: [{
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },

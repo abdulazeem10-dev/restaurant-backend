@@ -8,6 +8,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const router = express.Router();
 router.post("/", authenticate, authorize("customer"), asyncHandler(controller.createOrder));
 router.get("/mine", authenticate, authorize("customer"), asyncHandler(controller.listMyOrders));
+router.patch("/:id/customer-location", authenticate, authorize("customer"), asyncHandler(controller.updateCustomerLocation));
+router.delete("/:id/customer-location", authenticate, authorize("customer"), asyncHandler(controller.clearCustomerLocation));
 router.get("/restaurant", authenticate, authorizeRestaurant("read"), asyncHandler(controller.listRestaurantOrders));
 router.patch("/restaurant/:id/reassign-delivery", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.reassignDeliveryOrder));
 router.patch("/restaurant/:id", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.updateRestaurantOrder));
