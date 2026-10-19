@@ -6,7 +6,7 @@ const Restaurant = require("../models/Restaurant");
 const deliveryPartnerSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
-  phone: z.string().trim().transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().regex(/^\+?[1-9]\d{7,14}$/)),
+  phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
   password: z.string().min(12).max(128)
 }).strict();
 

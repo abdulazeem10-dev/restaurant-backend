@@ -7,7 +7,7 @@ async function listMine(req, res) {
 }
 
 async function markRead(req, res) {
-  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Notification not found" });
+  if (req.params.id.length !== 24 || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Notification not found" });
   const notification = await Notification.findOneAndUpdate(
     { _id: req.params.id, userId: req.user._id },
     { $set: { readAt: new Date() } },

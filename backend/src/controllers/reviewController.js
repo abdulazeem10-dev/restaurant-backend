@@ -4,7 +4,7 @@ const Restaurant = require("../models/Restaurant");
 const Review = require("../models/Review");
 
 const createReviewSchema = z.object({
-  orderId: z.string().regex(/^[a-f\d]{24}$/i),
+  orderId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
   rating: z.number().int().min(1).max(5),
   comment: z.string().trim().max(500).optional().default("")
 }).strict();

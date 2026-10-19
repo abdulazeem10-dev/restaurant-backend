@@ -7,7 +7,7 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const dailyHoursSchema = z.object({
   closed: z.boolean(),
   opensAt: timeSchema,
@@ -22,7 +22,7 @@ const openingHoursInputSchema = z.object(Object.fromEntries(
 )).strict();
 const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
-  deliveryPincodes: z.array(z.string().regex(/^\d{6}$/)).max(100).optional(),
+  deliveryPincodes: z.array(z.string().length(6).regex(/^\d{6}$/)).max(100).optional(),
   prepTimeMinutes: z.number().int().min(5).max(180).optional(),
   deliveryTimeMinutes: z.number().int().min(5).max(180).optional()
 }).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined || value.prepTimeMinutes !== undefined || value.deliveryTimeMinutes !== undefined);
@@ -37,7 +37,7 @@ const restaurantStaffSchema = z.object({
 async function listRestaurants(req, res) {
   const query = { status: "approved" };
   if (req.query.pincode !== undefined) {
-    if (typeof req.query.pincode !== "string" || !/^\d{6}$/.test(req.query.pincode)) {
+    if (typeof req.query.pincode !== "string" || req.query.pincode.length !== 6 || !/^\d{6}$/.test(req.query.pincode)) {
       return res.status(400).json({ error: "Enter a valid 6-digit PIN code" });
     }
     query.deliveryPincodes = req.query.pincode;
@@ -179,7 +179,7 @@ async function getOwnReports(req, res) {
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const fromText = req.query.from;
   const toText = req.query.to;
-  if (typeof fromText !== "string" || typeof toText !== "string" || !datePattern.test(fromText) || !datePattern.test(toText)) {
+  if (typeof fromText !== "string" || typeof toText !== "string" || fromText.length !== 10 || toText.length !== 10 || !datePattern.test(fromText) || !datePattern.test(toText)) {
     return res.status(400).json({ error: "Choose a valid report date range" });
   }
   const from = new Date(`${fromText}T00:00:00.000Z`);

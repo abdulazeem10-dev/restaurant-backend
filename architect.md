@@ -50,6 +50,8 @@ The configured CORS allowlist includes the configured frontend origins and the s
 
 The backend is an API-only Express application: it has no configured server-side view engine, no `res.render` routes, and no template-engine dependency. It returns JSON to a static frontend. Keep it that way unless server-rendered pages become an explicit requirement; never compile template source from request or database values. In the browser, use `textContent`/DOM methods for untrusted values. Existing HTML composition uses the shared `escapeHtml` helper, which escapes HTML metacharacters and both quote characters; keep dynamic values out of script, style, event-handler, and unvalidated URL contexts.
 
+Backend validation uses fixed, simple regexes for bounded formats such as IDs, PIN codes, phone numbers, and times. Do not construct patterns from request values. Keep string/body limits in place, and reject incorrect fixed-format lengths before performing additional work.
+
 ## 4. Main data model
 
 | Model | Responsibility and relationships |

@@ -9,20 +9,20 @@ const { isWithinOpeningHours } = require("../utils/openingHours");
 const { sendOrderAlerts } = require("../utils/orderAlerts");
 
 const createSchema = z.object({
-  restaurantId: z.string().regex(/^[a-f\d]{24}$/i),
+  restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
   deliveryAddress: z.string().trim().min(8).max(500),
   deliveryDetails: z.object({
     recipientType: z.enum(["self", "other"]),
     name: z.string().trim().min(1).max(100),
-    phone: z.string().regex(/^\d{10}$/),
+    phone: z.string().length(10).regex(/^\d{10}$/),
     flatBuilding: z.string().trim().min(1).max(120),
     lane: z.string().trim().min(1).max(180),
     landmark: z.string().trim().max(120).optional().default(""),
-    pincode: z.string().regex(/^\d{6}$/)
+    pincode: z.string().length(6).regex(/^\d{6}$/)
   }).strict(),
   paymentMethod: z.enum(["cash_on_delivery", "online", "upi_qr", "razorpay"]).default("cash_on_delivery"),
   items: z.array(z.object({
-    menuItemId: z.string().regex(/^[a-f\d]{24}$/i),
+    menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20)
   }).strict()).min(1).max(50)
 }).strict();

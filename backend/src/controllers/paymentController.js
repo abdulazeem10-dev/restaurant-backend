@@ -18,7 +18,7 @@ function paymentCredentials() {
 }
 
 function constantTimeHexEqual(received, expected) {
-  if (typeof received !== "string" || !/^[a-f\d]+$/i.test(received) || received.length !== expected.length) return false;
+  if (typeof received !== "string" || received.length !== expected.length || !/^[a-f\d]+$/i.test(received)) return false;
   return crypto.timingSafeEqual(Buffer.from(received, "hex"), Buffer.from(expected, "hex"));
 }
 
@@ -46,7 +46,7 @@ async function getPaymentConfig(req, res) {
 }
 
 function validObjectId(id) {
-  return typeof id === "string" && /^[a-f\d]{24}$/i.test(id);
+  return typeof id === "string" && id.length === 24 && /^[a-f\d]{24}$/i.test(id);
 }
 
 async function createRazorpayOrder(req, res) {
@@ -123,7 +123,7 @@ async function verifyRazorpayPayment(req, res) {
   const parsed = z.object({
     razorpay_order_id: z.string().min(1).max(100),
     razorpay_payment_id: z.string().min(1).max(100),
-    razorpay_signature: z.string().regex(/^[a-f\d]{64}$/i)
+    razorpay_signature: z.string().length(64).regex(/^[a-f\d]{64}$/i)
   }).strict().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid payment confirmation" });
 

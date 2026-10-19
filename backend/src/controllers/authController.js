@@ -10,7 +10,7 @@ const passwordResetRequestSchema = z.object({
 }).strict();
 
 const passwordResetSchema = z.object({
-  token: z.string().regex(/^[a-f0-9]{64}$/i),
+  token: z.string().length(64).regex(/^[a-f0-9]{64}$/i),
   password: z.string().min(12).max(128)
 }).strict();
 
@@ -74,7 +74,7 @@ const phoneOtpRequestSchema = z.object({
 }).strict();
 
 const phoneOtpVerifySchema = phoneOtpRequestSchema.extend({
-  code: z.string().regex(/^\d{6}$/)
+  code: z.string().length(6).regex(/^\d{6}$/)
 }).strict();
 
 function normalizePhoneNumber(value) {

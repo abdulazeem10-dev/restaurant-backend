@@ -17,6 +17,7 @@ Food Platform is a multi-restaurant ordering MVP. Website and Android installabl
 - In-app notifications and periodic refresh are implemented. Email/SMS are optional providers.
 - Razorpay checkout and webhook verification are implemented behind credentials; UPI QR remains a preference with no generated QR.
 - Android experience is currently an installable PWA sharing the same backend and data; offline API use is not supported.
+- Regex review found no dynamic patterns or nested ambiguous quantifiers in backend validation. Fixed-format inputs now check expected lengths, and payment signature comparison rejects mismatched lengths before running its character regex.
 
 ## Recent repository work
 

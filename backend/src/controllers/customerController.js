@@ -5,11 +5,11 @@ const addressSchema = z.object({
   label: z.string().trim().min(1).max(40).default("Home"),
   recipientType: z.enum(["self", "other"]),
   name: z.string().trim().min(1).max(100),
-  phone: z.string().regex(/^\d{10}$/),
+  phone: z.string().length(10).regex(/^\d{10}$/),
   flatBuilding: z.string().trim().min(1).max(120),
   lane: z.string().trim().min(1).max(180),
   landmark: z.string().trim().max(120).default(""),
-  pincode: z.string().regex(/^\d{6}$/)
+  pincode: z.string().length(6).regex(/^\d{6}$/)
 }).strict();
 
 async function listAddresses(req, res) {
