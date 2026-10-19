@@ -166,27 +166,43 @@ async function updateDeliveryOrder(req, res) {
 }
 
 async function notifyOrderDelivered(order) {
-  const restaurant = await Restaurant.findById(order.restaurantId).select("ownerId name").lean();
-  if (!restaurant) return;
-  const staff = await User.find({
-    status: "active",
-    $or: [
-      { _id: restaurant.ownerId, role: "restaurant" },
-      { restaurantId: restaurant._id, role: "restaurant_staff" }
-    ]
-  }).select("_id").lean();
-  const recipients = [
-    { userId: order.customerId, audience: "customer", title: "Your order was delivered", message: `Your order from ${restaurant.name} has been delivered.` },
-    ...staff.map(member => ({ userId: member._id, audience: "restaurant", title: "Order delivered", message: `Order #${String(order._id).slice(-6)} has been delivered to the customer.` }))
-  ];
-  if (!recipients.length) return;
-  await Notification.bulkWrite(recipients.map(recipient => ({
-    updateOne: {
-      filter: { userId: recipient.userId, orderId: order._id, audience: recipient.audience },
-      update: { $setOnInsert: { ...recipient, orderId: order._id, restaurantId: restaurant._id, type: "order_delivered" } },
-      upsert: true
+  return notifyOrderParticipants(order, {
+    type: "order_delivered",
+    title: "Order delivered",
+    customerMessage: "Your order has been delivered.",
+    restaurantMessage: `Order #${String(order._id).slice(-6)} has been delivered to the customer.`,
+    audiences: ["customer", "restaurant"]
+  });
+}
+
+async function notifyOrderParticipants(order, event) {
+  try {
+    const restaurant = await Restaurant.findById(order.restaurantId).select("ownerId name").lean();
+    if (!restaurant) return;
+    const recipients = [];
+    if (event.audiences.includes("customer")) recipients.push({ userId: order.customerId, audience: "customer", title: event.customerTitle || event.title, message: event.customerMessage });
+    if (event.audiences.includes("restaurant")) {
+      const staff = await User.find({
+        status: "active",
+        $or: [
+          { _id: restaurant.ownerId, role: "restaurant" },
+          { restaurantId: restaurant._id, role: "restaurant_staff" }
+        ]
+      }).select("_id").lean();
+      recipients.push(...staff.map(member => ({ userId: member._id, audience: "restaurant", title: event.restaurantTitle || event.title, message: event.restaurantMessage })));
     }
-  })), { ordered: false });
+    if (!recipients.length) return;
+    await Notification.bulkWrite(recipients.map(recipient => ({
+      updateOne: {
+        filter: { userId: recipient.userId, orderId: order._id, audience: recipient.audience },
+        // Keep the most recent update per order and audience; unread activity is surfaced again.
+        update: { $set: { ...recipient, title: recipient.title.slice(0, 120), message: recipient.message.slice(0, 300), orderId: order._id, restaurantId: restaurant._id, type: event.type, readAt: null } },
+        upsert: true
+      }
+    })), { ordered: false });
+  } catch (error) {
+    console.error("Could not save order activity notification:", error.message);
+  }
 }
 
 async function confirmOrderReceived(req, res) {
@@ -214,6 +230,12 @@ async function requestOrderCancellation(req, res) {
   if (order.cancellationRequest?.status === "pending") return res.status(409).json({ error: "A cancellation request is already waiting for the restaurant" });
   order.cancellationRequest = { status: "pending", reason: parsed.data.reason, details: parsed.data.details, requestedAt: new Date(), reviewedAt: null, reviewedBy: null, response: "" };
   await order.save();
+  await notifyOrderParticipants(order, {
+    type: "cancellation_requested", title: "Cancellation request received",
+    restaurantTitle: "Customer requested cancellation",
+    restaurantMessage: `Order #${String(order._id).slice(-6)}: ${parsed.data.reason}`,
+    audiences: ["restaurant"]
+  });
   return res.json({ order });
 }
 
@@ -227,6 +249,11 @@ async function createOrderHelpRequest(req, res) {
   if (!order || order.status === "awaiting_payment") return res.status(404).json({ error: "Order not found" });
   order.supportRequests.push({ ...parsed.data, status: "open", createdAt: new Date() });
   await order.save();
+  await notifyOrderParticipants(order, {
+    type: "order_help_requested", title: "New order help request",
+    restaurantMessage: `Order #${String(order._id).slice(-6)}: ${parsed.data.category.replaceAll("_", " ")} issue`,
+    audiences: ["restaurant"]
+  });
   return res.status(201).json({ order, request: order.supportRequests.at(-1) });
 }
 
@@ -248,6 +275,12 @@ async function reviewCancellationRequest(req, res) {
   order.cancellationRequest.reviewedBy = req.user._id;
   order.cancellationRequest.response = parsed.data.response;
   await order.save();
+  await notifyOrderParticipants(order, {
+    type: "cancellation_reviewed",
+    customerTitle: parsed.data.decision === "approved" ? "Cancellation approved" : "Cancellation declined",
+    customerMessage: parsed.data.response || (parsed.data.decision === "approved" ? "The restaurant approved your cancellation request." : "The restaurant declined your cancellation request."),
+    audiences: ["customer"]
+  });
   return res.json({ order });
 }
 
@@ -265,6 +298,11 @@ async function resolveOrderHelpRequest(req, res) {
   support.resolvedAt = new Date();
   support.resolvedBy = req.user._id;
   await order.save();
+  await notifyOrderParticipants(order, {
+    type: "order_help_resolved", title: "Restaurant replied to your order help request",
+    customerMessage: parsed.data.response,
+    audiences: ["customer"]
+  });
   return res.json({ order, request: support });
 }
 
