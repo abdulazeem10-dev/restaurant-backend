@@ -140,7 +140,9 @@ Run the API and serve the `frontend` directory with a static server. Set `FRONTE
 Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; there is no distance routing or dispatch optimization. Orders are rejected temporarily when no active delivery account exists; create one from the admin dashboard before accepting orders.
 
 ## Security baseline
-- Never commit `.env`.
+- Keep real credentials in the deployment platform's secret manager or an ignored local `.env`; never put them in frontend files, screenshots, issue reports, or commits. `.env.example` must contain placeholders only.
+- The `Secret scan` GitHub Actions workflow scans repository history on pushes and pull requests. It detects leaks after they reach GitHub; enable GitHub Secret Scanning and Push Protection in repository Settings to block supported secrets before a push is accepted.
+- If a credential is ever committed or shared, revoke/rotate it immediately. Removing it from the latest file does not invalidate it or remove it from Git history.
 - Public registration cannot choose a role.
 - Restaurant routes resolve the restaurant from the authenticated owner.
 - Never trust prices or totals from the browser.

@@ -2,6 +2,13 @@ node_modules/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+credentials*.json
 coverage/
 .DS_Store
 android/.gradle/
