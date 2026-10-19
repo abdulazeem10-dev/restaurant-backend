@@ -111,6 +111,7 @@ async function updateRestaurantOrder(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
   if (!order) return res.status(404).json({ error: "Order not found" });
+  if (req.body.status === "cancelled" && order.paymentStatus === "paid") return res.status(409).json({ error: "This order is paid; handle cancellation and any refund through the payment provider first" });
 
   const allowed = {
     placed: ["preparing", "confirmed", "cancelled"],
@@ -200,4 +201,71 @@ async function confirmOrderReceived(req, res) {
   return res.json({ order });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, confirmOrderReceived };
+async function requestOrderCancellation(req, res) {
+  const parsed = z.object({
+    reason: z.string().trim().min(1).max(80),
+    details: z.string().trim().max(500).optional().default("")
+  }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ error: "Enter a cancellation reason" });
+  const order = await Order.findOne({ _id: req.params.id, customerId: req.user._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (["delivered", "cancelled", "awaiting_payment", "out_for_delivery", "picked_up"].includes(order.status)) return res.status(409).json({ error: "This order can no longer be cancelled. Contact support if you need help." });
+  if (order.paymentStatus === "paid") return res.status(409).json({ error: "This order is already paid. Contact support to discuss a refund; cancellation cannot automatically refund a payment." });
+  if (order.cancellationRequest?.status === "pending") return res.status(409).json({ error: "A cancellation request is already waiting for the restaurant" });
+  order.cancellationRequest = { status: "pending", reason: parsed.data.reason, details: parsed.data.details, requestedAt: new Date(), reviewedAt: null, reviewedBy: null, response: "" };
+  await order.save();
+  return res.json({ order });
+}
+
+async function createOrderHelpRequest(req, res) {
+  const parsed = z.object({
+    category: z.enum(["missing_item", "food_quality", "delivery", "payment", "other"]),
+    message: z.string().trim().min(5).max(1000)
+  }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ error: "Choose a topic and describe the issue (at least 5 characters)" });
+  const order = await Order.findOne({ _id: req.params.id, customerId: req.user._id });
+  if (!order || order.status === "awaiting_payment") return res.status(404).json({ error: "Order not found" });
+  order.supportRequests.push({ ...parsed.data, status: "open", createdAt: new Date() });
+  await order.save();
+  return res.status(201).json({ order, request: order.supportRequests.at(-1) });
+}
+
+async function reviewCancellationRequest(req, res) {
+  const parsed = z.object({ decision: z.enum(["approved", "declined"]), response: z.string().trim().max(500).optional().default("") }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ error: "Choose approve or decline" });
+  const restaurant = req.user.role === "restaurant_staff" ? await Restaurant.findById(req.user.restaurantId) : await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.cancellationRequest?.status !== "pending") return res.status(409).json({ error: "There is no pending cancellation request" });
+  if (parsed.data.decision === "approved") {
+    if (["delivered", "cancelled", "out_for_delivery", "picked_up"].includes(order.status) || order.paymentStatus === "paid") return res.status(409).json({ error: "This order can no longer be cancelled here" });
+    order.status = "cancelled";
+    order.statusHistory.push({ status: "cancelled", at: new Date() });
+  }
+  order.cancellationRequest.status = parsed.data.decision;
+  order.cancellationRequest.reviewedAt = new Date();
+  order.cancellationRequest.reviewedBy = req.user._id;
+  order.cancellationRequest.response = parsed.data.response;
+  await order.save();
+  return res.json({ order });
+}
+
+async function resolveOrderHelpRequest(req, res) {
+  const parsed = z.object({ response: z.string().trim().min(1).max(1000) }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id) || !/^[a-f\d]{24}$/i.test(req.params.requestId)) return res.status(400).json({ error: "Enter a response to resolve this request" });
+  const restaurant = req.user.role === "restaurant_staff" ? await Restaurant.findById(req.user.restaurantId) : await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  const support = order.supportRequests.id(req.params.requestId);
+  if (!support || support.status !== "open") return res.status(404).json({ error: "Open help request not found" });
+  support.status = "resolved";
+  support.response = parsed.data.response;
+  support.resolvedAt = new Date();
+  support.resolvedBy = req.user._id;
+  await order.save();
+  return res.json({ order, request: support });
+}
+
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };

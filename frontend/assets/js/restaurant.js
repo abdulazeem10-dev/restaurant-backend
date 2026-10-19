@@ -309,7 +309,40 @@ async function loadOrders() {
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
     card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p><p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    if (order.cancellationRequest?.status && order.cancellationRequest.status !== "none") {
+      const request = order.cancellationRequest;
+      const section = document.createElement("section"); section.className = "order-admin-request";
+      const summary = document.createElement("p"); summary.textContent = `Cancellation request · ${request.status}: ${request.reason}${request.details ? ` — ${request.details}` : ""}`; section.append(summary);
+      if (request.response) { const response = document.createElement("p"); response.textContent = `Response: ${request.response}`; section.append(response); }
+      if (request.status === "pending" && restaurantStaffRole !== "viewer") {
+        const form = document.createElement("form"); form.className = "order-admin-request-form";
+        form.innerHTML = `<label>Response to customer <textarea name="response" rows="2" maxlength="500" placeholder="Optional explanation"></textarea></label><button type="submit" name="decision" value="approved">Approve cancellation</button><button type="submit" name="decision" value="declined" class="secondary">Decline</button>`;
+        form.addEventListener("submit", async event => {
+          event.preventDefault(); const decision = event.submitter?.value; if (!decision) return;
+          form.querySelectorAll("button").forEach(button => { button.disabled = true; });
+          try { await api(`/orders/restaurant/${order._id}/cancellation`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision, response: new FormData(form).get("response") }) }); await loadOrders(); }
+          catch (error) { msg.textContent = error.message; form.querySelectorAll("button").forEach(button => { button.disabled = false; }); }
+        }); section.append(form);
+      }
+      card.append(section);
+    }
+    for (const request of order.supportRequests || []) {
+      const section = document.createElement("section"); section.className = "order-admin-request";
+      const summary = document.createElement("p"); summary.textContent = `${request.category.replaceAll("_", " ")} · ${request.status}: ${request.message}`; section.append(summary);
+      if (request.response) { const response = document.createElement("p"); response.textContent = `Response sent: ${request.response}`; section.append(response); }
+      if (request.status === "open" && restaurantStaffRole !== "viewer") {
+        const form = document.createElement("form"); form.className = "order-admin-request-form";
+        form.innerHTML = `<label>Reply to customer <textarea name="response" rows="2" maxlength="1000" required placeholder="Explain how this was resolved"></textarea></label><button type="submit">Reply and resolve</button>`;
+        form.addEventListener("submit", async event => {
+          event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
+          try { await api(`/orders/restaurant/${order._id}/help/${request._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ response: new FormData(form).get("response") }) }); await loadOrders(); }
+          catch (error) { msg.textContent = error.message; button.disabled = false; }
+        }); section.append(form);
+      }
+      card.append(section);
+    }
     const next = { placed: ["preparing", "cancelled"], confirmed: ["preparing", "cancelled"], preparing: ["ready", "cancelled"], ready: ["out_for_delivery"] }[order.status] || [];
+    if (order.paymentStatus === "paid") { const cancelIndex = next.indexOf("cancelled"); if (cancelIndex >= 0) next.splice(cancelIndex, 1); }
     const statusActionLabels = { preparing: "Start preparing", ready: "Ready for pickup", out_for_delivery: "Mark out for delivery", cancelled: "Cancel" };
     if (restaurantStaffRole !== "viewer") for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
     root.append(card);

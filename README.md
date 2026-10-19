@@ -50,6 +50,8 @@ Customers can submit one 1–5 star rating and an optional comment for each orde
 ## Order tracking and saved addresses
 Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. When delivery is marked done, the customer and the restaurant owner and staff receive a persistent in-app notification, visible on the My orders page or restaurant Notifications sidebar section. Restaurant status changes are timestamped. Customers can save up to 10 delivery addresses, select one at checkout, or remove saved addresses. Reordering checks the current menu and excludes dishes that are no longer available.
 
+Customers can request cancellation before delivery and send an order-specific help request. Restaurant staff with order-management permission can approve or decline cancellation requests and reply to and resolve help requests. Paid orders cannot be cancelled from this workflow because a refund must be processed through the payment provider; the app does not currently issue refunds.
+
 ## Menu availability
 Restaurant owners can switch each menu item between available and unavailable from the dashboard. Unavailable dishes are hidden from customers and cannot be added to a new order.
 
@@ -92,6 +94,10 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/notifications/mine` — lists the signed-in user's in-app notifications
 - `PATCH /api/notifications/mine/:id/read` — marks one of the signed-in user's notifications as read
 - `PATCH /api/orders/:id/received` — customer confirms they received a delivered order
+- `POST /api/orders/:id/cancellation-request` — customer requests cancellation before delivery; restaurant staff can approve or decline
+- `POST /api/orders/:id/help` — customer sends an order issue to the restaurant
+- `PATCH /api/orders/restaurant/:id/cancellation` — restaurant reviews a pending cancellation request
+- `PATCH /api/orders/restaurant/:id/help/:requestId` — restaurant replies to and resolves a customer help request
 - `GET /api/admin/restaurants` — admin lists restaurants
 - `POST /api/admin/restaurants` — admin creates a pending restaurant and owner login
 - `POST /api/admin/delivery-partners` — admin creates an active delivery login

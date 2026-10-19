@@ -10,7 +10,11 @@ router.post("/", authenticate, authorize("customer"), asyncHandler(controller.cr
 router.get("/mine", authenticate, authorize("customer"), asyncHandler(controller.listMyOrders));
 router.get("/restaurant", authenticate, authorizeRestaurant("read"), asyncHandler(controller.listRestaurantOrders));
 router.patch("/restaurant/:id", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.updateRestaurantOrder));
+router.patch("/restaurant/:id/cancellation", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.reviewCancellationRequest));
+router.patch("/restaurant/:id/help/:requestId", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.resolveOrderHelpRequest));
 router.get("/delivery/mine", authenticate, authorize("delivery"), asyncHandler(controller.listDeliveryOrders));
 router.patch("/delivery/:id", authenticate, authorize("delivery"), asyncHandler(controller.updateDeliveryOrder));
 router.patch("/:id/received", authenticate, authorize("customer"), asyncHandler(controller.confirmOrderReceived));
+router.post("/:id/cancellation-request", authenticate, authorize("customer"), asyncHandler(controller.requestOrderCancellation));
+router.post("/:id/help", authenticate, authorize("customer"), asyncHandler(controller.createOrderHelpRequest));
 module.exports = router;

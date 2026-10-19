@@ -30,6 +30,24 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
   paymentCollectedAt: { type: Date, default: null },
   customerReceivedAt: { type: Date, default: null },
+  cancellationRequest: {
+    status: { type: String, enum: ["none", "pending", "approved", "declined"], default: "none" },
+    reason: { type: String, trim: true, maxlength: 80, default: "" },
+    details: { type: String, trim: true, maxlength: 500, default: "" },
+    requestedAt: { type: Date, default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    response: { type: String, trim: true, maxlength: 500, default: "" }
+  },
+  supportRequests: [{
+    category: { type: String, enum: ["missing_item", "food_quality", "delivery", "payment", "other"], required: true },
+    message: { type: String, required: true, trim: true, maxlength: 1000 },
+    status: { type: String, enum: ["open", "resolved"], default: "open" },
+    response: { type: String, trim: true, maxlength: 1000, default: "" },
+    createdAt: { type: Date, default: Date.now },
+    resolvedAt: { type: Date, default: null },
+    resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
+  }],
   status: {
     type: String,
     enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "out_for_delivery", "picked_up", "delivered", "cancelled"],

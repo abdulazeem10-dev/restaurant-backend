@@ -133,6 +133,13 @@ article h3 { margin-top: 0; }
 .order-review-form label { display: grid; gap: .4rem; }
 .order-review-form select, .order-review-form textarea { width: 100%; padding: .7rem; border: 1px solid #dfd4cb; border-radius: 9px; font: inherit; }
 .order-review-status { color: #a54c00; font-weight: 700; }
+.order-help-form, .order-cancel-form { display: grid; gap: .7rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee3dc; }
+.order-help-form h4, .order-cancel-form h4 { margin: 0; }
+.order-help-form label, .order-cancel-form label, .order-admin-request-form label { display: grid; gap: .35rem; }
+.order-help-form select, .order-help-form textarea, .order-cancel-form select, .order-cancel-form textarea, .order-admin-request-form textarea { width: 100%; padding: .7rem; border: 1px solid #dfd4cb; border-radius: 9px; font: inherit; }
+.order-help-status, .order-admin-request { margin-top: .8rem; padding: .8rem 1rem; border: 1px solid #eee3dc; border-radius: 12px; background: #fffaf6; overflow-wrap: anywhere; }
+.order-help-status p, .order-admin-request p { margin: .4rem 0 0; }
+.order-admin-request-form { display: grid; gap: .6rem; margin-top: .75rem; }
 .orders-main { max-width: 1080px; margin: 2.5rem auto 4rem; padding: 0 1.25rem; }
 .orders-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
 .orders-heading h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.045em; }

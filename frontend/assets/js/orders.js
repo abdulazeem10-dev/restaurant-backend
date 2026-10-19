@@ -124,6 +124,65 @@ function renderReview(order, card) {
   }
 }
 
+function renderOrderHelp(order, card) {
+  const cancellation = order.cancellationRequest;
+  if (cancellation?.status && cancellation.status !== "none") {
+    const notice = document.createElement("section");
+    notice.className = "order-help-status";
+    const title = document.createElement("strong");
+    title.textContent = `Cancellation request: ${cancellation.status}`;
+    const reason = document.createElement("p");
+    reason.textContent = `${cancellation.reason || ""}${cancellation.details ? ` · ${cancellation.details}` : ""}`;
+    notice.append(title, reason);
+    if (cancellation.response) { const response = document.createElement("p"); response.textContent = `Restaurant response: ${cancellation.response}`; notice.append(response); }
+    card.append(notice);
+  }
+
+  for (const request of order.supportRequests || []) {
+    const section = document.createElement("section");
+    section.className = "order-help-status";
+    const title = document.createElement("strong");
+    title.textContent = `${request.category.replaceAll("_", " ")} · ${request.status}`;
+    const message = document.createElement("p"); message.textContent = request.message;
+    section.append(title, message);
+    if (request.response) { const response = document.createElement("p"); response.textContent = `Restaurant response: ${request.response}`; section.append(response); }
+    card.append(section);
+  }
+
+  const cancellable = ["placed", "confirmed", "preparing", "ready"].includes(order.status);
+  if (cancellable && order.paymentStatus !== "paid" && cancellation?.status !== "pending") {
+    const form = document.createElement("form"); form.className = "order-cancel-form";
+    form.innerHTML = `<h4>Need to cancel?</h4><label>Reason <select name="reason" required><option value="" selected disabled>Choose a reason</option><option value="Ordered by mistake">Ordered by mistake</option><option value="Change of plans">Change of plans</option><option value="Incorrect order">Incorrect order</option><option value="Other">Other</option></select></label><label>More details (optional) <textarea name="details" rows="2" maxlength="500" placeholder="Add a note for the restaurant"></textarea></label><button type="submit" class="secondary">Request cancellation</button>`;
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
+      const fields = new FormData(form);
+      try {
+        const response = await fetch(`${API_BASE}/orders/${encodeURIComponent(order._id)}/cancellation-request`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ reason: fields.get("reason"), details: fields.get("details") }) });
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || "Could not request cancellation");
+        await loadOrders(true);
+      } catch (error) { errorRoot.textContent = error.message; button.disabled = false; }
+    });
+    card.append(form);
+  } else if (order.paymentStatus === "paid" && cancellable) {
+    const note = document.createElement("p"); note.className = "muted"; note.textContent = "For a paid order, contact support to discuss cancellation and a refund."; card.append(note);
+  }
+
+  if (order.status !== "awaiting_payment") {
+    const form = document.createElement("form"); form.className = "order-help-form";
+    form.innerHTML = `<h4>Need help with this order?</h4><label>Topic <select name="category" required><option value="missing_item">Missing item</option><option value="food_quality">Food quality</option><option value="delivery">Delivery</option><option value="payment">Payment</option><option value="other">Other</option></select></label><label>Describe the issue <textarea name="message" rows="3" minlength="5" maxlength="1000" required placeholder="Tell the restaurant what happened"></textarea></label><button type="submit" class="secondary">Send to restaurant</button>`;
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
+      const fields = new FormData(form);
+      try {
+        const response = await fetch(`${API_BASE}/orders/${encodeURIComponent(order._id)}/help`, { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ category: fields.get("category"), message: fields.get("message") }) });
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || "Could not send your help request");
+        await loadOrders(true);
+      } catch (error) { errorRoot.textContent = error.message; button.disabled = false; }
+    });
+    card.append(form);
+  }
+}
+
 function renderOrders(orders) {
   orderRoot.replaceChildren();
   if (!orders.length) { orderRoot.textContent = "You haven’t placed any orders yet."; return; }
@@ -150,6 +209,7 @@ function renderOrders(orders) {
       card.append(pending);
     }
     card.append(renderOrderProgress(order));
+    renderOrderHelp(order, card);
     if (order.customerReceivedAt) {
       const received = document.createElement("p");
       received.className = "order-review-status";
@@ -247,7 +307,7 @@ async function loadNotifications() {
 
 async function loadOrders(force = false) {
   if (!getToken()) { errorRoot.innerHTML = `Please <a href="login.html?next=orders.html">sign in</a> to view your orders.`; return; }
-  if (!force && document.activeElement?.closest?.(".order-review-form")) return;
+  if (!force && document.activeElement?.closest?.(".order-review-form, .order-help-form, .order-cancel-form")) return;
   try {
     const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
     const data = await response.json();
