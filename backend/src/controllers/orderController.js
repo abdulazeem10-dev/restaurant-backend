@@ -63,6 +63,7 @@ async function createOrder(req, res) {
     deliveryAddress: parsed.data.deliveryAddress,
     deliveryDetails: parsed.data.deliveryDetails,
     deliveryPartnerId: deliveryPartner._id,
+    deliveryAssignmentStatus: "offered",
     estimatedDeliveryAt: new Date(placedAt.getTime() + ((restaurant.prepTimeMinutes || 30) + (restaurant.deliveryTimeMinutes || 30)) * 60_000),
     paymentMethod: parsed.data.paymentMethod,
     items,
@@ -76,8 +77,8 @@ async function createOrder(req, res) {
   return res.status(201).json({ order, deliveryAssigned: true });
 }
 
-async function findLeastBusyDeliveryPartner() {
-  const partners = await User.find({ role: "delivery", status: "active" }).select("_id").lean();
+async function findLeastBusyDeliveryPartner(excludedIds = []) {
+  const partners = await User.find({ role: "delivery", status: "active", _id: { $nin: excludedIds } }).select("_id").lean();
   if (!partners.length) return null;
   const activeCounts = await Order.aggregate([
     { $match: { deliveryPartnerId: { $in: partners.map(partner => partner._id) }, status: { $nin: ["delivered", "cancelled", "awaiting_payment"] } } },
@@ -116,6 +117,9 @@ async function updateRestaurantOrder(req, res) {
   const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
   if (!order) return res.status(404).json({ error: "Order not found" });
   if (req.body.status === "cancelled" && order.paymentStatus === "paid") return res.status(409).json({ error: "This order is paid; handle cancellation and any refund through the payment provider first" });
+  if (req.body.status === "out_for_delivery" && order.deliveryAssignmentStatus && order.deliveryAssignmentStatus !== "accepted") {
+    return res.status(409).json({ error: "Wait for the assigned delivery person to accept this order first" });
+  }
 
   const allowed = {
     placed: ["preparing", "confirmed", "cancelled"],
@@ -148,6 +152,53 @@ async function listDeliveryOrders(req, res) {
     .populate("restaurantId", "name address")
     .sort({ createdAt: -1 }).limit(100);
   return res.json({ orders });
+}
+
+async function respondToDeliveryAssignment(req, res) {
+  const parsed = z.object({ action: z.enum(["accept", "decline"]) }).strict().safeParse(req.body);
+  if (!parsed.success || !/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(400).json({ error: "Choose accept or decline" });
+  const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
+  if (!order) return res.status(404).json({ error: "Delivery assignment not found" });
+  if (order.deliveryAssignmentStatus !== "offered") return res.status(409).json({ error: "This assignment is no longer waiting for a response" });
+  if (["out_for_delivery", "picked_up", "delivered", "cancelled", "awaiting_payment"].includes(order.status)) {
+    return res.status(409).json({ error: "This order can no longer be accepted or declined" });
+  }
+
+  if (parsed.data.action === "accept") {
+    order.deliveryAssignmentStatus = "accepted";
+    await order.save();
+    return res.json({ order, message: "Delivery accepted. You will pick it up when the restaurant marks it ready." });
+  }
+
+  const declinedIds = [...new Set([...(order.declinedDeliveryPartnerIds || []).map(String), String(req.user._id)])];
+  const nextPartner = await findLeastBusyDeliveryPartner(declinedIds);
+  order.declinedDeliveryPartnerIds = declinedIds;
+  order.deliveryPartnerId = nextPartner?._id || null;
+  order.deliveryAssignmentStatus = nextPartner ? "offered" : "unassigned";
+  await order.save();
+  return res.json({
+    order,
+    reassigned: Boolean(nextPartner),
+    message: nextPartner ? "Assignment declined and offered to another delivery person." : "Assignment declined. No other delivery person is available; the restaurant can retry later."
+  });
+}
+
+async function reassignDeliveryOrder(req, res) {
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Order not found" });
+  const restaurant = req.user.role === "restaurant_staff"
+    ? await Restaurant.findById(req.user.restaurantId)
+    : await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.deliveryAssignmentStatus !== "unassigned" || order.deliveryPartnerId) return res.status(409).json({ error: "This order already has a delivery assignment" });
+  if (["out_for_delivery", "picked_up", "delivered", "cancelled", "awaiting_payment"].includes(order.status)) return res.status(409).json({ error: "This order can no longer be assigned" });
+  const partner = await findLeastBusyDeliveryPartner(order.declinedDeliveryPartnerIds || []);
+  if (!partner) return res.status(409).json({ error: "No other active delivery person is available" });
+  order.deliveryPartnerId = partner._id;
+  order.deliveryAssignmentStatus = "offered";
+  await order.save();
+  return res.json({ order, message: "Delivery assignment sent." });
 }
 
 async function updateDeliveryOrder(req, res) {
@@ -352,4 +403,4 @@ async function resolveOrderHelpRequest(req, res) {
   return res.json({ order, request: support });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
+module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };

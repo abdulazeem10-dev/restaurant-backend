@@ -55,6 +55,8 @@ Customers can submit one 1–5 star rating and an optional comment for each orde
 ## Order tracking and saved addresses
 Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. Delivery people can explicitly start GPS sharing from their dashboard; the latest coordinates are visible only to the customer on that assigned active order, and are cleared when delivery is marked done. Location sharing requires HTTPS (or localhost) and browser permission. This is periodic location sharing, not turn-by-turn navigation or a continuously rendered map. Restaurant status changes, delivery, cancellation requests/reviews, and help requests/replies create in-app notifications for the relevant customer or restaurant team. Customers can save up to 10 delivery addresses and reorder from the current menu.
 
+New delivery assignments appear in the delivery dashboard with Accept and Decline options. Accepted orders can be handed over by the restaurant for delivery; a declined offer is sent to another active delivery person. If everyone declines, the restaurant dashboard can retry assignment after another delivery account becomes active.
+
 Restaurant owners and secondary admins can view a date-filtered sales report with paid delivered sales, daily activity, order statuses, and best-selling dishes. The report is based on orders in the selected range and excludes unpaid orders from revenue.
 
 Customers can request cancellation before delivery and send an order-specific help request. Restaurant staff with order-management permission can approve or decline cancellation requests and reply to and resolve help requests. Paid orders cannot be cancelled from this workflow because a refund must be processed through the payment provider; the app does not currently issue refunds.
@@ -97,7 +99,9 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/orders/restaurant` — authenticated restaurant owner lists its orders
 - `PATCH /api/orders/restaurant/:id` — owner advances an order through allowed states
 - `GET /api/orders/delivery/mine` — delivery person lists assigned orders and pickup/drop-off details
+- `PATCH /api/orders/delivery/:id/assignment` — assigned delivery person accepts or declines an offer
 - `PATCH /api/orders/delivery/:id` — assigned delivery person marks delivery done and records COD cash collection
+- `PATCH /api/orders/restaurant/:id/reassign-delivery` — restaurant retries an unassigned delivery order
 - `PATCH /api/orders/delivery/location` — delivery person shares coordinates to assigned active orders
 - `GET /api/notifications/mine` — lists the signed-in user's in-app notifications
 - `PATCH /api/notifications/mine/:id/read` — marks one of the signed-in user's notifications as read

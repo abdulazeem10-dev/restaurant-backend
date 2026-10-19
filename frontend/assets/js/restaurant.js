@@ -397,8 +397,8 @@ async function loadOrders(fetchLatest = true) {
       ? `${recipient.recipientType === "other" ? "Deliver to" : "Recipient"}: ${recipient.name} · ${recipient.phone}`
       : "";
     const deliveryPartnerText = order.deliveryPartnerId
-      ? `Delivery person: ${order.deliveryPartnerId.name} · ${order.deliveryPartnerId.phone || "No phone on account"}`
-      : "Delivery person not assigned yet";
+      ? `Delivery person: ${order.deliveryPartnerId.name} · ${order.deliveryPartnerId.phone || "No phone on account"} · ${order.deliveryAssignmentStatus === "accepted" ? "Accepted" : order.deliveryAssignmentStatus === "offered" ? "Waiting for acceptance" : "Assigned"}`
+      : order.deliveryAssignmentStatus === "unassigned" ? "No delivery person has accepted yet" : "Delivery person not assigned yet";
     const paymentLabel = order.paymentMethod === "cash_on_delivery"
       ? "Cash on delivery"
       : order.paymentMethod === "upi_qr"
@@ -408,6 +408,26 @@ async function loadOrders(fetchLatest = true) {
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
     card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p><p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    if (order.deliveryAssignmentStatus === "offered") {
+      const note = document.createElement("p");
+      note.className = "muted";
+      note.textContent = "Waiting for the delivery person to accept. The order cannot go out for delivery until accepted.";
+      card.append(note);
+    }
+    if (order.deliveryAssignmentStatus === "unassigned" && restaurantStaffRole !== "viewer") {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.textContent = "Assign another delivery person";
+      retry.addEventListener("click", async () => {
+        retry.disabled = true;
+        try {
+          const result = await api(`/orders/restaurant/${encodeURIComponent(order._id)}/reassign-delivery`, { method: "PATCH" });
+          msg.textContent = result.message;
+          await loadOrders();
+        } catch (error) { msg.textContent = error.message; retry.disabled = false; }
+      });
+      card.append(retry);
+    }
     if (order.cancellationRequest?.status && order.cancellationRequest.status !== "none") {
       const request = order.cancellationRequest;
       const section = document.createElement("section"); section.className = "order-admin-request";
@@ -441,6 +461,10 @@ async function loadOrders(fetchLatest = true) {
       card.append(section);
     }
     const next = { placed: ["preparing", "cancelled"], confirmed: ["preparing", "cancelled"], preparing: ["ready", "cancelled"], ready: ["out_for_delivery"] }[order.status] || [];
+    if (order.deliveryAssignmentStatus && order.deliveryAssignmentStatus !== "accepted") {
+      const deliveryIndex = next.indexOf("out_for_delivery");
+      if (deliveryIndex >= 0) next.splice(deliveryIndex, 1);
+    }
     if (order.paymentStatus === "paid") { const cancelIndex = next.indexOf("cancelled"); if (cancelIndex >= 0) next.splice(cancelIndex, 1); }
     const statusActionLabels = { preparing: "Start preparing", ready: "Ready for pickup", out_for_delivery: "Mark out for delivery", cancelled: "Cancel" };
     if (restaurantStaffRole !== "viewer") for (const status of next) { const button = document.createElement("button"); button.textContent = statusActionLabels[status] || `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }

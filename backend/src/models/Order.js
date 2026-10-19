@@ -16,6 +16,8 @@ const orderSchema = new mongoose.Schema({
   deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
   deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
   deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
+  deliveryAssignmentStatus: { type: String, enum: ["offered", "accepted", "unassigned"] },
+  declinedDeliveryPartnerIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   deliveryLocation: {
     latitude: { type: Number, min: -90, max: 90 },
     longitude: { type: Number, min: -180, max: 180 },

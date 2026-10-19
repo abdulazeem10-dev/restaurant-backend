@@ -93,9 +93,43 @@ function renderDelivery(order) {
   const deliveryMap = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress || "")}`;
   card.innerHTML = `<p class="eyebrow">ORDER ${escapeHtml(order._id.slice(-6))}</p><h3>${escapeHtml(restaurant.name || "Restaurant")}</h3><p><strong>Pickup from</strong><br>${escapeHtml(restaurant.address || "Pickup address unavailable")}<br><a href="${pickupMap}" target="_blank" rel="noopener noreferrer">Open pickup in Maps</a></p><hr><p><strong>Customer</strong><br>${escapeHtml(customer.name || "Customer")}${customer.email ? ` · ${escapeHtml(customer.email)}` : ""}</p><p><strong>Deliver to ${recipient.recipientType === "other" ? "recipient" : "customer"}</strong><br>${escapeHtml(recipient.name || "")}${recipient.phone ? ` · <a href="tel:${encodeURIComponent(recipient.phone)}">${escapeHtml(recipient.phone)}</a>` : ""}</p><p><strong>Delivery address</strong><br>${escapeHtml(order.deliveryAddress)}${recipient.pincode ? `<br>PIN ${escapeHtml(recipient.pincode)}` : ""}<br><a href="${deliveryMap}" target="_blank" rel="noopener noreferrer">Open delivery location in Maps</a></p><p><strong>Food</strong><br>${items}</p><p><strong>Status:</strong> ${escapeHtml(state)} · ${formatRupees(order.totalPaise)}</p><p><strong>Payment mode:</strong> ${escapeHtml(paymentMode)}</p><p><strong>Payment status:</strong> ${escapeHtml(paymentState)}${order.paymentCollectedAt ? ` · ${new Date(order.paymentCollectedAt).toLocaleString("en-IN")}` : ""}</p>${order.customerReceivedAt ? `<p><strong>Customer confirmed receipt:</strong> ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}</p>` : order.status === "delivered" ? "<p>Waiting for customer to confirm receipt.</p>" : ""}`;
 
+  if (order.deliveryAssignmentStatus === "offered") {
+    const offer = document.createElement("section");
+    offer.className = "order-admin-request";
+    const prompt = document.createElement("p");
+    prompt.innerHTML = "<strong>New delivery offer</strong><br>Accept this order to take responsibility for the delivery, or decline to pass it to another driver.";
+    const accept = document.createElement("button");
+    accept.type = "button";
+    accept.textContent = "Accept delivery";
+    const decline = document.createElement("button");
+    decline.type = "button";
+    decline.className = "secondary";
+    decline.textContent = "Decline";
+    const respond = async action => {
+      accept.disabled = true;
+      decline.disabled = true;
+      try {
+        const result = await deliveryApi(`/orders/delivery/${encodeURIComponent(order._id)}/assignment`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action })
+        });
+        await loadDeliveries();
+        deliveryMessage.textContent = result.message;
+      } catch (error) {
+        deliveryMessage.textContent = error.message;
+        accept.disabled = false;
+        decline.disabled = false;
+      }
+    };
+    accept.addEventListener("click", () => respond("accept"));
+    decline.addEventListener("click", () => respond("decline"));
+    offer.append(prompt, accept, decline);
+    card.append(offer);
+  }
+
   let nextStatus = null;
   let actionLabel = "";
-  if (order.status === "out_for_delivery" || order.status === "picked_up") { nextStatus = "delivered"; actionLabel = order.paymentMethod === "cash_on_delivery" && order.paymentStatus !== "paid" ? "Mark delivered & cash received" : "Mark delivered"; }
+  const assignmentAccepted = order.deliveryAssignmentStatus === "accepted" || !order.deliveryAssignmentStatus;
+  if (assignmentAccepted && (order.status === "out_for_delivery" || order.status === "picked_up")) { nextStatus = "delivered"; actionLabel = order.paymentMethod === "cash_on_delivery" && order.paymentStatus !== "paid" ? "Mark delivered & cash received" : "Mark delivered"; }
   if (order.status === "ready") {
     const waiting = document.createElement("p");
     waiting.className = "muted";
