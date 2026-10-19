@@ -59,7 +59,9 @@ async function listRestaurantReviews(req, res) {
 }
 
 async function listOwnRestaurantReviews(req, res) {
-  const restaurant = await Restaurant.findOne({ ownerId: req.user._id }).select("_id");
+  const restaurant = req.user.role === "restaurant_staff"
+    ? await Restaurant.findById(req.user.restaurantId).select("_id")
+    : await Restaurant.findOne({ ownerId: req.user._id }).select("_id");
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const reviews = await Review.find({ restaurantId: restaurant._id })
     .populate("customerId", "name")

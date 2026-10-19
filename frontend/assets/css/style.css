@@ -369,6 +369,16 @@ article h3 { margin-top: 0; }
 .admin-list-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: .5rem 0 1rem; }
 .admin-list-heading .muted { margin: .4rem 0 0; }
 .admin-restaurant-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 275px), 1fr)); }
+.restaurant-team-panel { display: grid; gap: .65rem; margin: 1rem 0; padding: 1rem; border: 1px solid #f0e2d8; border-radius: 12px; background: #fffaf7; }
+.restaurant-team-panel h4 { margin: 0; }
+.restaurant-team-panel > p { margin: 0; }
+.restaurant-team-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.restaurant-team-list li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .6rem; border-radius: 9px; background: #fff; font-size: .82rem; overflow-wrap: anywhere; }
+.restaurant-team-list li button { flex: 0 0 auto; padding: .45rem .65rem; font-size: .78rem; }
+.restaurant-staff-form { display: grid; gap: .7rem; padding-top: .7rem; border-top: 1px solid #f0e2d8; }
+.restaurant-staff-form label { font-size: .84rem; font-weight: 650; }
+.restaurant-staff-form input, .restaurant-staff-form select { width: 100%; margin-top: .25rem; }
+.restaurant-staff-form button { width: 100%; }
 @media (max-width: 850px) {
   .admin-shell { grid-template-columns: 1fr; gap: 1rem; }
   .admin-sidebar { position: static; display: flex; align-items: center; overflow-x: auto; gap: .35rem; padding: .55rem; }

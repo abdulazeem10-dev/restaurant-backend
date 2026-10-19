@@ -2,6 +2,8 @@ const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
 const Review = require("../models/Review");
 const { z } = require("zod");
+const bcrypt = require("bcrypt");
+const User = require("../models/User");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -21,6 +23,13 @@ const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
   deliveryPincodes: z.array(z.string().regex(/^\d{6}$/)).max(100).optional()
 }).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined);
+const restaurantStaffSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(20).optional().default(""),
+  password: z.string().min(12).max(128),
+  staffRole: z.enum(["secondary_admin", "biller_modifier", "viewer"])
+}).strict();
 
 async function listRestaurants(req, res) {
   const query = { status: "approved" };
@@ -82,13 +91,58 @@ async function getPublicMenu(req, res) {
   return res.json({ items });
 }
 
-async function getOwnedRestaurant(userId) {
-  return Restaurant.findOne({ ownerId: userId });
+async function getOwnedRestaurant(user) {
+  if (user.role === "restaurant_staff") return Restaurant.findById(user.restaurantId);
+  return Restaurant.findOne({ ownerId: user._id });
+}
+
+async function listOwnStaff(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const accounts = await User.find({ restaurantId: restaurant._id, role: "restaurant_staff" })
+    .select("name email phone restaurantStaffRole").sort({ restaurantStaffRole: 1 }).lean();
+  return res.json({ accounts });
+}
+
+async function createOwnStaff(req, res) {
+  const parsed = restaurantStaffSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a name, valid email, password of at least 12 characters, and a valid staff role" });
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const email = parsed.data.email.toLowerCase();
+  if (await User.findOne({ email })) return res.status(409).json({ error: "An account already uses this email" });
+  if (await User.findOne({ restaurantId: restaurant._id, restaurantStaffRole: parsed.data.staffRole, role: "restaurant_staff" })) {
+    return res.status(409).json({ error: "This restaurant already has an account for that role" });
+  }
+  try {
+    const account = await User.create({
+      name: parsed.data.name,
+      email,
+      phone: parsed.data.phone,
+      passwordHash: await bcrypt.hash(parsed.data.password, 12),
+      role: "restaurant_staff",
+      restaurantId: restaurant._id,
+      restaurantStaffRole: parsed.data.staffRole,
+      status: "active"
+    });
+    return res.status(201).json({ account: { id: account._id, name: account.name, email: account.email, phone: account.phone, staffRole: account.restaurantStaffRole } });
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ error: "That role or email already has an account" });
+    throw error;
+  }
+}
+
+async function removeOwnStaff(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const account = await User.findOneAndDelete({ _id: req.params.staffId, restaurantId: restaurant._id, role: "restaurant_staff" }).select("_id");
+  if (!account) return res.status(404).json({ error: "Restaurant staff account not found" });
+  return res.status(204).end();
 }
 
 async function setOwnOpenStatus(req, res) {
   if (typeof req.body?.isOpen !== "boolean") return res.status(400).json({ error: "isOpen must be true or false" });
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (restaurant.status !== "approved" && req.body.isOpen) return res.status(403).json({ error: "Restaurant must be approved before opening" });
   restaurant.isOpen = req.body.isOpen;
@@ -100,7 +154,7 @@ async function updateOwnServiceSettings(req, res) {
   const parsed = serviceSettingsSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Enter valid opening hours and 6-digit delivery PIN codes" });
 
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (parsed.data.openingHours) restaurant.openingHours = parsed.data.openingHours;
   if (parsed.data.deliveryPincodes) restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
@@ -115,7 +169,7 @@ async function updateOwnServiceSettings(req, res) {
 }
 
 async function getOwnMenu(req, res) {
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
   const items = await MenuItem.find({ restaurantId: restaurant._id }).sort({ createdAt: -1 });
@@ -134,7 +188,7 @@ async function getOwnMenu(req, res) {
 }
 
 async function createMenuItem(req, res) {
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (restaurant.status !== "approved") return res.status(403).json({ error: "Restaurant is not approved" });
 
@@ -172,7 +226,7 @@ async function createMenuItem(req, res) {
 }
 
 async function updateMenuItem(req, res) {
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
   const allowed = ["name", "description", "imageUrl", "pricePaise", "category", "foodType", "available"];
@@ -223,7 +277,7 @@ async function updateMenuItem(req, res) {
 }
 
 async function deleteMenuItem(req, res) {
-  const restaurant = await getOwnedRestaurant(req.user._id);
+  const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
 
   const item = await MenuItem.findOneAndDelete({
@@ -237,5 +291,6 @@ async function deleteMenuItem(req, res) {
 
 module.exports = {
   listRestaurants, getRestaurant, getPublicMenu,
-  getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings
+  getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
+  listOwnStaff, createOwnStaff, removeOwnStaff
 };

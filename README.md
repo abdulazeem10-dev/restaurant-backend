@@ -42,6 +42,8 @@ Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Cre
 ## Restaurant hours and delivery areas
 Restaurant owners can set weekly opening hours in India Standard Time and list the 6-digit PIN codes they deliver to. Customers can filter restaurants by PIN, see today's hours and listed delivery areas, and checkout/order requests are checked against the restaurant's hours and delivery PIN list. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
 
+The platform admin creates each restaurant's primary admin account (the owner). The primary admin can then create one account for each additional role: secondary admin, biller/modifier, and viewer, and can remove accounts to free a role for a replacement. Secondary admins can manage restaurant settings, menus, and orders. Biller/modifier accounts can manage menus and update order statuses. Viewers have read-only access.
+
 ## Ratings and reviews
 Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
 
@@ -72,6 +74,9 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `DELETE /api/restaurants/owner/menu/:id` — restaurant owner only
 - `PATCH /api/restaurants/owner/open` — restaurant owner sets open/closed (approved restaurants only)
 - `PATCH /api/restaurants/owner/service-settings` — owner updates opening hours and delivery PIN codes
+- `GET /api/restaurants/owner/staff` — primary restaurant admin lists staff accounts
+- `POST /api/restaurants/owner/staff` — primary restaurant admin creates a secondary admin, biller/modifier, or viewer login
+- `DELETE /api/restaurants/owner/staff/:staffId` — primary restaurant admin removes a staff login
 - `GET /api/reviews/restaurant/:id` — public restaurant rating and recent reviews
 - `GET /api/reviews/restaurant/mine` — restaurant owner's reviews
 - `POST /api/reviews` — customer reviews one of their ready orders

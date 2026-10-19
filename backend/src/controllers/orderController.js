@@ -93,7 +93,9 @@ async function listMyOrders(req, res) {
 }
 
 async function listRestaurantOrders(req, res) {
-  const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
+  const restaurant = req.user.role === "restaurant_staff"
+    ? await Restaurant.findById(req.user.restaurantId)
+    : await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const orders = await Order.find({ restaurantId: restaurant._id, status: { $ne: "awaiting_payment" } }).populate("customerId", "name email").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   return res.json({ orders });
@@ -102,7 +104,9 @@ async function listRestaurantOrders(req, res) {
 async function updateRestaurantOrder(req, res) {
   const validStatuses = ["confirmed", "preparing", "ready", "cancelled"];
   if (!validStatuses.includes(req.body?.status)) return res.status(400).json({ error: "Invalid order status" });
-  const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
+  const restaurant = req.user.role === "restaurant_staff"
+    ? await Restaurant.findById(req.user.restaurantId)
+    : await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
   if (!order) return res.status(404).json({ error: "Order not found" });

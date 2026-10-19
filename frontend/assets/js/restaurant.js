@@ -1,5 +1,6 @@
 const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+let restaurantStaffRole = null;
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
 async function api(path, options = {}) {
@@ -7,6 +8,75 @@ async function api(path, options = {}) {
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
 }
+const restaurantStaffRoles = [
+  ["secondary_admin", "Secondary admin"],
+  ["biller_modifier", "Biller / modifier"],
+  ["viewer", "Viewer"]
+];
+async function loadStaffAccounts() {
+  const { accounts } = await api("/restaurants/owner/staff");
+  const list = document.querySelector("#owner-staff-list");
+  const form = document.querySelector("#owner-staff-form");
+  const roleSelect = form.elements.staffRole;
+  const assignedRoles = new Set(accounts.map(account => account.restaurantStaffRole));
+  const availableRoles = restaurantStaffRoles.filter(([key]) => !assignedRoles.has(key));
+  list.replaceChildren();
+  for (const account of accounts) {
+    const item = document.createElement("li");
+    const label = restaurantStaffRoles.find(([key]) => key === account.restaurantStaffRole)?.[1] || "Staff";
+    const details = document.createElement("div");
+    details.innerHTML = `<strong>${escapeHtml(label)}</strong><br>${escapeHtml(account.name)} · ${escapeHtml(account.email)}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", async () => {
+      if (!confirm(`Remove ${label} account for ${account.name}?`)) return;
+      remove.disabled = true;
+      try {
+        await api(`/restaurants/owner/staff/${account._id}`, { method: "DELETE" });
+        msg.textContent = `${label} account removed.`;
+        await loadStaffAccounts();
+      } catch (error) {
+        msg.textContent = error.message;
+        remove.disabled = false;
+      }
+    });
+    item.append(details, remove);
+    list.append(item);
+  }
+  roleSelect.replaceChildren(...availableRoles.map(([key, label]) => {
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = label;
+    return option;
+  }));
+  form.hidden = availableRoles.length === 0;
+  document.querySelector("#staff-roles-complete").hidden = availableRoles.length > 0;
+}
+
+document.querySelector("#owner-staff-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const values = new FormData(form);
+  button.disabled = true;
+  msg.textContent = "";
+  try {
+    const { account } = await api("/restaurants/owner/staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.fromEntries(["staffRole", "name", "email", "phone", "password"].map(key => [key, values.get(key)])))
+    });
+    form.reset();
+    msg.textContent = `${restaurantStaffRoles.find(([key]) => key === account.staffRole)?.[1] || "Staff"} login created for ${account.name}. Share the temporary password securely.`;
+    await loadStaffAccounts();
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 function renderOpeningHours(schedule = {}) {
   const root = document.querySelector("#opening-hours-fields");
   root.replaceChildren();
@@ -30,7 +100,7 @@ async function loadMenu() {
   renderOpeningHours(restaurant.openingHours);
   document.querySelector("#delivery-pincodes").value = (restaurant.deliveryPincodes || []).join(", ");
   const toggle = document.querySelector("#open-toggle");
-  if (restaurant.status === "approved") { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
+  if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
   else { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter").value;
   const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
@@ -39,6 +109,12 @@ async function loadMenu() {
     card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary">Delete</button></p>`;
     const foodTypeSelect = card.querySelector(".menu-food-type");
     foodTypeSelect.value = item.foodType || "";
+    const canEditMenu = restaurantStaffRole !== "viewer";
+    if (!canEditMenu) {
+      card.querySelector("label").remove();
+      card.querySelector(".menu-availability").closest("label").remove();
+      card.querySelector("button").remove();
+    }
     foodTypeSelect.addEventListener("change", async () => {
       foodTypeSelect.disabled = true;
       try {
@@ -76,7 +152,7 @@ async function loadMenu() {
         availability.disabled = false;
       }
     });
-    card.querySelector("button").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
+    if (canEditMenu) card.querySelector("button").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
     root.append(card);
   }
   if (!items.length) root.textContent = "Add your first menu item above.";
@@ -161,7 +237,7 @@ async function loadOrders() {
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p><p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
     const next = { placed: ["confirmed", "cancelled"], confirmed: ["preparing", "cancelled"], preparing: ["ready", "cancelled"] }[order.status] || [];
-    for (const status of next) { const button = document.createElement("button"); button.textContent = status === "cancelled" ? "Cancel" : `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
+    if (restaurantStaffRole !== "viewer") for (const status of next) { const button = document.createElement("button"); button.textContent = status === "cancelled" ? "Cancel" : `Mark ${status}`; if (status === "cancelled") button.className = "secondary"; button.addEventListener("click", async () => { try { await api(`/orders/restaurant/${order._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); await loadOrders(); } catch (error) { msg.textContent = error.message; } }); card.append(button); }
     root.append(card);
   }
   if (!orders.length) root.textContent = "No orders yet.";
@@ -239,5 +315,19 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
     submitButton.disabled = false;
   }
 });
-Promise.all([loadMenu(), loadOrders(), loadReviews()]).catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
+async function initializeRestaurantDashboard() {
+  const { user } = await api("/auth/me");
+  restaurantStaffRole = user.role === "restaurant_staff" ? user.restaurantStaffRole : null;
+  if (restaurantStaffRole) {
+    const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
+    document.querySelector("header h1").textContent = `${roleNames[restaurantStaffRole]} Dashboard`;
+    if (restaurantStaffRole !== "secondary_admin") document.querySelectorAll(".service-settings-panel").forEach(panel => panel.hidden = true);
+    if (restaurantStaffRole === "viewer") document.querySelector("#menu-form").hidden = true;
+  } else if (user.role === "restaurant") {
+    document.querySelector("#staff-management-panel").hidden = false;
+    await loadStaffAccounts();
+  }
+  await Promise.all([loadMenu(), loadOrders(), loadReviews()]);
+}
+initializeRestaurantDashboard().catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
 setInterval(() => { if (getToken()) loadOrders().catch(error => { msg.textContent = error.message; }); }, 20000);

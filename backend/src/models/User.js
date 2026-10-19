@@ -8,9 +8,15 @@ const userSchema = new mongoose.Schema({
   googleSub: { type: String, select: false, sparse: true, unique: true },
   role: {
     type: String,
-    enum: ["customer", "restaurant", "delivery", "admin"],
+    enum: ["customer", "restaurant", "restaurant_staff", "delivery", "admin"],
     required: true,
     default: "customer"
+  },
+  restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", default: null },
+  restaurantStaffRole: {
+    type: String,
+    enum: ["secondary_admin", "biller_modifier", "viewer", null],
+    default: null
   },
   status: {
     type: String,
@@ -30,5 +36,10 @@ const userSchema = new mongoose.Schema({
   passwordResetTokenHash: { type: String, select: false },
   passwordResetExpires: { type: Date, select: false }
 }, { timestamps: true });
+
+userSchema.index(
+  { restaurantId: 1, restaurantStaffRole: 1 },
+  { unique: true, partialFilterExpression: { role: "restaurant_staff" } }
+);
 
 module.exports = mongoose.model("User", userSchema);
