@@ -1,11 +1,11 @@
 const restaurantGrid = document.querySelector("#restaurants");
 const searchInput = document.querySelector("#search-input");
 const sortSelect = document.querySelector("#sort-select");
-const foodTypeFilter = document.querySelector("#food-type-filter");
 const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter");
 const resultCount = document.querySelector("#results-count");
 const clearFiltersButton = document.querySelector("#clear-filters");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
+let selectedFoodFilter = "all";
 let allRestaurants = [];
 
 async function setupHomeAccountNav() {
@@ -67,10 +67,10 @@ function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const pin = deliveryPincodeFilter.value.trim();
   const hasCompletePin = /^\d{6}$/.test(pin);
-  const hasActiveFilters = Boolean(term || pin || foodTypeFilter.value !== "all" || sortSelect.value !== "name");
+  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || sortSelect.value !== "name");
   clearFiltersButton.hidden = !hasActiveFilters;
   quickFoodFilters.forEach(button => {
-    button.setAttribute("aria-pressed", String(button.dataset.quickFood === foodTypeFilter.value));
+    button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter));
   });
   const matches = allRestaurants.filter(restaurant => {
     const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
@@ -78,7 +78,7 @@ function renderRestaurants() {
     const foodType = ["veg", "nonVeg", "both"].includes(restaurant.foodType)
       ? restaurant.foodType
       : "both";
-    const foodTypeMatches = foodTypeFilter.value === "all" || foodType === foodTypeFilter.value;
+    const foodTypeMatches = selectedFoodFilter === "all" || foodType === selectedFoodFilter;
     const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
     return searchMatches && foodTypeMatches && pinMatches;
   });
@@ -159,9 +159,9 @@ function renderRestaurants() {
       title.textContent = "No restaurants found";
       message.textContent = hasCompletePin
         ? `No listed restaurants deliver to PIN ${pin}. Try another PIN code.`
-        : foodTypeFilter.value === "all"
+        : selectedFoodFilter === "all"
           ? "Try another restaurant name or area."
-        : `No ${foodTypeFilter.options[foodTypeFilter.selectedIndex].text} restaurants match. Try another food type or search.`;
+        : `No ${selectedFoodFilter === "veg" ? "Veg" : "Non-Veg"} restaurants match. Try another food type or search.`;
     }
     empty.append(icon, title, message);
     restaurantGrid.append(empty);
@@ -185,16 +185,15 @@ async function loadRestaurants() {
 document.querySelector("#restaurant-search").addEventListener("submit", event => { event.preventDefault(); renderRestaurants(); });
 searchInput.addEventListener("input", renderRestaurants);
 sortSelect.addEventListener("change", renderRestaurants);
-foodTypeFilter.addEventListener("change", renderRestaurants);
 deliveryPincodeFilter.addEventListener("input", renderRestaurants);
 quickFoodFilters.forEach(button => button.addEventListener("click", () => {
-  foodTypeFilter.value = button.dataset.quickFood;
+  selectedFoodFilter = button.dataset.quickFood;
   renderRestaurants();
 }));
 clearFiltersButton.addEventListener("click", () => {
   searchInput.value = "";
   deliveryPincodeFilter.value = "";
-  foodTypeFilter.value = "all";
+  selectedFoodFilter = "all";
   sortSelect.value = "name";
   renderRestaurants();
   searchInput.focus();

@@ -853,3 +853,45 @@ body { color: var(--ink); text-rendering: optimizeLegibility; -webkit-font-smoot
   .delivery-order-card > button { width: calc(100% - 2rem) !important; margin-inline: 1rem !important; }
   .delivery-receipt-note { margin-inline: 1rem !important; }
 }
+
+/* Keep restaurant discovery controls anchored to the heading, not stranded at the far edge. */
+.discovery-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+.discovery-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.2fr) auto;
+  align-items: end;
+  justify-content: stretch;
+  width: 100%;
+  gap: .8rem;
+  padding: .8rem;
+}
+.discovery-controls .food-filter,
+.discovery-controls .sort-control {
+  display: grid;
+  align-items: unset;
+  min-width: 0;
+  gap: .35rem;
+  white-space: normal;
+}
+.discovery-controls .food-filter select,
+.discovery-controls .sort-control select,
+.discovery-controls .delivery-pin-filter input {
+  width: 100%;
+  min-width: 0;
+}
+.discovery-controls .filter-reset { align-self: end; }
+
+@media (max-width: 760px) {
+  .discovery-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .discovery-controls .filter-reset { grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 480px) {
+  .discovery-controls { grid-template-columns: minmax(0, 1fr); }
+  .discovery-controls .delivery-pin-filter,
+  .discovery-controls .filter-reset { grid-column: auto; }
+}
