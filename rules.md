@@ -20,6 +20,8 @@ These are project-specific working conventions for the Food Platform repository.
 
 - Never commit secrets, real customer data, access tokens, or populated `.env` files. Keep credentials server-side.
 - Validate request data at the API boundary, reject unknown or invalid fields, and return safe errors without leaking stack traces, secrets, or provider responses.
+- Keep the backend API-only; do not add a server-side view/template engine or pass request/database values into template source. If server rendering is deliberately introduced later, use a maintained auto-escaping engine and never compile user-controlled template strings.
+- In browser code, prefer `textContent` and DOM node APIs for dynamic values. If composing HTML is necessary, escape values for the correct HTML context (including quotes in attributes); never interpolate untrusted input into scripts, styles, URLs, or event handlers.
 - Enforce authentication, role, ownership, and assignment checks on every protected API operation. Hiding a frontend button is not authorization.
 - Compute prices and totals from trusted database records on the server. Do not trust client-supplied prices, payment status, role, restaurant identity, or delivery completion.
 - Restrict customer location access to the customer and assigned delivery partner for the active delivery; stop/clear sharing when delivery ends.

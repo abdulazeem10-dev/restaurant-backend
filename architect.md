@@ -46,6 +46,10 @@ flowchart LR
 
 The configured CORS allowlist includes the configured frontend origins and the secure Android WebView asset origin. `trust proxy` is configured for one hosting proxy hop.
 
+### Template and injection posture
+
+The backend is an API-only Express application: it has no configured server-side view engine, no `res.render` routes, and no template-engine dependency. It returns JSON to a static frontend. Keep it that way unless server-rendered pages become an explicit requirement; never compile template source from request or database values. In the browser, use `textContent`/DOM methods for untrusted values. Existing HTML composition uses the shared `escapeHtml` helper, which escapes HTML metacharacters and both quote characters; keep dynamic values out of script, style, event-handler, and unvalidated URL contexts.
+
 ## 4. Main data model
 
 | Model | Responsibility and relationships |
