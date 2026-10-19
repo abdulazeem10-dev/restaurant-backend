@@ -85,7 +85,10 @@ function renderRestaurants() {
       ? restaurant.foodType
       : "both";
     const foodTypeMatches = selectedFoodFilter === "all" || foodType === selectedFoodFilter;
-    const cuisineMatches = selectedCuisineFilter === "all" || (restaurant.cuisine || "other") === selectedCuisineFilter;
+    const restaurantCuisines = Array.isArray(restaurant.cuisines) && restaurant.cuisines.length
+      ? restaurant.cuisines
+      : [restaurant.cuisine || "other"];
+    const cuisineMatches = selectedCuisineFilter === "all" || restaurantCuisines.includes(selectedCuisineFilter);
     const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
     return searchMatches && foodTypeMatches && cuisineMatches && pinMatches;
   });

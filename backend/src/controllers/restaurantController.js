@@ -36,6 +36,28 @@ const restaurantStaffSchema = z.object({
   staffRole: z.enum(["secondary_admin", "biller_modifier", "viewer"])
 }).strict();
 
+const cuisineByMenuCategory = new Map([
+  ["north-indian", "north-indian"], ["northindian", "north-indian"],
+  ["pizza", "pizza"], ["pizzas", "pizza"],
+  ["chinese", "chinese"], ["indo-chinese", "chinese"], ["indochinese", "chinese"],
+  ["dessert", "desserts"], ["desserts", "desserts"], ["sweets", "desserts"],
+  ["burger", "burger"], ["burgers", "burger"],
+  ["biryani", "biryani"], ["biriyani", "biryani"],
+  ["south-indian", "south-indian"], ["southindian", "south-indian"],
+  ["noodle", "noodles"], ["noodles", "noodles"],
+  ["roll", "rolls"], ["rolls", "rolls"],
+  ["shawarma", "shawarma"],
+  ["vada", "vada"], ["vada-pav", "vada"], ["vadapav", "vada"],
+  ["dosa", "dosa"], ["dosas", "dosa"],
+  ["momo", "momo"], ["momos", "momo"],
+  ["salad", "salads"], ["salads", "salads"]
+]);
+
+function cuisineForMenuCategory(category) {
+  const normalized = String(category || "").trim().toLocaleLowerCase().replace(/[\s_]+/g, "-");
+  return cuisineByMenuCategory.get(normalized);
+}
+
 async function listRestaurants(req, res) {
   const query = { status: "approved" };
   if (req.query.pincode !== undefined) {
@@ -52,9 +74,20 @@ async function listRestaurants(req, res) {
     { $group: { _id: "$restaurantId", ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
   ]);
   const ratingByRestaurant = new Map(ratingStats.map(stats => [String(stats._id), stats]));
+  const menuCategories = await MenuItem.aggregate([
+    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true } },
+    { $group: { _id: "$restaurantId", categories: { $addToSet: "$category" } } }
+  ]);
+  const cuisinesByRestaurant = new Map(menuCategories.map(({ _id, categories }) => [
+    String(_id), [...new Set(categories.map(cuisineForMenuCategory).filter(Boolean))]
+  ]));
 
   return res.json({ restaurants: restaurants.map(restaurant => ({
     ...restaurant,
+    cuisines: [...new Set([
+      ...(cuisinesByRestaurant.get(String(restaurant._id)) || []),
+      ...(restaurant.cuisine && restaurant.cuisine !== "other" ? [restaurant.cuisine] : [])
+    ])],
     isOpen: isRestaurantOpenNow(restaurant),
     ratingAverage: ratingByRestaurant.get(String(restaurant._id))?.ratingAverage || 0,
     ratingCount: ratingByRestaurant.get(String(restaurant._id))?.ratingCount || 0
