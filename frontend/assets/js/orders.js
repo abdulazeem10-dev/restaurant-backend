@@ -185,6 +185,66 @@ function renderOrders(orders) {
   }
 }
 
+function renderNotifications(notifications, unreadCount) {
+  const list = document.querySelector("#customer-notifications");
+  const count = document.querySelector("#customer-notification-count");
+  list.replaceChildren();
+  count.hidden = unreadCount < 1;
+  count.textContent = String(unreadCount);
+  if (!notifications.length) {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "No notifications yet. Delivery updates will appear here.";
+    list.append(empty);
+    return;
+  }
+  for (const notification of notifications) {
+    const item = document.createElement("li");
+    item.className = notification.readAt ? "notification-item" : "notification-item is-unread";
+    const content = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = notification.title;
+    const message = document.createElement("p");
+    message.textContent = notification.message;
+    const time = document.createElement("small");
+    time.textContent = new Date(notification.createdAt).toLocaleString("en-IN");
+    content.append(title, message, time);
+    item.append(content);
+    if (!notification.readAt) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary";
+      button.textContent = "Mark read";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          const response = await fetch(`${API_BASE}/notifications/mine/${encodeURIComponent(notification._id)}/read`, { method: "PATCH", headers: authHeaders() });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Could not update notification");
+          await loadNotifications();
+        } catch (error) {
+          errorRoot.textContent = error.message;
+          button.disabled = false;
+        }
+      });
+      item.append(button);
+    }
+    list.append(item);
+  }
+}
+
+async function loadNotifications() {
+  if (!getToken()) {
+    document.querySelector("#customer-notifications").textContent = "Sign in to see your delivery notifications.";
+    return;
+  }
+  const response = await fetch(`${API_BASE}/notifications/mine`, { headers: authHeaders() });
+  const data = await response.json();
+  if (response.status === 401) return;
+  if (!response.ok) throw new Error(data.error || "Could not load notifications");
+  renderNotifications(data.notifications || [], data.unreadCount || 0);
+}
+
 async function loadOrders(force = false) {
   if (!getToken()) { errorRoot.innerHTML = `Please <a href="login.html?next=orders.html">sign in</a> to view your orders.`; return; }
   if (!force && document.activeElement?.closest?.(".order-review-form")) return;
@@ -205,4 +265,8 @@ async function loadOrders(force = false) {
 }
 
 loadOrders();
-setInterval(loadOrders, 15000);
+loadNotifications().catch(error => { errorRoot.textContent = error.message; });
+setInterval(() => {
+  loadOrders();
+  loadNotifications().catch(error => { errorRoot.textContent = error.message; });
+}, 15000);

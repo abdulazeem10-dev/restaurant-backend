@@ -4,6 +4,7 @@ const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
 const Review = require("../models/Review");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 
 const createSchema = z.object({
@@ -145,20 +146,46 @@ async function updateDeliveryOrder(req, res) {
   if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Assigned delivery not found" });
   const order = await Order.findOne({ _id: req.params.id, deliveryPartnerId: req.user._id });
   if (!order) return res.status(404).json({ error: "Assigned delivery not found" });
-  if (status && !["out_for_delivery", "picked_up"].includes(order.status)) return res.status(409).json({ error: "The restaurant must mark the order out for delivery before you can mark it delivered" });
+  if (status && !["out_for_delivery", "picked_up", "delivered"].includes(order.status)) return res.status(409).json({ error: "The restaurant must mark the order out for delivery before you can mark it delivered" });
   if (cashCollected) {
     if (order.paymentMethod !== "cash_on_delivery") return res.status(400).json({ error: "Cash collection only applies to cash-on-delivery orders" });
     if (status !== "delivered" && order.status !== "delivered") return res.status(409).json({ error: "Confirm cash after the order is delivered" });
-    if (order.paymentStatus === "paid") return res.status(409).json({ error: "This order is already marked paid" });
-    order.paymentStatus = "paid";
-    order.paymentCollectedAt = new Date();
+    if (order.paymentStatus !== "paid") {
+      order.paymentStatus = "paid";
+      order.paymentCollectedAt = new Date();
+    }
   }
-  if (status) {
+  if (status && order.status !== status) {
     order.status = status;
     order.statusHistory.push({ status, at: new Date() });
   }
   await order.save();
+  if (order.status === "delivered") await notifyOrderDelivered(order);
   return res.json({ order });
+}
+
+async function notifyOrderDelivered(order) {
+  const restaurant = await Restaurant.findById(order.restaurantId).select("ownerId name").lean();
+  if (!restaurant) return;
+  const staff = await User.find({
+    status: "active",
+    $or: [
+      { _id: restaurant.ownerId, role: "restaurant" },
+      { restaurantId: restaurant._id, role: "restaurant_staff" }
+    ]
+  }).select("_id").lean();
+  const recipients = [
+    { userId: order.customerId, audience: "customer", title: "Your order was delivered", message: `Your order from ${restaurant.name} has been delivered.` },
+    ...staff.map(member => ({ userId: member._id, audience: "restaurant", title: "Order delivered", message: `Order #${String(order._id).slice(-6)} has been delivered to the customer.` }))
+  ];
+  if (!recipients.length) return;
+  await Notification.bulkWrite(recipients.map(recipient => ({
+    updateOne: {
+      filter: { userId: recipient.userId, orderId: order._id, audience: recipient.audience },
+      update: { $setOnInsert: { ...recipient, orderId: order._id, restaurantId: restaurant._id, type: "order_delivered" } },
+      upsert: true
+    }
+  })), { ordered: false });
 }
 
 async function confirmOrderReceived(req, res) {

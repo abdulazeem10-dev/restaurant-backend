@@ -22,6 +22,7 @@
       <button type="button" data-restaurant-view="accounts" id="accounts-nav"><span aria-hidden="true">♙</span> Restaurant accounts</button>
       <button type="button" data-restaurant-view="reviews"><span aria-hidden="true">☆</span> Customer reviews</button>
       <button type="button" data-restaurant-view="orders"><span aria-hidden="true">▤</span> Incoming orders</button>
+      <button type="button" data-restaurant-view="notifications"><span aria-hidden="true">♧</span> Notifications <span id="restaurant-notification-count" class="restaurant-notification-count" hidden></span></button>
       <div class="restaurant-sidebar-help"><strong>Want to browse as a customer?</strong><a href="../customer/index.html">Open customer site →</a></div>
     </aside>
     <div class="restaurant-content">
@@ -42,6 +43,7 @@
       <section class="restaurant-view" data-restaurant-section="accounts" hidden><section class="panel" id="staff-management-panel" hidden><h2>Restaurant accounts</h2><p class="muted">Your owner login is the primary admin. Create one account for each staff role and share the login details securely.</p><ul id="owner-staff-list" class="restaurant-team-list"></ul><form id="owner-staff-form" class="restaurant-staff-form"><label>Account role<br><select name="staffRole" required></select></label><label>Name<br><input name="name" required maxlength="100" autocomplete="name"></label><label>Email / login<br><input name="email" type="email" required maxlength="254" autocomplete="email"></label><label>Phone (optional)<br><input name="phone" type="tel" maxlength="20" autocomplete="tel"></label><label>Temporary password (12+ characters)<br><input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><button type="submit">Create staff account</button></form><p id="staff-roles-complete" class="muted" hidden>All three staff roles have accounts.</p></section></section>
       <section class="restaurant-view" data-restaurant-section="reviews" hidden><section class="panel"><h2>Customer reviews</h2><p class="muted">Customers can leave one rating and review after an order is marked ready.</p><div id="owner-reviews" class="reviews-list"><p class="muted">Loading reviews…</p></div></section></section>
       <section class="restaurant-view" data-restaurant-section="orders" hidden><h2>Incoming orders</h2><div id="orders" class="grid"></div></section>
+      <section class="restaurant-view" data-restaurant-section="notifications" hidden><section class="panel"><h2>Notifications</h2><p class="muted">Order completion updates for your restaurant.</p><ul id="restaurant-notifications" class="notification-list"><li class="muted">Loading notifications…</li></ul></section></section>
     </div>
   </main>
   <script src="../assets/js/common.js"></script>

@@ -8,7 +8,8 @@ const restaurantViewInfo = {
   "delivery-areas": ["Delivery areas", "Choose the PIN codes your restaurant delivers to."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
-  orders: ["Incoming orders", "Review customer and delivery details and update order progress."]
+  orders: ["Incoming orders", "Review customer and delivery details and update order progress."],
+  notifications: ["Notifications", "Order completion updates for your restaurant."]
 };
 function showRestaurantView(view) {
   if (!restaurantViewInfo[view]) return;
@@ -32,6 +33,52 @@ async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers: authHeaders(options.headers || {}) });
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed"); return data;
+}
+async function loadNotifications() {
+  const { notifications, unreadCount } = await api("/notifications/mine");
+  const list = document.querySelector("#restaurant-notifications");
+  const count = document.querySelector("#restaurant-notification-count");
+  count.hidden = unreadCount < 1;
+  count.textContent = String(unreadCount);
+  list.replaceChildren();
+  if (!notifications.length) {
+    const empty = document.createElement("li");
+    empty.className = "muted";
+    empty.textContent = "No notifications yet. Completed orders will appear here.";
+    list.append(empty);
+    return;
+  }
+  for (const notification of notifications) {
+    const item = document.createElement("li");
+    item.className = notification.readAt ? "notification-item" : "notification-item is-unread";
+    const content = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = notification.title;
+    const message = document.createElement("p");
+    message.textContent = notification.message;
+    const time = document.createElement("small");
+    time.textContent = new Date(notification.createdAt).toLocaleString("en-IN");
+    content.append(title, message, time);
+    item.append(content);
+    if (!notification.readAt) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "secondary";
+      button.textContent = "Mark read";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          await api(`/notifications/mine/${encodeURIComponent(notification._id)}/read`, { method: "PATCH" });
+          await loadNotifications();
+        } catch (error) {
+          msg.textContent = error.message;
+          button.disabled = false;
+        }
+      });
+      item.append(button);
+    }
+    list.append(item);
+  }
 }
 const restaurantStaffRoles = [
   ["secondary_admin", "Secondary admin"],
@@ -349,8 +396,8 @@ async function initializeRestaurantDashboard() {
   document.querySelector("#restaurant-role-badge").textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
   if (restaurantStaffRole) {
     const allowedViews = restaurantStaffRole === "secondary_admin"
-      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders"]
-      : ["overview", "menu", "reviews", "orders"];
+      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "notifications"]
+      : ["overview", "menu", "reviews", "orders", "notifications"];
     document.querySelectorAll("[data-restaurant-view]").forEach(button => {
       button.hidden = !allowedViews.includes(button.dataset.restaurantView);
     });
@@ -363,7 +410,7 @@ async function initializeRestaurantDashboard() {
     await loadStaffAccounts();
   }
   showRestaurantView("overview");
-  await Promise.all([loadMenu(), loadOrders(), loadReviews()]);
+  await Promise.all([loadMenu(), loadOrders(), loadReviews(), loadNotifications()]);
 }
 initializeRestaurantDashboard().catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
-setInterval(() => { if (getToken()) loadOrders().catch(error => { msg.textContent = error.message; }); }, 20000);
+setInterval(() => { if (getToken()) { loadOrders().catch(error => { msg.textContent = error.message; }); loadNotifications().catch(error => { msg.textContent = error.message; }); } }, 20000);
