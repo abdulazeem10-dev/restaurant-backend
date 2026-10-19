@@ -1302,7 +1302,9 @@ article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
 .auth-page #show-phone-login:hover, .auth-page #show-password-login:hover { border-color: #eab6bc; background: #fff6f6; color: var(--brand-coral-dark); }
 .auth-page > main > p { color: var(--muted-ink); }
 .auth-page > main > p a, .auth-page form + p a { color: var(--brand-coral-dark); font-weight: 700; }
-.auth-page #message { min-height: 1.4rem; margin: .8rem 0; color: #a93436; }
+.auth-page #message { min-height: 1.4rem; margin: .8rem 0; color: var(--foodway-muted); }
+.auth-page #message[data-state="success"] { color: var(--foodway-green); }
+.auth-page #message[data-state="error"] { color: #a93436; }
 .auth-divider { display: flex; align-items: center; gap: .8rem; margin: 1.25rem 0; color: #8b8179; font-size: .82rem; }
 .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: #eee5de; content: ""; }
 #google-signin-button { min-height: 42px; }

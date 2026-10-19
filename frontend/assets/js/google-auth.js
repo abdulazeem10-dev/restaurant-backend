@@ -62,7 +62,7 @@ function renderGoogleSignInButton() {
 
 async function handleGoogleCredential(response) {
   const message = document.querySelector("#message");
-  if (message) message.textContent = "Signing in with Google…";
+  if (message) setStatusMessage(message, "Signing in with Google…");
 
   try {
     const result = await fetch(`${API_BASE}/auth/google`, {
@@ -78,6 +78,6 @@ async function handleGoogleCredential(response) {
       ? "cart.html"
       : "index.html";
   } catch (error) {
-    if (message) message.textContent = error.message;
+    if (message) setStatusMessage(message, error.message, "error");
   }
 }

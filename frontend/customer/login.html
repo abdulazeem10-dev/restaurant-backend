@@ -45,14 +45,14 @@
 document.querySelector("#login-form").addEventListener("submit", async event => {
   event.preventDefault();
   const message = document.querySelector("#message");
-  message.textContent = "Signing in…";
+  setStatusMessage(message, "Signing in…");
   const form = new FormData(event.currentTarget);
   try {
     const response = await fetch(`${API_BASE}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password") }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Unable to sign in");
     completeLogin(data);
-  } catch (error) { message.textContent = error.message; }
+  } catch (error) { setStatusMessage(message, error.message, "error"); }
 });
 
 function completeLogin(data) {
@@ -76,12 +76,12 @@ let requestedPhone = "";
 document.querySelector("#show-phone-login").addEventListener("click", () => {
   document.querySelector("#password-login").hidden = true;
   phoneLogin.hidden = false;
-  loginMessage.textContent = "";
+  setStatusMessage(loginMessage, "");
 });
 document.querySelector("#show-password-login").addEventListener("click", () => {
   phoneLogin.hidden = true;
   document.querySelector("#password-login").hidden = false;
-  loginMessage.textContent = "";
+  setStatusMessage(loginMessage, "");
 });
 
 async function requestOtp(phone) {
@@ -89,7 +89,7 @@ async function requestOtp(phone) {
   const resendButton = document.querySelector("#resend-otp");
   sendButton.disabled = true;
   resendButton.disabled = true;
-  loginMessage.textContent = "Sending OTP…";
+  setStatusMessage(loginMessage, "Sending OTP…");
   try {
     const response = await fetch(`${API_BASE}/auth/phone/otp/request`, {
       method: "POST",
@@ -103,9 +103,9 @@ async function requestOtp(phone) {
     otpForm.hidden = false;
     document.querySelector("#otp-sent-message").textContent = `Enter the code sent to ${phone}. ${data.message || ""}`;
     otpForm.elements.code.focus();
-    loginMessage.textContent = "";
+    setStatusMessage(loginMessage, "");
   } catch (error) {
-    loginMessage.textContent = error.message;
+    setStatusMessage(loginMessage, error.message, "error");
   } finally {
     sendButton.disabled = false;
     resendButton.disabled = false;
@@ -122,13 +122,13 @@ document.querySelector("#change-phone").addEventListener("click", () => {
   otpForm.hidden = true;
   phoneForm.hidden = false;
   phoneForm.elements.phone.focus();
-  loginMessage.textContent = "";
+  setStatusMessage(loginMessage, "");
 });
 otpForm.addEventListener("submit", async event => {
   event.preventDefault();
   const verifyButton = document.querySelector("#verify-otp");
   verifyButton.disabled = true;
-  loginMessage.textContent = "Verifying OTP…";
+  setStatusMessage(loginMessage, "Verifying OTP…");
   try {
     const response = await fetch(`${API_BASE}/auth/phone/otp/verify`, {
       method: "POST",
@@ -139,7 +139,7 @@ otpForm.addEventListener("submit", async event => {
     if (!response.ok) throw new Error(data.error || "Unable to verify OTP");
     completeLogin(data);
   } catch (error) {
-    loginMessage.textContent = error.message;
+    setStatusMessage(loginMessage, error.message, "error");
   } finally {
     verifyButton.disabled = false;
   }

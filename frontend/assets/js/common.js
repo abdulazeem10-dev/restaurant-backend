@@ -3,6 +3,12 @@ const API_BASE = "https://foodway-ten.vercel.app/api";
 const TOKEN_KEY = "food-platform-token";
 function getToken() { return sessionStorage.getItem(TOKEN_KEY); }
 function authHeaders(extra = {}) { return { ...extra, ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}) }; }
+function setStatusMessage(element, message, state = "info") {
+  if (!element) return;
+  element.dataset.state = state;
+  element.setAttribute("role", state === "error" ? "alert" : "status");
+  element.textContent = message;
+}
 function formatRupees(paise) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100); }
 function readCart() { try { return JSON.parse(localStorage.getItem("food-platform-cart") || "null"); } catch { return null; } }
 function writeCart(cart) { localStorage.setItem("food-platform-cart", JSON.stringify(cart)); updateCartCount(); }
