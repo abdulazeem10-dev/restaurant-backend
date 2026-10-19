@@ -23,6 +23,11 @@ This is a starter project, not a production marketplace. It includes customer re
    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
    ```
 3. Put the generated value in `JWT_SECRET` in `backend/.env`.
+
+## Android app
+The customer website is installable on Android as a Progressive Web App. Deploy the `frontend` directory at the site root over HTTPS, open the site in Chrome on Android, then choose **Install app** (or Chrome menu → **Install app**). It starts at the customer home page; users can sign in to their existing customer, restaurant, staff, delivery, or admin account and are routed to their role's dashboard.
+
+The installed app loads the same deployed frontend and uses the same API and MongoDB data as the website. Frontend changes appear after the app reconnects and reloads; orders and account data remain shared. The service worker uses network-first loading and does not cache API responses, so offline use is limited to the cached home screen and static shell. This PWA does not create a Play Store listing or a standalone APK.
 4. Configure `MONGODB_URI`.
 5. Install and run:
    ```bash

@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#fff">
+  <meta name="theme-color" content="#ef4059">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="../assets/icons/icon-192.png">
   <title>Food Platform | Discover Mumbai restaurants</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
@@ -20,6 +23,8 @@
       <a href="cart.html" class="cart-link">Cart <span data-cart-count>0</span></a>
       <a id="dashboard-link" href="#" hidden></a>
       <a href="login.html" class="login-link">Log in</a>
+      <button id="install-app" class="secondary" type="button" hidden>Install app</button>
+      <span id="install-app-help" class="muted" hidden>In Chrome, open ⋮ and choose Install app.</span>
       <button id="home-logout" class="secondary" type="button" hidden>Log out</button>
     </nav>
   </header>
@@ -50,5 +55,6 @@
   <footer class="site-footer"><a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Food Platform</span></a><span>Discover local food in Mumbai</span></footer>
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/restaurants.js"></script>
+  <script src="../assets/js/pwa.js"></script>
 </body>
 </html>
