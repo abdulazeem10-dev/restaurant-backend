@@ -5,6 +5,10 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 ## Project documentation
 - [Product requirements](prd.md)
 - [Architecture](architect.md)
+- [Project rules](rules.md)
+- [Project phases](phases.md)
+- [Design guide](design.md)
+- [Working memory](memory.md)
 - [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
 
 ## Stack
