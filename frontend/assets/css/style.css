@@ -1642,3 +1642,17 @@ body { color: var(--foodway-ink); }
 .customer-page .breadcrumbs {
   color: var(--foodway-muted);
 }
+/* Improve primary action contrast while keeping Foodway's tomato accent. */
+:root {
+  --foodway-tomato: #c73b2d;
+  --foodway-tomato-deep: #a92f25;
+  --foodway-muted: #5f6b63;
+}
+
+.customer-page .cart-submit:hover,
+.customer-page .payment-summary .cart-submit:hover,
+.auth-page form button[type="submit"]:hover,
+.customer-page .hero-cta:hover,
+.customer-page .restaurant-load-error .hero-cta:hover {
+  background: var(--foodway-tomato-deep);
+}
