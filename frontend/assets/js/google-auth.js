@@ -5,26 +5,43 @@ const GOOGLE_CLIENT_ID = "852447387928-qvqa0a8mvcv37v0qdlkihftumv9ii4ld.apps.goo
 function renderGoogleSignInButton() {
   const container = document.querySelector("#google-signin-button");
   if (!container) return;
+  const divider = document.querySelector(".auth-divider");
+
+  function showFallback(message) {
+    container.classList.add("is-fallback");
+    container.hidden = false;
+    container.textContent = message;
+  }
 
   if (GOOGLE_CLIENT_ID.startsWith("YOUR_")) {
-    container.textContent = "Google sign-in will be available after it is configured.";
+    showFallback("Google sign-in is unavailable. Use email or phone instead.");
     return;
   }
 
   function initializeGoogleSignIn() {
-    if (!window.google?.accounts?.id) return;
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredential
-    });
-    window.google.accounts.id.renderButton(container, {
-      type: "standard",
-      theme: "outline",
-      size: "large",
-      text: "continue_with",
-      shape: "rectangular",
-      width: Math.min(320, Math.max(220, container.parentElement.clientWidth || 320))
-    });
+    if (!window.google?.accounts?.id) {
+      showFallback("Google sign-in is unavailable. Use email or phone instead.");
+      return;
+    }
+    try {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential
+      });
+      window.google.accounts.id.renderButton(container, {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: Math.min(320, Math.max(220, container.parentElement.clientWidth || 320))
+      });
+      container.classList.remove("is-fallback");
+      container.hidden = false;
+      if (divider) divider.hidden = false;
+    } catch {
+      showFallback("Google sign-in is unavailable. Use email or phone instead.");
+    }
   }
 
   if (window.google?.accounts?.id) {
@@ -38,7 +55,7 @@ function renderGoogleSignInButton() {
   script.defer = true;
   script.onload = initializeGoogleSignIn;
   script.onerror = () => {
-    container.textContent = "Could not load Google sign-in. Please try again later.";
+    showFallback("Google sign-in is unavailable. Use email or phone instead.");
   };
   document.head.append(script);
 }

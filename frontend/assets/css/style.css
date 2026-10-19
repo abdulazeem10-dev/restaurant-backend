@@ -1306,6 +1306,8 @@ article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
 .auth-divider { display: flex; align-items: center; gap: .8rem; margin: 1.25rem 0; color: #8b8179; font-size: .82rem; }
 .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: #eee5de; content: ""; }
 #google-signin-button { min-height: 42px; }
+.auth-divider[hidden], #google-signin-button[hidden] { display: none; }
+#google-signin-button.is-fallback { display: block; min-height: 0; color: #75685f; font-size: .86rem; text-align: center; }
 
 /* Calm, consistent operations workspaces. */
 .admin-page, .restaurant-page, .delivery-page { color: #29251f; }
