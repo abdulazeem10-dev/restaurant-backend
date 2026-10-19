@@ -14,6 +14,8 @@ const orderStages = [
 function showOrdersSignIn(message = "Sign in to see your orders, delivery updates, and receipts.") {
   errorRoot.textContent = "";
   orderRoot.replaceChildren();
+  orderRoot.dataset.loaded = "true";
+  orderRoot.setAttribute("aria-busy", "false");
   const state = document.createElement("section");
   state.className = "orders-signin-state";
   const icon = document.createElement("span");
@@ -40,6 +42,44 @@ function showOrdersSignIn(message = "Sign in to see your orders, delivery update
   orderRoot.append(state);
   notificationPanel.hidden = true;
   document.querySelector("#order-refresh").textContent = "";
+}
+
+function showOrdersLoading() {
+  orderRoot.setAttribute("aria-busy", "true");
+  orderRoot.replaceChildren(...Array.from({ length: 2 }, () => {
+    const card = document.createElement("article");
+    card.className = "orders-loading-card";
+    card.setAttribute("aria-hidden", "true");
+    for (let index = 0; index < 4; index += 1) {
+      const line = document.createElement("span");
+      line.className = `orders-loading-line orders-loading-line-${index + 1}`;
+      card.append(line);
+    }
+    return card;
+  }));
+}
+
+function showOrdersLoadError() {
+  orderRoot.setAttribute("aria-busy", "false");
+  orderRoot.dataset.loaded = "true";
+  orderRoot.replaceChildren();
+  const state = document.createElement("section");
+  state.className = "orders-empty-state orders-load-error";
+  const title = document.createElement("h2");
+  title.textContent = "We couldn’t load your orders";
+  const message = document.createElement("p");
+  message.className = "muted";
+  message.textContent = "Check your connection and try again.";
+  const retry = document.createElement("button");
+  retry.className = "hero-cta";
+  retry.type = "button";
+  retry.textContent = "Try again";
+  retry.addEventListener("click", () => {
+    orderRoot.dataset.loaded = "";
+    loadOrders(true);
+  });
+  state.append(title, message, retry);
+  orderRoot.append(state);
 }
 
 function renderOrderProgress(order) {
@@ -220,6 +260,8 @@ function renderOrderHelp(order, card) {
 function renderOrders(orders) {
   while (trackingMaps.length) trackingMaps.pop()?.remove();
   orderRoot.replaceChildren();
+  orderRoot.dataset.loaded = "true";
+  orderRoot.setAttribute("aria-busy", "false");
   if (!orders.length) {
     const empty = document.createElement("section");
     empty.className = "orders-empty-state";
@@ -477,6 +519,7 @@ async function loadOrders(force = false) {
   if (!getToken()) { showOrdersSignIn(); return; }
   notificationPanel.hidden = false;
   if (!force && document.activeElement?.closest?.(".order-review-form, .order-help-form, .order-cancel-form")) return;
+  if (orderRoot.dataset.loaded !== "true") showOrdersLoading();
   try {
     const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
     const data = await response.json();
@@ -487,10 +530,14 @@ async function loadOrders(force = false) {
     }
     if (!response.ok) throw new Error(data.error || "Could not load orders");
     renderOrders(data.orders || []);
+    errorRoot.textContent = "";
     const refreshed = document.querySelector("#order-refresh");
     if (refreshed) refreshed.textContent = `Updated ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · Refreshes every 15 seconds`;
     if (new URLSearchParams(location.search).has("placed")) errorRoot.textContent = "Order placed. Follow its progress below.";
-  } catch (error) { errorRoot.textContent = error.message; }
+  } catch (error) {
+    if (orderRoot.dataset.loaded !== "true") showOrdersLoadError();
+    errorRoot.textContent = error.message;
+  }
 }
 
 loadOrders();

@@ -678,6 +678,14 @@ textarea { min-height: unset; }
 .customer-page .orders-empty-state p { max-width: 34rem; margin: .55rem 0 1.1rem; }
 .customer-page .orders-empty-state .hero-cta { min-height: 46px; background: var(--foodway-green); color: #fff; }
 .customer-page .orders-empty-state .hero-cta:hover { background: var(--foodway-green-deep); }
+.customer-page .orders-load-error .hero-cta { min-height: 46px; border: 0; background: var(--foodway-green); color: #fff; cursor: pointer; }
+.customer-page .orders-load-error .hero-cta:hover { background: var(--foodway-green-deep); }
+.customer-page .orders-loading-card { display: grid; align-content: start; gap: 1rem; min-height: 210px; padding: 1.35rem; border-color: var(--foodway-line); border-radius: 18px; background: #fff; box-shadow: 0 8px 24px #20252108; }
+.customer-page .orders-loading-line { height: .85rem; border-radius: 999px; background: linear-gradient(100deg, #edf0e9 28%, #f8f9f6 48%, #edf0e9 68%); background-size: 220% 100%; animation: restaurant-loading 1.35s ease-in-out infinite; }
+.customer-page .orders-loading-line-1 { width: 48%; height: 1.1rem; }
+.customer-page .orders-loading-line-2 { width: 83%; }
+.customer-page .orders-loading-line-3 { width: 64%; }
+.customer-page .orders-loading-line-4 { width: 35%; height: 1rem; margin-top: .6rem; }
 .customer-page .storefront-hero { border-color: var(--foodway-line); border-radius: 22px; background: linear-gradient(120deg, #fff 48%, #f1f4eb); box-shadow: 0 12px 32px #20252108; }
 .customer-page .storefront-art { border-radius: 17px; }
 .customer-page .category-nav { border-bottom-color: var(--foodway-line); }
