@@ -456,6 +456,9 @@ article h3 { margin-top: 0; }
 .orders-queue-filters label { display: grid; gap: .35rem; font-weight: 650; }
 .orders-queue-filters input, .orders-queue-filters select { width: 100%; min-height: 44px; border: 1px solid #dfd4cb; border-radius: 9px; background: white; font: inherit; padding: .6rem .75rem; }
 .orders-queue-filters input:focus-visible, .orders-queue-filters select:focus-visible { outline: 3px solid #ea580c33; border-color: #ea580c; }
+.restaurant-content #orders.grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: stretch; }
+.restaurant-content #orders.grid > article { min-width: 0; overflow-wrap: anywhere; }
+.restaurant-content #orders.grid > article p, .restaurant-content #orders.grid > article h3 { overflow-wrap: anywhere; }
 .reports-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; }
 .reports-heading h2 { margin-bottom: .25rem; }
 .reports-heading p { margin-top: 0; }
@@ -737,6 +740,8 @@ textarea { min-height: unset; }
 .delivery-page .delivery-grid article hr { border-top-color: var(--foodway-line); }
 
 @media (max-width: 760px) {
+  .restaurant-content #orders.grid { grid-template-columns: minmax(0, 1fr); }
+  .restaurant-content #orders.grid > article { padding: 1rem; }
   .customer-page .cart-main, .customer-page .payment-main, .customer-page .orders-main { padding-top: .25rem; }
   .customer-page .cart-heading, .customer-page .payment-heading, .customer-page .orders-heading { gap: .8rem; }
   .customer-page .cart-heading .back-link, .customer-page .payment-heading .back-link { align-self: flex-start; }
