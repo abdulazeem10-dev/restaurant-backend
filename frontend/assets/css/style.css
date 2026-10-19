@@ -1031,3 +1031,74 @@ body { color: var(--ink); text-rendering: optimizeLegibility; -webkit-font-smoot
   .discovery-controls { grid-template-columns: minmax(0, 1fr); }
   .hero-banner { min-height: 390px; }
 }
+
+/* Visual-only finishing pass: consistent polish across existing customer pages. */
+.customer-page {
+  background: #fffdfa;
+  color: #29251f;
+}
+.customer-page :is(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #e83d5540;
+  outline-offset: 3px;
+}
+.customer-page .site-header {
+  min-height: 76px;
+  border-bottom-color: #f0e9e3;
+  box-shadow: 0 5px 24px #39291d08;
+}
+.customer-page .site-nav a:not(.login-link):hover { color: #c72f49; text-decoration: none; }
+.customer-page .login-link { transition: border-color .18s ease, background .18s ease; }
+.customer-page .login-link:hover { border-color: #efc6cb; background: #fff6f6; text-decoration: none; }
+.customer-page h1, .customer-page h2, .customer-page h3, .customer-page h4 {
+  color: #29251f;
+  text-wrap: balance;
+}
+.customer-page .hero-banner {
+  min-height: 405px;
+  border-color: #f2e5dd;
+  box-shadow: 0 20px 50px #55331d0b;
+}
+.customer-page .hero-copy h1 { font-weight: 820; }
+.customer-page .hero-copy > p:not(.eyebrow) { max-width: 430px; }
+.customer-page .hero-caption { color: #685e56; }
+.customer-page .hero-art { filter: saturate(.94); }
+.customer-page .hero-food-note { border-color: #f4e9df; box-shadow: 0 14px 30px #55331d14; }
+.customer-page .value-strip { gap: 0; overflow: hidden; border: 1px solid #f0e8e2; border-radius: 16px; background: #fff; }
+.customer-page .value-strip > div { min-height: 82px; padding: 1rem 1.15rem; border: 0; border-radius: 0; box-shadow: none; }
+.customer-page .value-strip > div + div { border-left: 1px solid #f0e8e2; }
+.customer-page .value-strip > div > span { width: 38px; height: 38px; border-radius: 12px; }
+.customer-page .value-strip strong { color: #342d27; font-size: .86rem; }
+.customer-page .value-strip small { color: #81766e; font-size: .76rem; }
+.customer-page .discovery-heading { margin-top: 3.8rem; }
+.customer-page .discovery-intro h2 { font-weight: 790; }
+.customer-page .discovery-controls { border-color: #eee5de; background: #fff; box-shadow: 0 10px 28px #39291d08; }
+.customer-page .quick-food-filters button { color: #554c45; }
+.customer-page .quick-food-filters button[aria-pressed="true"] { background: #fff2f3; color: #bd3048; }
+.customer-page .restaurant-card { border-color: #eee6df; box-shadow: 0 9px 28px #39291d09; }
+.customer-page .restaurant-card:hover { box-shadow: 0 20px 42px #39291d15; }
+.customer-page .restaurant-card-content { padding: 1.15rem 1.2rem 1.2rem; }
+.customer-page .restaurant-card h3 { font-weight: 780; }
+.customer-page .restaurant-address { color: #756b63; }
+.customer-page .restaurant-service-list { color: #71675f; }
+.customer-page .restaurant-rating { background: #edf6ef; color: #286743; }
+.customer-page .restaurant-card .card-action { font-weight: 750; }
+.customer-page .site-footer { background: #fffdfa; }
+.customer-page article, .customer-page .panel { border-color: #eee6df; box-shadow: 0 10px 28px #39291d08; }
+.customer-page input, .customer-page select, .customer-page textarea {
+  border-color: #e5dbd3;
+  border-radius: 10px;
+}
+.customer-page button { border-radius: 10px; transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.customer-page button:not(:disabled):hover { box-shadow: 0 6px 16px #39291d12; }
+.customer-page .empty-state { border-color: #e9ddd4; background: #fff; }
+
+@media (max-width: 680px) {
+  .customer-page .hero-banner { min-height: 365px; }
+  .customer-page .value-strip { border-radius: 14px; }
+  .customer-page .value-strip > div { padding: .75rem; }
+  .customer-page .value-strip > div + div { border-left: 0; }
+  .customer-page .discovery-heading { margin-top: 2.8rem; }
+}
+@media (max-width: 390px) {
+  .customer-page .value-strip > div + div { border-top: 1px solid #f0e8e2; }
+}
