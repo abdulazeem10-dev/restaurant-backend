@@ -5,7 +5,10 @@ const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter")
 const resultCount = document.querySelector("#results-count");
 const clearFiltersButton = document.querySelector("#clear-filters");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
+const cuisineFilters = [...document.querySelectorAll("[data-cuisine-filter]")];
+const cuisineTrack = document.querySelector("#cuisine-track");
 let selectedFoodFilter = "all";
+let selectedCuisineFilter = "all";
 let allRestaurants = [];
 
 async function setupHomeAccountNav() {
@@ -67,10 +70,13 @@ function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const pin = deliveryPincodeFilter.value.trim();
   const hasCompletePin = /^\d{6}$/.test(pin);
-  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || sortSelect.value !== "name");
+  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || selectedCuisineFilter !== "all" || sortSelect.value !== "name");
   clearFiltersButton.hidden = !hasActiveFilters;
   quickFoodFilters.forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter));
+  });
+  cuisineFilters.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter));
   });
   const matches = allRestaurants.filter(restaurant => {
     const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
@@ -79,8 +85,9 @@ function renderRestaurants() {
       ? restaurant.foodType
       : "both";
     const foodTypeMatches = selectedFoodFilter === "all" || foodType === selectedFoodFilter;
+    const cuisineMatches = selectedCuisineFilter === "all" || (restaurant.cuisine || "other") === selectedCuisineFilter;
     const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
-    return searchMatches && foodTypeMatches && pinMatches;
+    return searchMatches && foodTypeMatches && cuisineMatches && pinMatches;
   });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
@@ -173,8 +180,10 @@ function renderRestaurants() {
       title.textContent = "No restaurants found";
       message.textContent = hasCompletePin
         ? `No listed restaurants deliver to PIN ${pin}. Try another PIN code.`
+        : selectedCuisineFilter !== "all"
+          ? `No ${selectedCuisineFilter.replaceAll("-", " ")} restaurants match. Try another cuisine or clear filters.`
         : selectedFoodFilter === "all"
-          ? "Try another restaurant name or area."
+          ? "Try another restaurant name or area, or choose a different cuisine."
         : `No ${selectedFoodFilter === "veg" ? "Veg" : "Non-Veg"} restaurants match. Try another food type or search.`;
     }
     empty.append(icon, title, message);
@@ -234,10 +243,22 @@ quickFoodFilters.forEach(button => button.addEventListener("click", () => {
   selectedFoodFilter = button.dataset.quickFood;
   renderRestaurants();
 }));
+cuisineFilters.forEach(button => button.addEventListener("click", () => {
+  selectedCuisineFilter = button.dataset.cuisineFilter;
+  renderRestaurants();
+  document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+document.querySelector("#cuisine-scroll-left").addEventListener("click", () => {
+  cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
+});
+document.querySelector("#cuisine-scroll-right").addEventListener("click", () => {
+  cuisineTrack.scrollBy({ left: Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
+});
 clearFiltersButton.addEventListener("click", () => {
   searchInput.value = "";
   deliveryPincodeFilter.value = "";
   selectedFoodFilter = "all";
+  selectedCuisineFilter = "all";
   sortSelect.value = "name";
   renderRestaurants();
   searchInput.focus();

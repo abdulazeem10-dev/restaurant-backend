@@ -8,6 +8,7 @@ const Order = require("../models/Order");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
 const dailyHoursSchema = z.object({
   closed: z.boolean(),
   opensAt: timeSchema,
@@ -23,9 +24,10 @@ const openingHoursInputSchema = z.object(Object.fromEntries(
 const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
   deliveryPincodes: z.array(z.string().length(6).regex(/^\d{6}$/)).max(100).optional(),
+  cuisine: cuisineSchema.optional(),
   prepTimeMinutes: z.number().int().min(5).max(180).optional(),
   deliveryTimeMinutes: z.number().int().min(5).max(180).optional()
-}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined || value.prepTimeMinutes !== undefined || value.deliveryTimeMinutes !== undefined);
+}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined || value.cuisine !== undefined || value.prepTimeMinutes !== undefined || value.deliveryTimeMinutes !== undefined);
 const restaurantStaffSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
@@ -43,7 +45,7 @@ async function listRestaurants(req, res) {
     query.deliveryPincodes = req.query.pincode;
   }
   const restaurants = await Restaurant.find(query)
-    .select("name description address imageUrl foodType isOpen openingHours deliveryPincodes")
+    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes")
     .sort({ name: 1 }).limit(100).lean();
   const ratingStats = await Review.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
@@ -63,7 +65,7 @@ async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
     status: "approved"
-  }).select("name description address imageUrl foodType isOpen openingHours deliveryPincodes").lean();
+  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const [stats] = await Review.aggregate([
@@ -161,6 +163,7 @@ async function updateOwnServiceSettings(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (parsed.data.openingHours) restaurant.openingHours = parsed.data.openingHours;
   if (parsed.data.deliveryPincodes) restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
+  if (parsed.data.cuisine) restaurant.cuisine = parsed.data.cuisine;
   if (parsed.data.prepTimeMinutes !== undefined) restaurant.prepTimeMinutes = parsed.data.prepTimeMinutes;
   if (parsed.data.deliveryTimeMinutes !== undefined) restaurant.deliveryTimeMinutes = parsed.data.deliveryTimeMinutes;
   await restaurant.save();
@@ -169,6 +172,7 @@ async function updateOwnServiceSettings(req, res) {
       id: restaurant._id,
       openingHours: restaurant.openingHours,
       deliveryPincodes: restaurant.deliveryPincodes,
+      cuisine: restaurant.cuisine || "other",
       prepTimeMinutes: restaurant.prepTimeMinutes,
       deliveryTimeMinutes: restaurant.deliveryTimeMinutes
     }

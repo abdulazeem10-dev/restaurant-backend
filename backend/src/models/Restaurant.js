@@ -67,6 +67,12 @@ const restaurantSchema = new mongoose.Schema(
       enum: ["veg", "nonVeg", "both"],
       default: "both"
     },
+    cuisine: {
+      type: String,
+      enum: ["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"],
+      default: "other",
+      index: true
+    },
     openingHours: {
       type: openingHoursSchema,
       default: undefined

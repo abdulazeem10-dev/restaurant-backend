@@ -43,6 +43,34 @@
       <div class="hero-art" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="plate"><svg class="plate-art" viewBox="0 0 300 300" role="presentation"><defs><radialGradient id="plate-glaze" cx="36%" cy="30%"><stop stop-color="#fff"/><stop offset=".72" stop-color="#fffdf8"/><stop offset="1" stop-color="#f3e7d8"/></radialGradient><linearGradient id="curry" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f8be58"/><stop offset="1" stop-color="#df7142"/></linearGradient><linearGradient id="rice" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff5d9"/><stop offset="1" stop-color="#efd29a"/></linearGradient></defs><circle cx="150" cy="150" r="139" fill="url(#plate-glaze)" stroke="#fff" stroke-width="7"/><circle cx="150" cy="150" r="111" fill="#f6eee4"/><ellipse cx="150" cy="162" rx="92" ry="66" fill="#d7a76e" opacity=".25"/><path d="M63 159c7-33 42-54 87-54s80 21 87 54c-8 34-42 55-87 55s-79-21-87-55Z" fill="url(#curry)"/><path d="M94 145c8-27 28-44 57-44s49 17 57 44c-17 14-37 20-57 20s-40-6-57-20Z" fill="url(#rice)"/><g fill="#fff9e9"><ellipse cx="116" cy="126" rx="16" ry="5" transform="rotate(-25 116 126)"/><ellipse cx="145" cy="116" rx="18" ry="5" transform="rotate(12 145 116)"/><ellipse cx="172" cy="124" rx="17" ry="5" transform="rotate(-18 172 124)"/><ellipse cx="131" cy="139" rx="17" ry="5" transform="rotate(18 131 139)"/><ellipse cx="161" cy="139" rx="18" ry="5" transform="rotate(-10 161 139)"/></g><g fill="#f2d27f"><circle cx="100" cy="169" r="9"/><circle cx="198" cy="170" r="10"/><circle cx="126" cy="188" r="8"/><circle cx="174" cy="190" r="8"/></g><g fill="#4f8756"><path d="M106 174c-11-14 0-23 14-18-2 12-6 17-14 18Z"/><path d="M185 150c-8-13 2-20 14-14-3 10-7 14-14 14Z"/><path d="M149 194c-7-13 3-19 14-12-3 9-7 13-14 12Z"/></g><g fill="#fff" opacity=".72"><circle cx="79" cy="111" r="3"/><circle cx="217" cy="103" r="2.5"/><circle cx="222" cy="194" r="3"/></g></svg></div><div class="hero-sticker sticker-one">Fresh<br>& local</div><div class="hero-sticker sticker-two">Made with<br>love ♡</div><div class="hero-food-note"><span>GOOD FOOD,</span><strong>right around you.</strong></div></div>
     </section>
 
+    <section class="cuisine-section" aria-labelledby="cuisine-title">
+      <div class="cuisine-section-heading">
+        <div><p class="eyebrow">EXPLORE BY CRAVING</p><h2 id="cuisine-title">Order our best food options</h2></div>
+        <div class="cuisine-carousel-controls" aria-label="Cuisine carousel controls">
+          <button id="cuisine-scroll-left" type="button" aria-label="Scroll cuisines left">←</button>
+          <button id="cuisine-scroll-right" type="button" aria-label="Scroll cuisines right">→</button>
+        </div>
+      </div>
+      <div id="cuisine-track" class="cuisine-track" role="group" aria-label="Filter restaurants by cuisine">
+        <button class="cuisine-option" type="button" data-cuisine-filter="all" aria-pressed="true"><span class="cuisine-art" aria-hidden="true">✦</span><span>All cuisines</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="north-indian" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍛</span><span>North Indian</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="pizza" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍕</span><span>Pizza</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="chinese" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍜</span><span>Chinese</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="desserts" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍰</span><span>Desserts</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="burger" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍔</span><span>Burger</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="biryani" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥘</span><span>Biryani</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="south-indian" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥥</span><span>South Indian</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="noodles" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍝</span><span>Noodles</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="rolls" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🌯</span><span>Rolls</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="shawarma" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥙</span><span>Shawarma</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="vada" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍩</span><span>Vada</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="dosa" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥞</span><span>Dosa</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="momo" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥟</span><span>Momo</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="salads" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🥗</span><span>Salads</span></button>
+        <button class="cuisine-option" type="button" data-cuisine-filter="other" aria-pressed="false"><span class="cuisine-art" aria-hidden="true">🍽️</span><span>Other</span></button>
+      </div>
+    </section>
+
     <section class="value-strip" aria-label="Why order with Foodway">
       <div><span aria-hidden="true">⌖</span><p><strong>Made for your area</strong><small>Explore restaurants serving nearby neighbourhoods.</small></p></div>
       <div><span aria-hidden="true">↗</span><p><strong>Know what’s happening</strong><small>Follow your order from the kitchen to your door.</small></p></div>

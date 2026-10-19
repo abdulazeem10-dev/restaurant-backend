@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const { z } = require("zod");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
+const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
 
 const deliveryPartnerSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -43,7 +44,8 @@ const createSchema = z.object({
   description: z.string().max(2000).optional().default(""),
   address: z.string().trim().min(5).max(500),
   imageUrl: restaurantImageUrlSchema,
-  foodType: z.enum(["veg", "nonVeg", "both"]).optional().default("both")
+  foodType: z.enum(["veg", "nonVeg", "both"]).optional().default("both"),
+  cuisine: cuisineSchema.optional().default("other")
 }).strict();
 
 async function createRestaurant(req, res) {
@@ -67,6 +69,7 @@ async function createRestaurant(req, res) {
       address: parsed.data.address,
       imageUrl: parsed.data.imageUrl,
       foodType: parsed.data.foodType,
+      cuisine: parsed.data.cuisine,
       status: "pending",
       isOpen: false
     });
@@ -121,4 +124,17 @@ async function setRestaurantFoodType(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, createDeliveryPartner };
+async function setRestaurantCuisine(req, res) {
+  const parsed = z.object({ cuisine: cuisineSchema }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose a cuisine category" });
+
+  const restaurant = await Restaurant.findByIdAndUpdate(
+    req.params.id,
+    { $set: { cuisine: parsed.data.cuisine } },
+    { new: true, runValidators: true }
+  );
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  return res.json({ restaurant });
+}
+
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner };

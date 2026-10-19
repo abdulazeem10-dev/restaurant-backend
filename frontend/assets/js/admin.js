@@ -118,6 +118,39 @@ async function loadRestaurants() {
     foodTypeLabel.append(document.createElement("br"), foodTypeSelect);
     card.append(foodTypeLabel);
 
+    const cuisineLabel = document.createElement("label");
+    cuisineLabel.textContent = "Main cuisine";
+    const cuisineSelect = document.createElement("select");
+    cuisineSelect.innerHTML = `
+      <option value="other">Other / not set</option>
+      <option value="north-indian">North Indian</option><option value="pizza">Pizza</option>
+      <option value="chinese">Chinese</option><option value="desserts">Desserts</option>
+      <option value="burger">Burger</option><option value="biryani">Biryani</option>
+      <option value="south-indian">South Indian</option><option value="noodles">Noodles</option>
+      <option value="rolls">Rolls</option><option value="shawarma">Shawarma</option>
+      <option value="vada">Vada</option><option value="dosa">Dosa</option>
+      <option value="momo">Momo</option><option value="salads">Salads</option>`;
+    cuisineSelect.value = restaurant.cuisine || "other";
+    cuisineSelect.addEventListener("change", async () => {
+      cuisineSelect.disabled = true;
+      try {
+        await adminRequest(`/admin/restaurants/${restaurant._id}/cuisine`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cuisine: cuisineSelect.value })
+        });
+        restaurant.cuisine = cuisineSelect.value;
+        message.textContent = "Restaurant cuisine updated.";
+      } catch (error) {
+        message.textContent = error.message;
+        cuisineSelect.value = restaurant.cuisine || "other";
+      } finally {
+        cuisineSelect.disabled = false;
+      }
+    });
+    cuisineLabel.append(document.createElement("br"), cuisineSelect);
+    card.append(cuisineLabel);
+
     const imageForm = document.createElement("form");
     imageForm.className = "restaurant-image-form";
     const imageLabel = document.createElement("label");
@@ -222,6 +255,7 @@ document
       "description",
       "imageUrl",
       "foodType",
+      "cuisine",
       "ownerName",
       "email",
       "password"

@@ -5,7 +5,7 @@ let restaurantOrdersCache = [];
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
-  hours: ["Opening hours", "Set when your restaurant can accept orders."],
+  hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
   "delivery-areas": ["Delivery areas", "Choose the PIN codes your restaurant delivers to."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
@@ -175,6 +175,7 @@ async function loadMenu() {
   document.querySelector('#delivery-times-form [name="prepTimeMinutes"]').value = restaurant.prepTimeMinutes || 30;
   document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]').value = restaurant.deliveryTimeMinutes || 30;
   document.querySelector("#delivery-pincodes").value = (restaurant.deliveryPincodes || []).join(", ");
+  document.querySelector('#cuisine-form [name="cuisine"]').value = restaurant.cuisine || "other";
   const toggle = document.querySelector("#open-toggle");
   if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
   else { toggle.hidden = true; }
@@ -275,6 +276,21 @@ document.querySelector("#delivery-times-form").addEventListener("submit", async 
       body: JSON.stringify({ prepTimeMinutes: Number(values.get("prepTimeMinutes")), deliveryTimeMinutes: Number(values.get("deliveryTimeMinutes")) })
     });
     msg.textContent = "Preparation and delivery estimates saved.";
+  } catch (error) { msg.textContent = error.message; }
+  finally { button.disabled = false; }
+});
+document.querySelector("#cuisine-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const cuisine = new FormData(form).get("cuisine");
+    await api("/restaurants/owner/service-settings", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cuisine })
+    });
+    msg.textContent = "Restaurant cuisine saved.";
   } catch (error) { msg.textContent = error.message; }
   finally { button.disabled = false; }
 });

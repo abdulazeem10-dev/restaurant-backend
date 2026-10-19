@@ -11,5 +11,6 @@ router.post("/restaurants", asyncHandler(controller.createRestaurant));
 router.post("/delivery-partners", asyncHandler(controller.createDeliveryPartner));
 router.patch("/restaurants/:id/image", asyncHandler(controller.setRestaurantImage));
 router.patch("/restaurants/:id/food-type", asyncHandler(controller.setRestaurantFoodType));
+router.patch("/restaurants/:id/cuisine", asyncHandler(controller.setRestaurantCuisine));
 router.patch("/restaurants/:id/status", asyncHandler(controller.setRestaurantStatus));
 module.exports = router;
