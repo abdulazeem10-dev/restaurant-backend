@@ -1378,7 +1378,7 @@ article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
 /* Foodway design direction: confident hospitality, with separate customer and operator spaces. */
 :root {
   --foodway-ink: #202521;
-  --foodway-muted: #6c756f;
+  --foodway-muted: #5f6b63;
   --foodway-green: #173d32;
   --foodway-green-deep: #102f27;
   --foodway-lime: #d6e5b5;
@@ -1629,4 +1629,16 @@ body { color: var(--foodway-ink); }
   .customer-page .value-strip p {
     margin: 0;
   }
+}
+
+/* Keep supporting copy readable on warm and white surfaces. */
+.admin-stat small,
+.notification-item small,
+.restaurant-brand-copy small,
+.delivery-brand small,
+.delivery-refresh,
+.customer-page .value-strip small,
+.customer-page .site-footer,
+.customer-page .breadcrumbs {
+  color: var(--foodway-muted);
 }
