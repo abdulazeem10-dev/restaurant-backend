@@ -1,14 +1,13 @@
 const mongoose = require("mongoose");
+const Order = require("../models/Order");
 
 // Reuse one connection across requests in Vercel's warm serverless instances.
-const cache = globalThis.__foodPlatformMongo || (globalThis.__foodPlatformMongo = { promise: null });
+const cache = globalThis.__foodPlatformMongo || (globalThis.__foodPlatformMongo = { promise: null, indexPromise: null });
 
 async function connectDatabase() {
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI is required");
   }
-
-  if (mongoose.connection.readyState === 1) return mongoose.connection;
 
   if (!cache.promise) {
     cache.promise = mongoose.connect(process.env.MONGODB_URI, {
@@ -28,7 +27,17 @@ async function connectDatabase() {
       });
   }
 
-  return cache.promise;
+  await cache.promise;
+  // A Mongo unique index is necessary to arbitrate simultaneous order retries.
+  // Build it explicitly because production deployments may disable autoIndex.
+  if (!cache.indexPromise) {
+    cache.indexPromise = Order.createIndexes().catch(error => {
+      cache.indexPromise = null;
+      throw error;
+    });
+  }
+  await cache.indexPromise;
+  return mongoose.connection;
 }
 
 module.exports = connectDatabase;

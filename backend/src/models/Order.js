@@ -12,6 +12,9 @@ const deliveryDetailsSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+  // A client supplied key makes order creation safe to retry after a timeout.
+  idempotencyKey: { type: String, minlength: 36, maxlength: 36, select: false },
+  idempotencyRequestHash: { type: String, minlength: 64, maxlength: 64, select: false },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true, index: true },
   deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
   deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
@@ -70,6 +73,24 @@ const orderSchema = new mongoose.Schema({
     status: { type: String, enum: ["awaiting_payment", "placed", "confirmed", "preparing", "ready", "out_for_delivery", "picked_up", "delivered", "cancelled"], required: true },
     at: { type: Date, required: true, default: Date.now }
   }]
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  toJSON: {
+    transform(_document, value) {
+      delete value.idempotencyKey;
+      delete value.idempotencyRequestHash;
+      return value;
+    }
+  }
+});
+
+orderSchema.index(
+  { customerId: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $type: "string" } },
+    name: "customer_idempotency_unique"
+  }
+);
 
 module.exports = mongoose.model("Order", orderSchema);

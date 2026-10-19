@@ -3,6 +3,24 @@ const paymentError = document.querySelector("#payment-error");
 const confirmOrderButton = document.querySelector("#confirm-order");
 const paymentChoices = [...document.querySelectorAll("[data-payment-choice]")];
 let checkout = null;
+const ORDER_IDEMPOTENCY_KEY = "food-platform-order-idempotency-key";
+
+function getOrderIdempotencyKey() {
+  let key = sessionStorage.getItem(ORDER_IDEMPOTENCY_KEY);
+  if (!key) {
+    if (crypto.randomUUID) {
+      key = crypto.randomUUID();
+    } else {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = [...bytes].map(value => value.toString(16).padStart(2, "0")).join("");
+      key = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+    sessionStorage.setItem(ORDER_IDEMPOTENCY_KEY, key);
+  }
+  return key;
+}
 
 try {
   checkout = JSON.parse(sessionStorage.getItem("food-platform-checkout") || "null");
@@ -63,7 +81,7 @@ function renderPaymentSummary() {
 async function createOrder(paymentMethod) {
   const response = await fetch(`${API_BASE}/orders`, {
     method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
+    headers: authHeaders({ "Content-Type": "application/json", "Idempotency-Key": getOrderIdempotencyKey() }),
     body: JSON.stringify({
       restaurantId: paymentCart.restaurantId,
       deliveryAddress: checkout.deliveryAddress,
@@ -88,6 +106,7 @@ async function placeOrder() {
   await createOrder(selectedPaymentMethod());
   localStorage.removeItem("food-platform-cart");
   sessionStorage.removeItem("food-platform-checkout");
+  sessionStorage.removeItem(ORDER_IDEMPOTENCY_KEY);
   sessionStorage.removeItem("food-platform-payment-method");
   location.href = "orders.html?placed=1";
 }

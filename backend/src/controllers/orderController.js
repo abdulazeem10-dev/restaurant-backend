@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const crypto = require("crypto");
 const Order = require("../models/Order");
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
@@ -31,6 +32,19 @@ async function createOrder(req, res) {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid order details" });
 
+  const idempotencyKey = req.get("Idempotency-Key");
+  if (typeof idempotencyKey !== "string" || !/^[a-f\d]{8}-[a-f\d]{4}-4[a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i.test(idempotencyKey)) {
+    return res.status(400).json({ error: "A valid Idempotency-Key is required to place an order" });
+  }
+  const requestHash = crypto.createHash("sha256").update(JSON.stringify(parsed.data)).digest("hex");
+  const existingOrder = await Order.findOne({ customerId: req.user._id, idempotencyKey }).select("+idempotencyRequestHash");
+  if (existingOrder) {
+    if (existingOrder.idempotencyRequestHash !== requestHash) {
+      return res.status(409).json({ error: "This checkout key was already used for different order details. Refresh checkout to place a new order." });
+    }
+    return res.status(200).json({ order: existingOrder, deliveryAssigned: Boolean(existingOrder.deliveryPartnerId), replayed: true });
+  }
+
   const restaurant = await Restaurant.findOne({ _id: parsed.data.restaurantId, status: "approved" });
   if (!restaurant) return res.status(404).json({ error: "Restaurant is not accepting orders" });
   if (!restaurant.isOpen) return res.status(409).json({ error: "This restaurant is currently closed" });
@@ -57,23 +71,37 @@ async function createOrder(req, res) {
 
   const placedAt = new Date();
 
-  const order = await Order.create({
-    customerId: req.user._id,
-    restaurantId: restaurant._id,
-    deliveryAddress: parsed.data.deliveryAddress,
-    deliveryDetails: parsed.data.deliveryDetails,
-    deliveryPartnerId: deliveryPartner._id,
-    deliveryAssignmentStatus: "offered",
-    estimatedDeliveryAt: new Date(placedAt.getTime() + ((restaurant.prepTimeMinutes || 30) + (restaurant.deliveryTimeMinutes || 30)) * 60_000),
-    paymentMethod: parsed.data.paymentMethod,
-    items,
-    subtotalPaise,
-    deliveryFeePaise: 0,
-    taxPaise: 0,
-    totalPaise: subtotalPaise,
-    status: "placed",
-    statusHistory: [{ status: "placed", at: placedAt }]
-  });
+  let order;
+  try {
+    order = await Order.create({
+      customerId: req.user._id,
+      idempotencyKey,
+      idempotencyRequestHash: requestHash,
+      restaurantId: restaurant._id,
+      deliveryAddress: parsed.data.deliveryAddress,
+      deliveryDetails: parsed.data.deliveryDetails,
+      deliveryPartnerId: deliveryPartner._id,
+      deliveryAssignmentStatus: "offered",
+      estimatedDeliveryAt: new Date(placedAt.getTime() + ((restaurant.prepTimeMinutes || 30) + (restaurant.deliveryTimeMinutes || 30)) * 60_000),
+      paymentMethod: parsed.data.paymentMethod,
+      items,
+      subtotalPaise,
+      deliveryFeePaise: 0,
+      taxPaise: 0,
+      totalPaise: subtotalPaise,
+      status: "placed",
+      statusHistory: [{ status: "placed", at: placedAt }]
+    });
+  } catch (error) {
+    // A unique index arbitrates simultaneous retries; return the first result.
+    if (error?.code !== 11000) throw error;
+    const concurrentOrder = await Order.findOne({ customerId: req.user._id, idempotencyKey }).select("+idempotencyRequestHash");
+    if (!concurrentOrder) throw error;
+    if (concurrentOrder.idempotencyRequestHash !== requestHash) {
+      return res.status(409).json({ error: "This checkout key was already used for different order details. Refresh checkout to place a new order." });
+    }
+    return res.status(200).json({ order: concurrentOrder, deliveryAssigned: Boolean(concurrentOrder.deliveryPartnerId), replayed: true });
+  }
   return res.status(201).json({ order, deliveryAssigned: true });
 }
 
