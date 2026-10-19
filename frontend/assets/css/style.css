@@ -1242,3 +1242,155 @@ article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
   .admin-page-heading, .restaurant-page-heading { gap: .55rem; }
   .restaurant-meta { flex-wrap: wrap; }
 }
+
+/* Foodway design direction: confident hospitality, with separate customer and operator spaces. */
+:root {
+  --foodway-ink: #202521;
+  --foodway-muted: #6c756f;
+  --foodway-green: #173d32;
+  --foodway-green-deep: #102f27;
+  --foodway-lime: #d6e5b5;
+  --foodway-tomato: #e34b36;
+  --foodway-paper: #f7f6f1;
+  --foodway-line: #e7e6de;
+}
+
+body { color: var(--foodway-ink); }
+.customer-page { background: var(--foodway-paper); }
+.customer-page .site-header {
+  min-height: 78px;
+  padding-inline: max(4vw, calc((100vw - 1340px) / 2));
+  background: #f7f6f1ed;
+  border-bottom-color: #e7e6de;
+  box-shadow: none;
+  backdrop-filter: blur(16px);
+}
+.customer-page .wordmark { font-size: 1.2rem; letter-spacing: -.045em; }
+.customer-page .wordmark-icon { background: var(--foodway-green); box-shadow: none; }
+.customer-page .top-search { width: min(470px, 38vw); border-color: #e2e1d8; border-radius: 999px; background: #fff; box-shadow: none; }
+.customer-page .top-search button { min-height: 40px; padding-inline: 1.15rem; border-radius: 999px; background: var(--foodway-green); }
+.customer-page .top-search button:hover { background: var(--foodway-green-deep); }
+.customer-page .site-nav { gap: 1.15rem; }
+.customer-page .site-nav a { color: #3e4741; }
+.customer-page .site-nav .login-link { border-color: #dcded4; background: transparent; }
+.customer-page .site-nav .login-link:hover { border-color: var(--foodway-green); background: #edf2e9; }
+.customer-page .discovery-main { width: min(100% - 2.5rem, 1340px); max-width: 1340px; margin-top: 1.4rem; }
+.customer-page .hero-banner {
+  min-height: 430px;
+  padding: clamp(2rem, 5.5vw, 5rem);
+  border: 0;
+  border-radius: 30px;
+  color: #fff;
+  background: radial-gradient(ellipse at 74% 8%, #35624b 0, transparent 35%), linear-gradient(115deg, #173d32 0%, #1c4938 60%, #234a39 100%);
+  box-shadow: 0 24px 65px #173d3221;
+}
+.customer-page .hero-banner::after { right: 12%; bottom: -230px; width: 520px; height: 520px; border: 1px solid #ffffff19; }
+.customer-page .hero-copy { max-width: 600px; }
+.customer-page .hero-copy .eyebrow { color: var(--foodway-lime); }
+.customer-page .hero-copy h1 { max-width: 600px; color: #fff; font-size: clamp(3rem, 6.2vw, 5.4rem); line-height: .96; letter-spacing: -.065em; }
+.customer-page .hero-copy h1 span { color: #d7e7b4; }
+.customer-page .hero-copy > p:not(.eyebrow) { max-width: 450px; color: #d4ded5; font-size: 1.08rem; }
+.customer-page .hero-cta { min-height: 52px; padding-inline: 1.3rem; border-radius: 999px; background: var(--foodway-tomato); box-shadow: 0 10px 24px #0b201947; }
+.customer-page .hero-cta:hover { background: #c93d2d; }
+.customer-page .hero-caption { color: #d4ded5; }
+.customer-page .plate { width: clamp(190px, 19vw, 250px); height: clamp(190px, 19vw, 250px); border-width: 10px; box-shadow: 0 25px 55px #0d261d6b; }
+.customer-page .hero-art { margin-right: 3%; }
+.customer-page .hero-sticker { border: 0; box-shadow: 0 12px 28px #0b201947; }
+.customer-page .hero-sticker.sticker-one { color: var(--foodway-green); }
+.customer-page .hero-sticker.sticker-two { background: var(--foodway-tomato); }
+.customer-page .hero-food-note { border-color: #ffffff26; background: #173d32ed; color: #fff; }
+.customer-page .hero-food-note span { color: #d7e7b4; }
+.customer-page .value-strip { gap: 0; margin-top: 1rem; border-color: var(--foodway-line); border-radius: 18px; background: #fff; }
+.customer-page .value-strip > div { min-height: 86px; padding: 1rem 1.25rem; }
+.customer-page .value-strip > div + div { border-left-color: var(--foodway-line); }
+.customer-page .value-strip > div > span { background: #edf2e9; color: var(--foodway-green); }
+.customer-page .value-strip strong { color: var(--foodway-ink); }
+.customer-page .value-strip small { color: var(--foodway-muted); }
+.customer-page .discovery-heading { margin-top: 3.25rem; }
+.customer-page .discovery-intro .eyebrow { color: var(--foodway-tomato); }
+.customer-page .discovery-intro h2 { font-size: clamp(2rem, 3.3vw, 2.7rem); letter-spacing: -.055em; }
+.customer-page .quick-food-filters button { border-color: #dfe2d8; color: #48534a; }
+.customer-page .quick-food-filters button[aria-pressed="true"] { border-color: #cdd9bd; background: #eaf0e2; color: var(--foodway-green); }
+.customer-page .discovery-controls { border-color: var(--foodway-line); border-radius: 16px; background: #fff; box-shadow: 0 8px 24px #20252108; }
+.customer-page .food-filter, .customer-page .sort-control { color: #4e5851; }
+.customer-page .food-filter select, .customer-page .sort-control select, .customer-page .delivery-pin-filter input { border-color: #e1e2da; border-radius: 10px; }
+.customer-page .restaurant-card { border-color: var(--foodway-line); border-radius: 19px; background: #fff; box-shadow: 0 8px 24px #2025210a; }
+.customer-page .restaurant-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px #20252115; }
+.customer-page .restaurant-cover { height: 205px; }
+.customer-page .restaurant-card h3 { color: var(--foodway-ink); }
+.customer-page .restaurant-rating { background: #edf3e8; color: #315d3d; }
+.customer-page .card-action { border-color: transparent; background: transparent; color: var(--foodway-green); }
+.customer-page .card-action:hover { color: var(--foodway-tomato); }
+.customer-page .site-footer { background: var(--foodway-paper); border-top-color: var(--foodway-line); }
+
+/* Distinct operating console: deep green navigation, quiet canvas, high-clarity work areas. */
+.admin-page, .restaurant-page, .delivery-page { background: #f4f5f1; color: var(--foodway-ink); }
+.admin-header, .restaurant-header, .delivery-header { min-height: 72px; background: #fff; border-bottom-color: #e7e8e2; box-shadow: 0 2px 10px #18241d08; }
+.admin-brand, .restaurant-brand, .delivery-brand { color: var(--foodway-green); }
+.admin-brand .wordmark-icon, .restaurant-brand .wordmark-icon, .delivery-brand .wordmark-icon { background: var(--foodway-green); box-shadow: none; }
+.admin-shell, .restaurant-shell { max-width: 1580px; grid-template-columns: 248px minmax(0, 1fr); gap: 1.6rem; padding-top: 1.5rem; }
+.admin-sidebar, .restaurant-sidebar {
+  top: 88px;
+  gap: .3rem;
+  padding: .85rem;
+  border: 0;
+  border-radius: 18px;
+  background: var(--foodway-green);
+  box-shadow: 0 16px 35px #173d3226;
+}
+.admin-sidebar-label, .restaurant-sidebar-label { margin: .35rem .6rem .6rem; color: #a8c0ae; }
+.admin-sidebar button, .restaurant-sidebar button { min-height: 48px; border-radius: 11px; color: #e7efe8; }
+.admin-sidebar button span, .restaurant-sidebar button span { color: #d6e5b5; }
+.admin-sidebar button:hover, .restaurant-sidebar button:hover { background: #ffffff12; color: #fff; }
+.admin-sidebar button[aria-current="page"], .restaurant-sidebar button[aria-current="page"] { background: #ffffff18; color: #fff; box-shadow: inset 3px 0 #d6e5b5; }
+.admin-sidebar-help, .restaurant-sidebar-help { border-top-color: #ffffff26; }
+.admin-sidebar-help strong, .restaurant-sidebar-help strong { color: #fff; }
+.admin-sidebar-help a, .restaurant-sidebar-help a { color: #d6e5b5; }
+.admin-page-heading, .restaurant-page-heading { min-height: 94px; margin-bottom: 1.1rem; }
+.admin-page-heading .eyebrow, .admin-list-heading .eyebrow, .admin-form-panel .eyebrow { color: var(--foodway-tomato); }
+.restaurant-page-heading .eyebrow, .restaurant-overview-card .eyebrow { color: #47805d; }
+.admin-page-heading h1, .restaurant-page-heading h1 { font-size: clamp(2rem, 3vw, 2.65rem); letter-spacing: -.06em; }
+.admin-access-badge, .restaurant-role-badge { border-color: #d8e3d2; background: #eaf1e5; color: var(--foodway-green); }
+.admin-stat, .admin-shortcuts, .admin-form-panel, .restaurant-content .panel, .delivery-order-card { border-color: #e5e7df; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px #1e2c2208; }
+.admin-stat { min-height: 148px; padding: 1.35rem; }
+.admin-stat strong { color: var(--foodway-green); font-size: 2.5rem; }
+.admin-stat small { color: #79827b; }
+.admin-shortcuts { padding: 1.6rem; }
+.admin-inline-note { background: #f3f5ef; }
+.admin-content button:not(.secondary):not(.admin-text-button), .restaurant-content button:not(.secondary):not(.restaurant-quick-links button), .delivery-page button:not(.secondary) { background: var(--foodway-green); box-shadow: none; }
+.admin-content button:not(.secondary):not(.admin-text-button):hover, .restaurant-content button:not(.secondary):not(.restaurant-quick-links button):hover, .delivery-page button:not(.secondary):hover { background: var(--foodway-green-deep); }
+.admin-page button.secondary, .restaurant-page button.secondary, .delivery-page button.secondary { background: #edf0e9; color: #35423a; }
+.admin-page input, .admin-page select, .admin-page textarea, .restaurant-page input, .restaurant-page select, .restaurant-page textarea, .delivery-page input, .delivery-page select, .delivery-page textarea { border-color: #dfe2d9; border-radius: 10px; background: #fff; }
+.admin-page :is(input, select, textarea, button):focus-visible, .restaurant-page :is(input, select, textarea, button):focus-visible, .delivery-page :is(input, select, textarea, button):focus-visible { outline: 3px solid #47765b55; outline-offset: 2px; }
+.restaurant-overview-card { border-color: #274d3e; background: linear-gradient(120deg, #173d32, #28533d); color: #fff; }
+.restaurant-overview-card h2, .restaurant-overview-card #restaurant-state { color: #fff; }
+.restaurant-overview-card::after { border-color: #ffffff12; }
+.restaurant-overview-card #open-toggle { background: var(--foodway-tomato); }
+.restaurant-quick-links button { min-height: 78px; border-color: #e5e7df; border-radius: 14px; background: #fff; color: #26322b; box-shadow: 0 5px 16px #1e2c2208; }
+.restaurant-quick-links button span { color: var(--foodway-tomato); }
+.restaurant-quick-links button:hover { border-color: #b7c8b4; background: #f8faf6; }
+.restaurant-notification-count, .notification-count { background: var(--foodway-tomato); }
+.delivery-location-bar, .live-tracking-panel { border-color: #e5e7df; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px #1e2c2208; }
+.delivery-card-heading { background: #f8f9f6; }
+.delivery-stop-number { background: #eaf1e5; color: var(--foodway-green); }
+.delivery-stop-number--drop { background: #fff0e9; color: var(--foodway-tomato); }
+.delivery-payment-summary { border-color: #e5e7df; background: #f8f9f6; }
+.delivery-status-chip[data-status="out_for_delivery"], .delivery-status-chip[data-status="picked_up"] { background: #eaf1e5; color: var(--foodway-green); }
+.delivery-status-chip[data-status="delivered"] { background: #e8f3e8; color: #315d3d; }
+.site-header, .admin-header, .restaurant-header, .delivery-header { position: sticky; top: 0; z-index: 20; }
+
+@media (max-width: 850px) {
+  .admin-sidebar, .restaurant-sidebar { top: 76px; border-radius: 14px; }
+  .customer-page .hero-banner { min-height: 390px; }
+}
+@media (max-width: 680px) {
+  .customer-page .site-header { padding-inline: 1rem; }
+  .customer-page .hero-banner { min-height: 390px; padding: 2rem 1.35rem; border-radius: 22px; }
+  .customer-page .hero-art { right: -54px; bottom: -48px; opacity: .62; transform: scale(.76); }
+  .customer-page .hero-copy h1 { font-size: clamp(2.9rem, 12vw, 4rem); }
+  .customer-page .value-strip > div + div { border-left: 0; border-top: 1px solid var(--foodway-line); }
+  .customer-page .restaurant-cover { height: 205px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
