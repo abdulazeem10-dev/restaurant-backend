@@ -74,6 +74,7 @@ async function loadRestaurants() {
   for (const restaurant of restaurants) {
     const owner = restaurant.ownerId || {};
     const card = document.createElement("article");
+    card.className = "admin-restaurant-card";
 
     card.innerHTML = `
       <h3>${escapeHtml(restaurant.name)}</h3>
