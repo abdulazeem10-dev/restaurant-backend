@@ -57,7 +57,8 @@ document.querySelector("#login-form").addEventListener("submit", async event => 
 
 function completeLogin(data) {
   sessionStorage.setItem(TOKEN_KEY, data.accessToken);
-  if (data.user.role === "restaurant" || data.user.role === "restaurant_staff") location.href = "../restaurant/dashboard.html";
+  if (data.user.role === "restaurant") location.href = "../restaurant/dashboard.html";
+  else if (data.user.role === "restaurant_staff") location.href = "../restaurant/staff-dashboard.html";
   else if (data.user.role === "admin") location.href = "../admin/dashboard.html";
   else if (data.user.role === "delivery") location.href = "../delivery/dashboard.html";
   else {

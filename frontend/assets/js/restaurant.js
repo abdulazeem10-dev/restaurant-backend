@@ -391,9 +391,18 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
 });
 async function initializeRestaurantDashboard() {
   const { user } = await api("/auth/me");
+  const isStaffDashboard = location.pathname.endsWith("/staff-dashboard.html");
+  if (user.role === "restaurant_staff" && !isStaffDashboard) { location.replace("staff-dashboard.html"); return; }
+  if (user.role === "restaurant" && isStaffDashboard) { location.replace("dashboard.html"); return; }
+  if (!isStaffDashboard && user.role !== "restaurant") { location.replace("../customer/login.html"); return; }
+  if (isStaffDashboard && user.role !== "restaurant_staff") { location.replace("../customer/login.html"); return; }
   restaurantStaffRole = user.role === "restaurant_staff" ? user.restaurantStaffRole : null;
   const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
   document.querySelector("#restaurant-role-badge").textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
+  if (restaurantStaffRole) {
+    document.querySelector(".restaurant-brand span").textContent = `${roleNames[restaurantStaffRole]} workspace`;
+    document.querySelector(".restaurant-page-heading .eyebrow").textContent = "RESTAURANT STAFF WORKSPACE";
+  }
   if (restaurantStaffRole) {
     const allowedViews = restaurantStaffRole === "secondary_admin"
       ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders", "notifications"]
