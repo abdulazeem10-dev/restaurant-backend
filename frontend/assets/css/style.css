@@ -696,6 +696,8 @@ textarea { min-height: unset; }
 .customer-page .menu-cart-card { border-color: var(--foodway-line); border-radius: 17px; box-shadow: 0 10px 28px #2025210c; }
 .customer-page .add-item-button { border-color: #d9e3d0; background: #f4f7ef; color: var(--foodway-green); }
 .customer-page .add-item-button:hover:not(:disabled) { border-color: #b7c8b4; background: #eaf1e5; }
+.customer-page .add-item-button.is-added { border-color: #47765b; background: #47765b; color: #fff; }
+.customer-page .cart-feedback { min-height: 1.25rem; margin: -.2rem 0 .65rem; color: var(--foodway-green); font-size: .85rem; font-weight: 600; }
 .customer-page .order-for-choice { border-color: var(--foodway-line); border-radius: 12px; }
 .customer-page .delivery-field input, .customer-page .saved-address-picker select, .customer-page .saved-address-label input { border-color: #dfe2d9; border-radius: 10px; background: #fff; }
 .customer-page .delivery-field input:focus-visible, .customer-page .saved-address-picker select:focus-visible, .customer-page .saved-address-label input:focus-visible { outline: 3px solid #47765b3d; border-color: #47765b; }

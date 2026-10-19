@@ -89,7 +89,7 @@ async function loadReviews() {
   }
 }
 
-function addMenuItem(item) {
+function addMenuItem(item, button) {
   let cart = readCart();
   if (cart && cart.restaurantId !== restaurantId) {
     if (!confirm("Your cart has items from another restaurant. Clear it and start this order?")) return;
@@ -97,10 +97,26 @@ function addMenuItem(item) {
   }
   cart ||= { restaurantId, restaurantName: currentRestaurant.name, items: [] };
   const line = cart.items.find(value => value.menuItemId === item._id);
-  if (line) line.quantity = Math.min(20, line.quantity + 1);
+  if (line?.quantity >= 20) {
+    setStatusMessage(document.querySelector("#cart-feedback"), `You’ve reached the 20-item limit for ${item.name}.`, "info");
+    return;
+  }
+  if (line) line.quantity += 1;
   else cart.items.push({ menuItemId: item._id, name: item.name, pricePaise: item.pricePaise, quantity: 1 });
   writeCart(cart);
   updateStoreCart();
+  setStatusMessage(document.querySelector("#cart-feedback"), `${item.name} added to your order.`, "success");
+  if (button) {
+    clearTimeout(button.feedbackTimer);
+    button.classList.add("is-added");
+    button.textContent = "Added ✓";
+    button.setAttribute("aria-label", `${item.name} added to your order`);
+    button.feedbackTimer = setTimeout(() => {
+      button.classList.remove("is-added");
+      button.textContent = "+ Add";
+      button.setAttribute("aria-label", `Add ${item.name}`);
+    }, 1400);
+  }
 }
 
 function renderMenu(items, restaurant, filter = "all") {
@@ -165,7 +181,7 @@ function renderMenu(items, restaurant, filter = "all") {
       action.textContent = restaurant.isOpen ? "+ Add" : "Closed";
       action.disabled = !restaurant.isOpen;
       action.setAttribute("aria-label", `${restaurant.isOpen ? "Add" : "Unavailable"} ${item.name}`);
-      action.addEventListener("click", () => addMenuItem(item));
+      action.addEventListener("click", () => addMenuItem(item, action));
       row.append(info, action);
       section.append(row);
     }
