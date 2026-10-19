@@ -1280,8 +1280,10 @@ article, .panel { border-color: var(--line); box-shadow: var(--shadow-card); }
 .auth-page form p { margin: 0; }
 .auth-page label { display: grid; gap: .4rem; color: #48403a; font-size: .9rem; font-weight: 680; }
 .auth-page label input { width: 100%; min-height: 49px; margin-top: .2rem; padding: .75rem .85rem; border-color: #e4d9d1; background: #fffdfa; }
-.auth-page form button { width: 100%; min-height: 50px; margin-top: .25rem; border-radius: 12px; background: var(--brand-coral); box-shadow: 0 8px 18px #e83d5529; }
-.auth-page form button:hover { background: var(--brand-coral-dark); }
+.auth-page form button[type="submit"] { width: 100%; min-height: 50px; margin-top: .25rem; border-radius: 12px; background: var(--foodway-tomato); box-shadow: 0 8px 18px #e34b3629; }
+.auth-page form button[type="submit"]:hover { background: #c93d2d; }
+.auth-page form button.secondary { background: #f1f2ee; color: var(--foodway-green); box-shadow: none; }
+.auth-page form button.secondary:hover { border-color: #b7c8b4; background: #f8faf6; color: var(--foodway-green); }
 .auth-page section { padding: 1rem; border: 1px solid #f0e7e1; border-radius: 16px; background: #fffdfa; }
 .auth-page section h3 { margin-top: 0; }
 .auth-page section[hidden] { display: none; }
