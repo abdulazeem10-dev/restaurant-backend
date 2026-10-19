@@ -148,7 +148,7 @@ article h3 { margin-top: 0; }
 .orders-heading h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.045em; }
 .order-refresh { font-size: .85rem; }
 .customer-order-card { min-width: 0; }
-.order-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; margin: 1.2rem 0; padding: 0; list-style: none; }
+.order-progress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .55rem; margin: 1.2rem 0; padding: 0; list-style: none; }
 .order-step { min-width: 0; display: flex; flex-direction: column; gap: .4rem; color: #9a918a; font-size: .82rem; overflow-wrap: anywhere; }
 .order-step-dot { width: 13px; height: 13px; border: 2px solid #ded5ce; border-radius: 50%; background: white; }
 .order-step.is-complete, .order-step.is-current { color: #3c7352; }
@@ -167,6 +167,9 @@ article h3 { margin-top: 0; }
 .save-address-choice input { width: auto; accent-color: #ea580c; }
 .saved-address-label { display: grid; gap: .35rem; margin: .6rem 0 1rem; font-weight: 650; }
 .saved-address-label input { width: 100%; min-height: 44px; padding: .65rem .75rem; border: 1px solid #dfd4cb; border-radius: 9px; background: #fffdfa; font: inherit; }
+@media (max-width: 760px) {
+  .order-progress { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: .8rem; }
+}
 @media (max-width: 580px) {
   .orders-main { margin: 1.5rem auto 3rem; padding: 0 1rem; }
   .orders-heading { align-items: flex-start; flex-direction: column; gap: .25rem; }
