@@ -1,6 +1,7 @@
 const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
+let restaurantOrdersCache = [];
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
@@ -289,9 +290,28 @@ document.querySelector("#delivery-area-form").addEventListener("submit", async e
     button.disabled = false;
   }
 });
-async function loadOrders() {
-  const { orders } = await api("/orders/restaurant"); const root = document.querySelector("#orders"); root.replaceChildren();
-  for (const order of orders) {
+function filterRestaurantOrders(orders) {
+  const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
+  const status = document.querySelector("#order-status-filter")?.value || "all";
+  return orders.filter(order => {
+    const normalizedStatus = order.status === "confirmed" ? "placed" : order.status === "picked_up" ? "out_for_delivery" : order.status;
+    if (status !== "all" && status !== normalizedStatus) return false;
+    if (!query) return true;
+    const searchable = [order._id.slice(-6), order.customerId?.name, order.customerId?.email, order.deliveryDetails?.name, order.deliveryDetails?.phone, order.items.map(item => item.name).join(" ")].filter(Boolean).join(" ").toLocaleLowerCase();
+    return searchable.includes(query);
+  });
+}
+
+async function loadOrders(fetchLatest = true) {
+  if (fetchLatest) {
+    const data = await api("/orders/restaurant");
+    restaurantOrdersCache = data.orders || [];
+  }
+  const orders = restaurantOrdersCache; const root = document.querySelector("#orders"); root.replaceChildren();
+  const visibleOrders = filterRestaurantOrders(orders);
+  const count = document.querySelector("#order-filter-count");
+  if (count) count.textContent = `${visibleOrders.length} of ${orders.length} orders`;
+  for (const order of visibleOrders) {
     const card = document.createElement("article"); const itemText = order.items.map(item => `${item.quantity} × ${item.name}`).join(", ");
     const recipient = order.deliveryDetails;
     const recipientText = recipient
@@ -348,7 +368,10 @@ async function loadOrders() {
     root.append(card);
   }
   if (!orders.length) root.textContent = "No orders yet.";
+  else if (!visibleOrders.length) root.textContent = "No orders match your search or status filter.";
 }
+document.querySelector("#order-search")?.addEventListener("input", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
+document.querySelector("#order-status-filter")?.addEventListener("change", () => loadOrders(false).catch(error => { msg.textContent = error.message; }));
 async function loadReviews() {
   const root = document.querySelector("#owner-reviews");
   const { reviews } = await api("/reviews/restaurant/mine");

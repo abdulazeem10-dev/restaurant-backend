@@ -427,6 +427,13 @@ article h3 { margin-top: 0; }
 .notification-item button { flex: 0 0 auto; padding: .5rem .7rem; font-size: .8rem; }
 .restaurant-content .panel { margin-top: 0; }
 .restaurant-content .grid { margin-top: 1rem; }
+.orders-queue-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.orders-queue-heading h2 { margin-bottom: .25rem; }
+.orders-queue-heading p { margin-top: 0; }
+.orders-queue-filters { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(200px, 1fr); gap: .8rem; margin-top: .8rem; }
+.orders-queue-filters label { display: grid; gap: .35rem; font-weight: 650; }
+.orders-queue-filters input, .orders-queue-filters select { width: 100%; min-height: 44px; border: 1px solid #dfd4cb; border-radius: 9px; background: white; font: inherit; padding: .6rem .75rem; }
+.orders-queue-filters input:focus-visible, .orders-queue-filters select:focus-visible { outline: 3px solid #ea580c33; border-color: #ea580c; }
 @media (max-width: 900px) {
   .restaurant-shell { grid-template-columns: 1fr; gap: 1rem; }
   .restaurant-sidebar { position: static; display: flex; align-items: center; overflow-x: auto; gap: .3rem; padding: .55rem; }
@@ -434,6 +441,8 @@ article h3 { margin-top: 0; }
   .restaurant-sidebar button { width: auto; flex: 0 0 auto; white-space: nowrap; }
 }
 @media (max-width: 600px) {
+  .orders-queue-filters { grid-template-columns: 1fr; }
+  .orders-queue-heading { align-items: start; flex-direction: column; }
   .restaurant-header { align-items: center; padding: .7rem 1rem; }
   .restaurant-header nav { gap: .65rem; font-size: .88rem; }
   .restaurant-brand span { display: none; }
