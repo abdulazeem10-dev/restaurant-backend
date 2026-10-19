@@ -673,11 +673,15 @@ textarea { min-height: unset; }
 .customer-page .delivery-field input:focus-visible, .customer-page .saved-address-picker select:focus-visible, .customer-page .saved-address-label input:focus-visible { outline: 3px solid #47765b3d; border-color: #47765b; }
 .customer-page .empty-state, .customer-page .cart-empty-state { border-color: #dfe2d9; border-radius: 18px; background: #fff; }
 .customer-page .empty-state .hero-cta, .customer-page .cart-empty-state .hero-cta { background: var(--foodway-tomato); }
+.customer-page .cart-layout:has(.cart-empty-state) { grid-template-columns: minmax(0, 1fr); }
+.customer-page .cart-items-panel:has(.cart-empty-state) .cart-section-title span { display: none; }
 .auth-page { background: radial-gradient(ellipse at 12% 18%, #e8efe0 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #f9e9dd 0, transparent 30%), #f7f6f1; }
 .auth-page form button { background: var(--foodway-green); box-shadow: 0 8px 18px #173d3229; }
 .auth-page form button:hover { background: var(--foodway-green-deep); }
 .auth-page #show-phone-login, .auth-page #show-password-login { color: var(--foodway-green); }
 .auth-page :is(input, button):focus-visible { outline-color: #47765b55; }
+.auth-page > main > section { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.auth-page > main > section[hidden] { display: none; }
 .delivery-page .delivery-brand small { color: var(--foodway-muted); }
 .delivery-page .delivery-header nav a { color: var(--foodway-green); }
 .delivery-page .delivery-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 430px), 1fr)); gap: 1rem; }
@@ -699,6 +703,14 @@ textarea { min-height: unset; }
   .customer-page .payment-option-check { width: 21px; height: 21px; flex-basis: 21px; }
   .customer-page .cart-line-card { padding: .9rem; }
   .customer-page .order-progress { column-gap: .6rem; }
+}
+
+/* Live review fixes: keep tablet navigation legible and the hero sticker high contrast. */
+.customer-page .hero-food-note { color: #fff; background: #244b39; border-color: #ffffff45; }
+.customer-page .hero-food-note span { color: #d7e7b4; }
+.customer-page .hero-food-note strong { color: #fff; }
+@media (max-width: 880px) {
+  .customer-page .site-header .top-search { width: 100%; max-width: none; }
 }
 
 /* Foodway design direction: warm, editorial storefront; calm operational workspaces. */
