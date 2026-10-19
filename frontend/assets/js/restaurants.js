@@ -6,6 +6,43 @@ const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter")
 const resultCount = document.querySelector("#results-count");
 let allRestaurants = [];
 
+async function setupHomeAccountNav() {
+  if (!getToken()) return;
+  try {
+    const response = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
+    if (response.status === 401) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      return;
+    }
+    if (!response.ok) return;
+    const { user } = await response.json();
+    const destinations = {
+      admin: ["../admin/dashboard.html", "Admin dashboard"],
+      restaurant: ["../restaurant/dashboard.html", "Restaurant dashboard"],
+      delivery: ["../delivery/dashboard.html", "Delivery dashboard"]
+    };
+    const destination = destinations[user?.role];
+    const dashboardLink = document.querySelector("#dashboard-link");
+    if (destination && dashboardLink) {
+      dashboardLink.href = destination[0];
+      dashboardLink.textContent = destination[1];
+      dashboardLink.hidden = false;
+    }
+    const loginLink = document.querySelector(".login-link");
+    if (loginLink) loginLink.hidden = true;
+    const logout = document.querySelector("#home-logout");
+    if (logout) {
+      logout.hidden = false;
+      logout.addEventListener("click", () => {
+        sessionStorage.removeItem(TOKEN_KEY);
+        location.href = "index.html";
+      }, { once: true });
+    }
+  } catch {
+    // Keep the public home page usable if the API cannot be reached.
+  }
+}
+
 function formatTodayHours(openingHours) {
   if (!openingHours) return "Hours not set";
   const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
@@ -144,3 +181,4 @@ sortSelect.addEventListener("change", renderRestaurants);
 foodTypeFilter.addEventListener("change", renderRestaurants);
 deliveryPincodeFilter.addEventListener("input", renderRestaurants);
 loadRestaurants();
+setupHomeAccountNav();
