@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ef4059">
+  <meta name="theme-color" content="#173d32">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="../manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icons/icon-192.png">
   <title>Foodway | Discover Mumbai restaurants</title>
   <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/foodway-theme.css">
 </head>
 <body class="customer-page">
   <header class="site-header">
@@ -78,7 +79,7 @@
     </section>
 
     <section class="discovery-heading" id="restaurant-listing">
-      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Good things are cooking</h2><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food type"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
+      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Good things are cooking</h2><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><span class="filter-group-label">Food preference</span><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
       <div class="discovery-controls">
         <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
         <label class="food-filter delivery-pin-filter">Delivery PIN <input id="delivery-pincode-filter" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="6" placeholder="6-digit PIN"></label>

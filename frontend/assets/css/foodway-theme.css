@@ -1,0 +1,81 @@
+/* Final visual system: one Foodway identity across shopping and operations. */
+:root {
+  --foodway-ink: #202521;
+  --foodway-muted: #5f6b63;
+  --foodway-green: #173d32;
+  --foodway-green-deep: #102f27;
+  --foodway-lime: #d6e5b5;
+  --foodway-tomato: #c73b2d;
+  --foodway-tomato-deep: #a92f25;
+  --foodway-paper: #f7f6f1;
+  --foodway-line: #e7e6de;
+  --surface-shadow: 0 14px 36px #2025210d;
+}
+
+body { color: var(--foodway-ink); }
+.customer-page { background: var(--foodway-paper); }
+.customer-page .site-header { background: #f7f6f1f2; border-bottom-color: var(--foodway-line); }
+.customer-page .wordmark, .customer-page .site-nav a { color: var(--foodway-ink); }
+.customer-page .site-nav a:hover, .customer-page .breadcrumbs a, .customer-page .back-link { color: var(--foodway-green); }
+.customer-page .site-nav .cart-link span { background: #eaf1e5; color: var(--foodway-green); }
+.customer-page .hero-copy .eyebrow { color: var(--foodway-lime); }
+.customer-page .hero-copy h1 span { color: #d6e5b5; }
+.customer-page .hero-cta, .customer-page .cart-submit, .customer-page .payment-summary .cart-submit { background: var(--foodway-tomato); }
+.customer-page .hero-cta:hover, .customer-page .cart-submit:hover, .customer-page .payment-summary .cart-submit:hover { background: var(--foodway-tomato-deep); }
+.customer-page .top-search button { background: var(--foodway-green); }
+.customer-page .top-search button:hover { background: var(--foodway-green-deep); }
+.customer-page .site-footer { border-top: 1px solid var(--foodway-line); background: #fff; }
+.customer-page .discovery-heading { margin-top: 2.5rem; }
+.customer-page .filter-group-label { align-self: center; margin-right: .25rem; color: var(--foodway-muted); font-size: .73rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.customer-page .quick-food-filters button[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
+.customer-page .cuisine-section { background: linear-gradient(130deg, #fff 15%, #f4f7ef 100%); }
+.customer-page .cuisine-option[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
+.customer-page .restaurant-card, .customer-page .storefront-hero, .customer-page .cart-line-card, .customer-page .cart-checkout, .customer-page .payment-method-panel, .customer-page .payment-summary, .customer-page .customer-order-card, .customer-page .notification-panel { border-color: var(--foodway-line); }
+.customer-page .restaurant-card .card-action { color: var(--foodway-green); }
+.customer-page .restaurant-card .card-action:hover { border-color: var(--foodway-green); background: var(--foodway-green); color: white; }
+.customer-page .cart-heading h1, .customer-page .payment-heading h1, .customer-page .orders-heading h1 { color: var(--foodway-ink); }
+.customer-page .cart-checkout, .customer-page .payment-summary { border-top-color: var(--foodway-green); }
+.customer-page .payment-option-selected { border-color: #759076; background: #f1f5ed; }
+.customer-page .order-step.is-complete { color: var(--foodway-green); }
+.customer-page :is(a, button, input, select, textarea):focus-visible { outline: 3px solid #47765b66; outline-offset: 3px; }
+
+/* Account pages should feel like a polished, calm entry point to the same product. */
+.auth-page { background: radial-gradient(ellipse at 12% 18%, #e8efe0 0, transparent 34%), radial-gradient(ellipse at 90% 82%, #f4eee2 0, transparent 30%), var(--foodway-paper); }
+.auth-page .auth-header { background: #f7f6f1ed; border-bottom-color: var(--foodway-line); }
+.auth-page > main { border-color: var(--foodway-line); border-radius: 22px; background: #fff; box-shadow: 0 18px 55px #20252112; }
+.auth-page > main h2 { color: var(--foodway-ink); letter-spacing: -.05em; }
+.auth-page label { color: #38443c; }
+.auth-page label input { border-color: #dfe2d9; border-radius: 11px; background: #fff; }
+.auth-page form button[type="submit"] { background: var(--foodway-green); box-shadow: 0 8px 18px #173d3229; }
+.auth-page form button[type="submit"]:hover { background: var(--foodway-green-deep); }
+.auth-page #show-phone-login, .auth-page #show-password-login, .auth-page > main > p a, .auth-page form + p a { color: var(--foodway-green); }
+.auth-page #show-phone-login:hover, .auth-page #show-password-login:hover { border-color: #b7c8b4; background: #f3f6ef; color: var(--foodway-green); }
+.auth-page section { border-color: var(--foodway-line); background: #fbfcf9; }
+
+/* Dashboard navigation and controls share the same restrained green system. */
+.admin-page, .restaurant-page, .delivery-page { background: #f4f5f1; }
+.admin-header, .restaurant-header, .delivery-header { background: #fff; border-bottom-color: var(--foodway-line); }
+.admin-sidebar, .restaurant-sidebar { background: var(--foodway-green); }
+.admin-sidebar button[aria-current="page"], .restaurant-sidebar button[aria-current="page"] { box-shadow: inset 3px 0 #d6e5b5; }
+.admin-stat, .admin-shortcuts, .admin-form-panel, .restaurant-content .panel, .delivery-order-card { border-color: var(--foodway-line); }
+.admin-access-badge, .restaurant-role-badge { background: #eaf1e5; color: var(--foodway-green); }
+.admin-content button:not(.secondary):not(.admin-text-button), .restaurant-content button:not(.secondary):not(.restaurant-quick-links button), .delivery-page button:not(.secondary) { background: var(--foodway-green); }
+.admin-content button:not(.secondary):not(.admin-text-button):hover, .restaurant-content button:not(.secondary):not(.restaurant-quick-links button):hover, .delivery-page button:not(.secondary):hover { background: var(--foodway-green-deep); }
+.admin-page button.secondary, .restaurant-page button.secondary, .delivery-page button.secondary { background: #edf0e9; color: #35423a; }
+.admin-page :is(input, select, textarea), .restaurant-page :is(input, select, textarea), .delivery-page :is(input, select, textarea) { border-color: #dfe2d9; }
+.admin-page :is(input, select, textarea, button):focus-visible, .restaurant-page :is(input, select, textarea, button):focus-visible, .delivery-page :is(input, select, textarea, button):focus-visible { outline: 3px solid #47765b66; outline-offset: 2px; }
+.restaurant-quick-links button { border-color: var(--foodway-line); }
+.restaurant-quick-links button span { color: var(--foodway-green); }
+.delivery-location-bar, .live-tracking-panel { border-color: var(--foodway-line); background: #fff; }
+.delivery-payment-summary { border-color: var(--foodway-line); background: #f8f9f6; }
+
+@media (max-width: 680px) {
+  .customer-page .discovery-main { width: calc(100% - 1.25rem); padding-inline: 0; }
+  .customer-page .discovery-heading { margin-top: 1.8rem; }
+  .customer-page .filter-group-label { flex-basis: 100%; }
+  .customer-page .cuisine-section-heading { align-items: flex-start; }
+  .customer-page .auth-header { padding-inline: 1rem; }
+  .auth-page > main { margin-top: 1.25rem; }
+  .admin-sidebar, .restaurant-sidebar { top: 72px; scrollbar-width: none; }
+  .admin-sidebar::-webkit-scrollbar, .restaurant-sidebar::-webkit-scrollbar { display: none; }
+}
