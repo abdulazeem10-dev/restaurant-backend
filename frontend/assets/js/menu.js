@@ -7,7 +7,7 @@ let allMenuItems = [];
 let selectedMenuFood = "all";
 
 function formatTodayHours(openingHours) {
-  if (!openingHours) return "Opening hours have not been set.";
+  if (!openingHours) return "Today's hours aren't listed.";
   const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
   const hours = openingHours[day];
   if (!hours || hours.closed) return "Closed today.";
@@ -182,7 +182,13 @@ function renderMenu(items, restaurant, filter = "all") {
 
 async function loadStorefront() {
   const error = document.querySelector("#error");
-  if (!restaurantId) { error.textContent = "Choose a restaurant from the restaurant list."; return; }
+  const storefrontHero = document.querySelector(".storefront-hero");
+  if (!restaurantId) {
+    error.textContent = "Choose a restaurant from the restaurant list.";
+    document.querySelector("#restaurant-name").textContent = "Choose a restaurant";
+    storefrontHero.setAttribute("aria-busy", "false");
+    return;
+  }
   try {
     const [restaurantResponse, menuResponse] = await Promise.all([
       fetch(`${API_BASE}/restaurants/${encodeURIComponent(restaurantId)}`),
@@ -215,12 +221,19 @@ async function loadStorefront() {
     const pincodes = restaurant.deliveryPincodes || [];
     document.querySelector("#restaurant-delivery-area").textContent = pincodes.length
       ? `Delivery PINs: ${pincodes.join(", ")}`
-      : "Delivery area has not been set.";
+      : "Delivery areas aren't listed.";
+    storefrontHero.setAttribute("aria-busy", "false");
     allMenuItems = items;
     renderFilteredMenu();
     updateStoreCart();
     await loadReviews();
-  } catch (errorValue) { error.textContent = errorValue.message || "Could not load this restaurant."; }
+  } catch (errorValue) {
+    const message = errorValue.message || "Could not load this restaurant.";
+    error.textContent = message;
+    document.querySelector("#restaurant-name").textContent = "Restaurant unavailable";
+    document.querySelector("#restaurant-description").textContent = message;
+    storefrontHero.setAttribute("aria-busy", "false");
+  }
 }
 
 menuFoodButtons.forEach(button => button.addEventListener("click", () => {

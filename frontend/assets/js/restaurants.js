@@ -46,7 +46,7 @@ async function setupHomeAccountNav() {
 }
 
 function formatTodayHours(openingHours) {
-  if (!openingHours) return "Hours not set";
+  if (!openingHours) return "Hours not listed";
   const day = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).format(new Date()).toLowerCase();
   const hours = openingHours[day];
   if (!hours || hours.closed) return "Closed today";
@@ -58,7 +58,7 @@ function formatTodayHours(openingHours) {
 }
 
 function formatDeliveryPincodes(pincodes = []) {
-  if (!pincodes.length) return "Delivery area not set";
+  if (!pincodes.length) return "Delivery areas not listed";
   const visible = pincodes.slice(0, 3).join(", ");
   return `Delivers to ${visible}${pincodes.length > 3 ? ` +${pincodes.length - 3} more` : ""}`;
 }

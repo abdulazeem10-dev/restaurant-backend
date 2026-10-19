@@ -1438,6 +1438,18 @@ body { color: var(--foodway-ink); }
 .customer-page .storefront-art:not(.has-image) .storefront-bowl-art,
 .customer-page .storefront-art:not(.has-image) i,
 .customer-page .storefront-art:not(.has-image) b { display: none; }
+.customer-page .storefront-hero[aria-busy="true"] .storefront-info h1 {
+  width: min(24rem, 100%);
+  min-height: 3.25rem;
+  overflow: hidden;
+  border-radius: 9px;
+  background: linear-gradient(100deg, #ffffff10 30%, #ffffff2c 48%, #ffffff10 66%);
+  background-size: 220% 100%;
+  color: transparent;
+  animation: storefront-loading 1.5s ease-in-out infinite;
+}
+.customer-page #restaurant-status:empty { display: none; }
+@keyframes storefront-loading { to { background-position-x: -220%; } }
 
 /* Distinct operating console: deep green navigation, quiet canvas, high-clarity work areas. */
 .admin-page, .restaurant-page, .delivery-page { background: #f4f5f1; color: var(--foodway-ink); }
