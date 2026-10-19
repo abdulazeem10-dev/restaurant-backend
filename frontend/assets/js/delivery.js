@@ -220,7 +220,18 @@ async function loadDeliveries() {
     while (trackingMaps.length) trackingMaps.pop()?.remove();
     deliveryRoot.replaceChildren();
     if (!orders.length) {
-      deliveryRoot.textContent = "No assigned deliveries right now.";
+      const empty = document.createElement("article");
+      empty.className = "empty-state delivery-empty-state";
+      const icon = document.createElement("span");
+      icon.className = "empty-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "✓";
+      const title = document.createElement("h3");
+      title.textContent = "You’re all caught up";
+      const note = document.createElement("p");
+      note.textContent = "New delivery offers will appear here when a restaurant hands off an order.";
+      empty.append(icon, title, note);
+      deliveryRoot.append(empty);
       return;
     }
     for (const order of orders) deliveryRoot.append(renderDelivery(order));

@@ -496,3 +496,143 @@ article h3 { margin-top: 0; }
   .admin-shortcut-actions { grid-template-columns: 1fr; }
   .admin-list-heading { align-items: flex-start; flex-direction: column; }
 }
+
+/* Product-wide UX finish: clearer focus, calmer surfaces, and better touch targets. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #e83d5552;
+  outline-offset: 3px;
+}
+button, .hero-cta, .site-nav a, .restaurant-sidebar button, .admin-sidebar button {
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+button { min-height: 42px; }
+input:not([type="checkbox"]):not([type="radio"]), select { min-height: 44px; }
+textarea { min-height: unset; }
+.site-header, .admin-header, .restaurant-header, .delivery-header { box-shadow: 0 5px 20px #34241908; }
+.site-header { position: sticky; top: 0; backdrop-filter: blur(14px); background: #ffffffed; }
+.discovery-main { margin-top: 1.6rem; }
+.hero-banner { min-height: clamp(330px, 34vw, 440px); box-shadow: inset 0 0 0 1px #ffffff75; }
+.hero-copy > p:not(.eyebrow) { font-size: clamp(1rem, 1.4vw, 1.1rem); }
+.hero-art { margin-right: 2%; }
+.plate { width: clamp(190px, 20vw, 245px); height: clamp(190px, 20vw, 245px); }
+.discovery-heading { scroll-margin-top: 100px; }
+.discovery-controls {
+  padding: .7rem;
+  border: 1px solid #f0e8e2;
+  border-radius: 14px;
+  background: #fffdfa;
+  box-shadow: 0 6px 18px #34241908;
+}
+.food-filter, .sort-control { color: #62594f; font-weight: 650; }
+.food-filter select, .sort-control select, .delivery-pin-filter input { min-height: 42px; }
+.filter-reset {
+  min-height: 42px;
+  padding: .55rem .75rem;
+  border: 1px solid #f0d7d9;
+  border-radius: 9px;
+  background: #fff;
+  color: #c92f48;
+  font-size: .88rem;
+}
+.filter-reset:hover { border-color: #e83d55; background: #fff4f4; }
+.results-count { margin: .9rem 0 .65rem; font-weight: 600; }
+.restaurant-grid { align-items: stretch; gap: 1.15rem; }
+.restaurant-card { display: flex; flex-direction: column; border-color: #eee5de; }
+.restaurant-card-content { display: flex; flex: 1; flex-direction: column; align-items: flex-start; }
+.restaurant-meta { width: 100%; }
+.restaurant-card h3 { line-height: 1.25; }
+.restaurant-rating { margin: .2rem 0 .55rem; font-size: .88rem; }
+.restaurant-description { flex: 1; }
+.card-action {
+  min-height: 42px;
+  margin-top: .45rem;
+  padding: .55rem .85rem;
+  border: 1px solid #f3d1d5;
+  border-radius: 9px;
+  background: #fff7f7;
+}
+.card-action:hover { border-color: #e83d55; background: #fff0f1; text-decoration: none; }
+.restaurant-cover { height: 178px; }
+.storefront-hero { box-shadow: 0 12px 32px #34241908; }
+.menu-item-card { min-height: 126px; border: 1px solid #f0e8e2; box-shadow: 0 4px 14px #34241906; }
+.menu-cart-card { border-color: #f0e8e2; }
+.cart-checkout, .payment-method-panel, .payment-summary { box-shadow: 0 8px 24px #34241908; }
+.admin-stat { position: relative; overflow: hidden; }
+.admin-stat::before { position: absolute; inset: 0 auto 0 0; width: 4px; background: #e83d55; content: ""; }
+.admin-stat:nth-child(2)::before { background: #46956a; }
+.admin-stat:nth-child(3)::before { background: #e6a13e; }
+.admin-sidebar, .restaurant-sidebar { box-shadow: 0 10px 26px #3424190c; }
+.admin-sidebar button, .restaurant-sidebar button { min-height: 44px; border-radius: 9px; }
+.admin-shortcuts { border-color: #f0e1d6; background: linear-gradient(120deg, #fff 50%, #fff8f3); }
+.restaurant-quick-links button { min-height: 62px; }
+
+/* Delivery workspace shares the dashboard visual language and keeps route info readable. */
+.delivery-page { min-height: 100vh; background: #fffaf5; color: #29251f; }
+.delivery-header {
+  min-height: 72px;
+  padding: .7rem max(4vw, calc((100vw - 1440px) / 2));
+  background: #fff;
+  border-bottom: 1px solid #f0e7dd;
+}
+.delivery-brand { display: inline-flex; align-items: center; gap: .65rem; color: #29251f; font-size: 1.1rem; font-weight: 800; }
+.delivery-brand:hover { text-decoration: none; }
+.delivery-brand small { display: block; margin-top: .1rem; color: #887b70; font-size: .72rem; font-weight: 600; }
+.delivery-header nav { display: flex; align-items: center; gap: 1rem; }
+.delivery-header nav a { color: #c2410c; font-weight: 650; }
+.delivery-main { width: min(1440px, 100%); max-width: none; margin: 0 auto; padding: 1.5rem max(1rem, 3vw) 3rem; }
+.delivery-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: .2rem 0 1rem; }
+.delivery-page-heading .eyebrow { margin: 0 0 .45rem; color: #e85a17; font-size: .7rem; font-weight: 800; letter-spacing: .17em; }
+.delivery-page-heading h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.4rem); letter-spacing: -.04em; }
+.delivery-page-heading p:not(.eyebrow) { margin: .45rem 0 0; }
+.delivery-refresh { color: #857c74; font-size: .82rem; white-space: nowrap; }
+.delivery-message { min-height: 1.4rem; margin: 0 0 .6rem; color: #6e6259; font-size: .88rem; }
+.delivery-location-bar { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; margin: .7rem 0 1.2rem; padding: 1rem 1.2rem; border: 1px solid #f0e4da; border-radius: 14px; background: white; box-shadow: 0 5px 18px #5a321008; }
+.delivery-location-bar p { margin: .3rem 0 0; font-size: .88rem; line-height: 1.45; }
+.delivery-location-bar button { flex: 0 0 auto; }
+.delivery-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); align-items: start; margin-top: 0; }
+.delivery-grid article { min-width: 0; overflow-wrap: anywhere; padding: 1.25rem; }
+.delivery-grid article h3 { margin: .25rem 0 1rem; font-size: 1.25rem; }
+.delivery-grid article p { line-height: 1.5; }
+.delivery-grid article hr { margin: 1rem 0; border: 0; border-top: 1px solid #eee5de; }
+.delivery-grid .live-tracking-panel { margin: 1rem 0; }
+.delivery-grid article > button { width: 100%; min-height: 48px; margin-top: .6rem; }
+
+@media (max-width: 900px) {
+  .hero-banner { min-height: 340px; }
+  .hero-art { margin-right: 0; }
+  .discovery-controls { justify-content: flex-start; }
+}
+@media (max-width: 600px) {
+  .site-header { position: static; }
+  .discovery-main { margin: 1rem auto 2.5rem; }
+  .hero-banner { min-height: 340px; padding: 1.6rem 1.25rem; border-radius: 20px; }
+  .hero-copy { max-width: 100%; }
+  .hero-copy h1 { font-size: clamp(2.65rem, 12vw, 3.3rem); }
+  .hero-copy > p:not(.eyebrow) { max-width: 290px; font-size: .98rem; }
+  .hero-art { right: -112px; bottom: -78px; opacity: .27; transform: scale(.68); }
+  .discovery-heading { margin: 2.3rem 0 1rem; }
+  .discovery-heading > div:first-child { width: 100%; }
+  .discovery-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: .6rem; padding: .7rem; }
+  .food-filter, .sort-control { display: grid; min-width: 0; gap: .3rem; font-size: .8rem; white-space: normal; }
+  .food-filter select, .sort-control select, .delivery-pin-filter input { width: 100%; min-width: 0; font-size: .9rem; }
+  .filter-reset { align-self: end; }
+  .restaurant-cover { height: 168px; }
+  .restaurant-card-content { padding: .95rem; }
+  .restaurant-description { min-height: 0; }
+  .delivery-header { align-items: center; padding: .7rem 1rem; }
+  .delivery-brand { font-size: .96rem; }
+  .delivery-brand small { display: none; }
+  .delivery-header nav { gap: .6rem; font-size: .86rem; }
+  .delivery-main { padding: 1rem .85rem 2rem; }
+  .delivery-page-heading { align-items: flex-start; flex-direction: column; gap: .5rem; }
+  .delivery-location-bar { align-items: stretch; flex-direction: column; gap: .8rem; padding: .9rem; }
+  .delivery-location-bar button { width: 100%; }
+  .delivery-grid article { padding: 1rem; }
+}
+@media (max-width: 360px) {
+  .discovery-controls { grid-template-columns: minmax(0, 1fr); }
+  .filter-reset { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
