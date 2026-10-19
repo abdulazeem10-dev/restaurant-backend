@@ -1,6 +1,31 @@
 const msg = document.querySelector("#message");
 const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 let restaurantStaffRole = null;
+const restaurantViewInfo = {
+  overview: ["Overview", "A quick look at your restaurant workspace."],
+  menu: ["Menu", "Manage dishes, prices, food types, and availability."],
+  hours: ["Opening hours", "Set when your restaurant can accept orders."],
+  "delivery-areas": ["Delivery areas", "Choose the PIN codes your restaurant delivers to."],
+  accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
+  reviews: ["Customer reviews", "Read feedback from your customers."],
+  orders: ["Incoming orders", "Review customer and delivery details and update order progress."]
+};
+function showRestaurantView(view) {
+  if (!restaurantViewInfo[view]) return;
+  const button = document.querySelector(`[data-restaurant-view="${view}"]`);
+  if (!button || button.hidden) return;
+  document.querySelectorAll("[data-restaurant-section]").forEach(section => {
+    section.hidden = section.dataset.restaurantSection !== view;
+  });
+  document.querySelectorAll("[data-restaurant-view]").forEach(navButton => {
+    if (navButton.dataset.restaurantView === view) navButton.setAttribute("aria-current", "page");
+    else navButton.removeAttribute("aria-current");
+  });
+  document.querySelector("#restaurant-page-title").textContent = restaurantViewInfo[view][0];
+  document.querySelector("#restaurant-page-description").textContent = restaurantViewInfo[view][1];
+}
+document.querySelectorAll("[data-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.restaurantView)));
+document.querySelectorAll("[data-open-restaurant-view]").forEach(button => button.addEventListener("click", () => showRestaurantView(button.dataset.openRestaurantView)));
 if (!getToken()) location.href = "../customer/login.html";
 document.querySelector("#logout").addEventListener("click", () => { sessionStorage.removeItem(TOKEN_KEY); location.href = "../customer/login.html"; });
 async function api(path, options = {}) {
@@ -318,15 +343,24 @@ document.querySelector("#menu-form").addEventListener("submit", async event => {
 async function initializeRestaurantDashboard() {
   const { user } = await api("/auth/me");
   restaurantStaffRole = user.role === "restaurant_staff" ? user.restaurantStaffRole : null;
+  const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
+  document.querySelector("#restaurant-role-badge").textContent = roleNames[restaurantStaffRole] || "Restaurant owner";
   if (restaurantStaffRole) {
-    const roleNames = { secondary_admin: "Secondary admin", biller_modifier: "Biller / modifier", viewer: "Viewer" };
-    document.querySelector("header h1").textContent = `${roleNames[restaurantStaffRole]} Dashboard`;
-    if (restaurantStaffRole !== "secondary_admin") document.querySelectorAll(".service-settings-panel").forEach(panel => panel.hidden = true);
+    const allowedViews = restaurantStaffRole === "secondary_admin"
+      ? ["overview", "menu", "hours", "delivery-areas", "reviews", "orders"]
+      : ["overview", "menu", "reviews", "orders"];
+    document.querySelectorAll("[data-restaurant-view]").forEach(button => {
+      button.hidden = !allowedViews.includes(button.dataset.restaurantView);
+    });
+    document.querySelectorAll("[data-restaurant-section]").forEach(section => {
+      if (!allowedViews.includes(section.dataset.restaurantSection)) section.hidden = true;
+    });
     if (restaurantStaffRole === "viewer") document.querySelector("#menu-form").hidden = true;
   } else if (user.role === "restaurant") {
     document.querySelector("#staff-management-panel").hidden = false;
     await loadStaffAccounts();
   }
+  showRestaurantView("overview");
   await Promise.all([loadMenu(), loadOrders(), loadReviews()]);
 }
 initializeRestaurantDashboard().catch(error => { msg.textContent = `${error.message}. Sign in with an approved restaurant account.`; });
