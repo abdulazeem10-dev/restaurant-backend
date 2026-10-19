@@ -220,7 +220,26 @@ function renderOrderHelp(order, card) {
 function renderOrders(orders) {
   while (trackingMaps.length) trackingMaps.pop()?.remove();
   orderRoot.replaceChildren();
-  if (!orders.length) { orderRoot.textContent = "You haven’t placed any orders yet."; return; }
+  if (!orders.length) {
+    const empty = document.createElement("section");
+    empty.className = "orders-empty-state";
+    const icon = document.createElement("span");
+    icon.className = "orders-empty-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "✦";
+    const title = document.createElement("h2");
+    title.textContent = "Your next favourite meal is nearby";
+    const message = document.createElement("p");
+    message.className = "muted";
+    message.textContent = "Your orders and delivery updates will appear here once you place an order.";
+    const browse = document.createElement("a");
+    browse.className = "hero-cta";
+    browse.href = "index.html#restaurant-listing";
+    browse.textContent = "Explore restaurants";
+    empty.append(icon, title, message, browse);
+    orderRoot.append(empty);
+    return;
+  }
   for (const order of orders) {
     const card = document.createElement("article");
     card.className = "customer-order-card";
