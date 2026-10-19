@@ -661,6 +661,14 @@ textarea { min-height: unset; }
 .customer-page .notification-count { background: var(--foodway-green); }
 .customer-page .notification-item { border-color: var(--foodway-line); border-radius: 12px; }
 .customer-page .notification-item.is-unread { border-color: #cdd9bd; background: #f4f7ef; }
+.customer-page .orders-signin-state { display: grid; justify-items: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem; border: 1px solid var(--foodway-line); border-radius: 22px; background: linear-gradient(135deg, #fff, #f4f7ef); text-align: center; box-shadow: 0 12px 32px #20252108; }
+.customer-page .orders-signin-icon { display: grid; width: 52px; height: 52px; place-items: center; margin-bottom: .85rem; border-radius: 16px; background: #eaf1e5; color: var(--foodway-green); font-size: 1.6rem; font-weight: 800; }
+.customer-page .orders-signin-state h2 { margin: 0; color: var(--foodway-ink); font-size: clamp(1.35rem, 3vw, 1.8rem); letter-spacing: -.04em; }
+.customer-page .orders-signin-state p { max-width: 34rem; margin: .55rem 0 1.1rem; }
+.customer-page .orders-signin-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 1rem; }
+.customer-page .orders-signin-actions .hero-cta { min-height: 46px; background: var(--foodway-green); color: #fff; }
+.customer-page .orders-signin-actions .hero-cta:hover { background: var(--foodway-green-deep); }
+.customer-page .orders-browse-link { color: var(--foodway-green); font-weight: 700; }
 .customer-page .storefront-hero { border-color: var(--foodway-line); border-radius: 22px; background: linear-gradient(120deg, #fff 48%, #f1f4eb); box-shadow: 0 12px 32px #20252108; }
 .customer-page .storefront-art { border-radius: 17px; }
 .customer-page .category-nav { border-bottom-color: var(--foodway-line); }

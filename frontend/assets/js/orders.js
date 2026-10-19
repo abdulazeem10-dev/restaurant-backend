@@ -1,5 +1,6 @@
 const orderRoot = document.querySelector("#orders");
 const errorRoot = document.querySelector("#error");
+const notificationPanel = document.querySelector(".notification-panel");
 const trackingMaps = [];
 const customerLocationWatches = new Map();
 const orderStages = [
@@ -9,6 +10,37 @@ const orderStages = [
   ["out_for_delivery", "Out for delivery"],
   ["delivered", "Delivery done"]
 ];
+
+function showOrdersSignIn(message = "Sign in to see your orders, delivery updates, and receipts.") {
+  errorRoot.textContent = "";
+  orderRoot.replaceChildren();
+  const state = document.createElement("section");
+  state.className = "orders-signin-state";
+  const icon = document.createElement("span");
+  icon.className = "orders-signin-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "↗";
+  const title = document.createElement("h2");
+  title.textContent = "Your orders, all in one place";
+  const description = document.createElement("p");
+  description.className = "muted";
+  description.textContent = message;
+  const actions = document.createElement("div");
+  actions.className = "orders-signin-actions";
+  const signIn = document.createElement("a");
+  signIn.className = "hero-cta";
+  signIn.href = "login.html?next=orders.html";
+  signIn.textContent = "Sign in";
+  const browse = document.createElement("a");
+  browse.className = "orders-browse-link";
+  browse.href = "index.html#restaurant-listing";
+  browse.textContent = "Browse restaurants";
+  actions.append(signIn, browse);
+  state.append(icon, title, description, actions);
+  orderRoot.append(state);
+  notificationPanel.hidden = true;
+  document.querySelector("#order-refresh").textContent = "";
+}
 
 function renderOrderProgress(order) {
   const history = order.statusHistory?.length
@@ -411,9 +443,10 @@ function renderNotifications(notifications, unreadCount) {
 
 async function loadNotifications() {
   if (!getToken()) {
-    document.querySelector("#customer-notifications").textContent = "Sign in to see your delivery notifications.";
+    notificationPanel.hidden = true;
     return;
   }
+  notificationPanel.hidden = false;
   const response = await fetch(`${API_BASE}/notifications/mine`, { headers: authHeaders() });
   const data = await response.json();
   if (response.status === 401) return;
@@ -422,14 +455,15 @@ async function loadNotifications() {
 }
 
 async function loadOrders(force = false) {
-  if (!getToken()) { errorRoot.innerHTML = `Please <a href="login.html?next=orders.html">sign in</a> to view your orders.`; return; }
+  if (!getToken()) { showOrdersSignIn(); return; }
+  notificationPanel.hidden = false;
   if (!force && document.activeElement?.closest?.(".order-review-form, .order-help-form, .order-cancel-form")) return;
   try {
     const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
     const data = await response.json();
     if (response.status === 401) {
       sessionStorage.removeItem(TOKEN_KEY);
-      errorRoot.innerHTML = `Your session expired. Please <a href="login.html?next=orders.html">sign in again</a> to view your orders.`;
+      showOrdersSignIn("Your session expired. Sign in again to see your orders and delivery updates.");
       return;
     }
     if (!response.ok) throw new Error(data.error || "Could not load orders");
@@ -443,6 +477,7 @@ async function loadOrders(force = false) {
 loadOrders();
 loadNotifications().catch(error => { errorRoot.textContent = error.message; });
 setInterval(() => {
+  if (!getToken()) return;
   loadOrders();
   loadNotifications().catch(error => { errorRoot.textContent = error.message; });
 }, 15000);
