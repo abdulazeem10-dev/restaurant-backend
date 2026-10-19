@@ -1418,6 +1418,15 @@ body { color: var(--foodway-ink); }
 .customer-page .card-action { border-color: transparent; background: transparent; color: var(--foodway-green); }
 .customer-page .card-action:hover { color: var(--foodway-tomato); }
 .customer-page .site-footer { background: var(--foodway-paper); border-top-color: var(--foodway-line); }
+.customer-page .storefront-hero {
+  border-color: #244b39;
+  background: radial-gradient(ellipse at 78% 10%, #35624b 0, transparent 38%), linear-gradient(115deg, #173d32, #234a39);
+  box-shadow: 0 20px 50px #173d3224;
+}
+.customer-page .storefront-info .eyebrow { color: var(--foodway-lime); }
+.customer-page .storefront-info h1 { color: #fff; }
+.customer-page .storefront-info > p:not(.eyebrow) { color: #d4ded5; }
+.customer-page .storefront-info .open-badge { color: #245b39; }
 
 /* Distinct operating console: deep green navigation, quiet canvas, high-clarity work areas. */
 .admin-page, .restaurant-page, .delivery-page { background: #f4f5f1; color: var(--foodway-ink); }
