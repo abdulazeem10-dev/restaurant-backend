@@ -79,3 +79,16 @@ body { color: var(--foodway-ink); }
   .admin-sidebar, .restaurant-sidebar { top: 72px; scrollbar-width: none; }
   .admin-sidebar::-webkit-scrollbar, .restaurant-sidebar::-webkit-scrollbar { display: none; }
 }
+
+/* Let the restaurant list adapt to how many results are available. */
+.customer-page .restaurant-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+  max-width: 1160px;
+  margin-inline: auto;
+}
+.customer-page .restaurant-grid > .restaurant-card {
+  width: 100%;
+  max-width: 570px;
+  margin-inline: auto;
+}
+.customer-page .restaurant-grid > .restaurant-card:only-child { justify-self: center; }
