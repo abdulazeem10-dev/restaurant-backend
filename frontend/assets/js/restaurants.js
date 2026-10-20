@@ -7,6 +7,23 @@ const clearFiltersButton = document.querySelector("#clear-filters");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
 const cuisineFilters = [...document.querySelectorAll("[data-cuisine-filter]")];
 const cuisineTrack = document.querySelector("#cuisine-track");
+const cuisineImageFiles = Object.freeze({
+  "north-indian": "north-indian.webp",
+  pizza: "pizza.webp",
+  chinese: "chinese.webp",
+  desserts: "desserts.webp",
+  burger: "burger.webp",
+  biryani: "biryani.webp",
+  "south-indian": "south-indian.webp",
+  noodles: "noodles.webp",
+  rolls: "rolls.webp",
+  shawarma: "shawarma.webp",
+  vada: "vada.jpg",
+  dosa: "dosa.webp",
+  momo: "momo.webp",
+  salads: "salads.webp",
+  other: "other.webp"
+});
 let selectedFoodFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
@@ -66,6 +83,14 @@ function formatDeliveryPincodes(pincodes = []) {
   return `Delivers to ${visible}${pincodes.length > 3 ? ` +${pincodes.length - 3} more` : ""}`;
 }
 
+function getCuisineImage(restaurant) {
+  const cuisines = Array.isArray(restaurant.cuisines) ? restaurant.cuisines : [];
+  const cuisine = [...cuisines, restaurant.cuisine].find(value =>
+    typeof value === "string" && Object.prototype.hasOwnProperty.call(cuisineImageFiles, value)
+  ) || "other";
+  return `../assets/images/cuisines/${cuisineImageFiles[cuisine]}`;
+}
+
 function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const pin = deliveryPincodeFilter.value.trim();
@@ -101,21 +126,25 @@ function renderRestaurants() {
     const card = document.createElement("article");
     card.className = "restaurant-card";
     const cover = document.createElement("div");
-    cover.className = `restaurant-cover cover-${index % 4}`;
-    if (restaurant.imageUrl) {
-      cover.classList.add("has-image");
-      const coverImage = document.createElement("img");
-      coverImage.src = restaurant.imageUrl;
-      coverImage.alt = "";
-      coverImage.loading = "lazy";
-      coverImage.addEventListener("error", () => coverImage.remove(), { once: true });
-      cover.append(coverImage);
-    } else {
-      cover.setAttribute("aria-hidden", "true");
-      const coverText = document.createElement("span");
-      coverText.textContent = ["🍽️", "🥘", "🍕", "🥗"][index % 4];
-      cover.append(coverText);
-    }
+    cover.className = `restaurant-cover cover-${index % 4} has-image`;
+    cover.setAttribute("aria-hidden", "true");
+    const coverImage = document.createElement("img");
+    const cuisineImage = getCuisineImage(restaurant);
+    let showingCuisineImage = !restaurant.imageUrl;
+    coverImage.src = restaurant.imageUrl || cuisineImage;
+    coverImage.alt = "";
+    coverImage.loading = "lazy";
+    coverImage.decoding = "async";
+    coverImage.addEventListener("error", () => {
+      if (!showingCuisineImage) {
+        showingCuisineImage = true;
+        coverImage.src = cuisineImage;
+        return;
+      }
+      cover.classList.remove("has-image");
+      coverImage.remove();
+    });
+    cover.append(coverImage);
 
     const details = document.createElement("div");
     details.className = "restaurant-card-content";
