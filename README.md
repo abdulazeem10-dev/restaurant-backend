@@ -10,6 +10,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 - [Design guide](design.md)
 - [Working memory](memory.md)
 - [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+- [Client handoff and launch gaps](docs/CLIENT_HANDOFF.md)
 
 ## Stack
 - Frontend: HTML, CSS, browser JavaScript
@@ -19,7 +20,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 - Deployment target: GitHub + Render
 
 ## Important
-This is a starter project, not a production marketplace. It includes customer registration/login, restaurant onboarding and management, orders, delivery assignment, order status notifications, optional email/SMS alerts, opt-in delivery location sharing, ETA estimates, cancellation/help requests, and restaurant sales reports. Some external capabilities require provider credentials. UPI/card/net banking choices remain preferences unless the payment provider is configured. Authentication uses short-lived access tokens in sessionStorage; review the production checklist below before launch.
+This is an MVP, not yet a production marketplace. It includes customer registration/login, restaurant onboarding and management, orders, delivery assignment, order status notifications, optional email/SMS alerts, opt-in delivery location sharing, ETA estimates, cancellation/help requests, and restaurant sales reports. Some external capabilities require provider credentials. Online and UPI choices are currently preferences only; checkout does not charge a customer. Authentication uses short-lived access tokens in sessionStorage; review the production checklist below before launch.
 
 ## Requirements
 - Node.js 20+
@@ -33,10 +34,6 @@ This is a starter project, not a production marketplace. It includes customer re
    ```
 3. Put the generated value in `JWT_SECRET` in `backend/.env`.
 
-## Android app
-The customer website is installable on Android as a Progressive Web App. Deploy the `frontend` directory at the site root over HTTPS, open the site in Chrome on Android, then choose **Install app** (or Chrome menu → **Install app**). It starts at the customer home page; users can sign in to their existing customer, restaurant, staff, delivery, or admin account and are routed to their role's dashboard.
-
-The installed app loads the same deployed frontend and uses the same API and MongoDB data as the website. Frontend changes appear after the app reconnects and reloads; orders and account data remain shared. The service worker uses network-first loading and does not cache API responses, so offline use is limited to the cached home screen and static shell. This PWA does not create a Play Store listing or a standalone APK.
 4. Configure `MONGODB_URI`.
 5. Install and run:
    ```bash
@@ -47,8 +44,13 @@ The installed app loads the same deployed frontend and uses the same API and Mon
 6. Open `http://localhost:5000/api/health`.
 7. Serve the `frontend` directory using a local static server (for example VS Code Live Server). Set `FRONTEND_ORIGIN` to that server's exact origin.
 
-## Payment preference
-Checkout lets customers choose online UPI/cards/net banking, UPI QR, or cash on delivery. The online and UPI QR choices are stored with the order as preferences for the restaurant to see; no payment is started, QR is generated, or money collected.
+## Android app (PWA)
+The customer website is installable on Android as a Progressive Web App. Deploy the `frontend` directory at the site root over HTTPS, open the site in Chrome on Android, then choose **Install app** (or Chrome menu → **Install app**). It starts at the customer home page; users can sign in to their existing customer, restaurant, staff, delivery, or admin account and are routed to their role's dashboard.
+
+The installed app loads the same deployed frontend and uses the same API and MongoDB data as the website. Frontend changes appear after the app reconnects and reloads; orders and account data remain shared. The service worker uses network-first loading and does not cache API responses, so offline use is limited to the cached home screen and static shell. This PWA does not create a Play Store listing or a standalone APK.
+
+## Payment behavior
+Cash on delivery is the only checkout method currently collected by the app. Online and UPI QR choices are recorded as customer preferences; checkout does not start a payment, generate a QR code, or collect money. The repository has preliminary Razorpay controller code, but it is not mounted as API routes and the customer checkout does not call it. Do not present online payments as available until the routes, checkout flow, provider configuration, webhook, and end-to-end payment handling are completed and verified.
 
 ## Customer phone sign-in
 Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Create a Verify Service, then configure these backend environment variables (keep the auth token private): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID`. Phone sign-in is for active customer accounts and accepts Indian 10-digit numbers or E.164 numbers such as `+919876543210`. Password and Google sign-in remain available.
@@ -155,19 +157,7 @@ Order totals currently include menu item prices only; taxes and delivery fees ar
 - Enable automated database backups/snapshots with the database host, set a retention period, and regularly test restoring a backup to a separate staging database. Protect exported backups because they contain customer and order data.
 - Add end-to-end tests for checkout, restaurant status updates, delivery completion, cancellation/help, and payment webhooks before launch. The current automated suite is only a small smoke test.
 - Use HTTPS in production. Delivery GPS sharing will not work on plain HTTP except localhost.
-## Android APK
-
-The Android app is a native WebView wrapper for the deployed Foodway site at `https://foodway-ten.vercel.app/customer/index.html`. It uses the same backend and accounts as the website; pages and data are loaded from the live site. The app requests location permission only when a Foodway page asks to share GPS location.
-
-### Build and download the APK
-
-1. Push the repository changes to GitHub.
-2. Open the repository’s **Actions** tab and choose **Build Android APK**. For an automatic build, pushing a change under `android/` also starts it.
-3. Open the completed run and download the `foodway-android-apk` artifact.
-4. Extract the ZIP on your computer or phone to get `app-debug.apk`, then install it on Android. Android may ask you to allow installation from the browser or file manager used to open it.
-
-This workflow creates a debug APK for direct testing. A Play Store release needs a signed release build and a protected signing key.
-## Android APK
+## Android APK for review
 
 The Android app bundles the current `frontend` files and serves them from Android's secure local WebView origin. API requests go to the existing backend at `https://foodway-ten.vercel.app/api`, so accounts and order data are shared with the website. The backend allows the Android WebView's local origin for API requests.
 
@@ -178,4 +168,4 @@ The Android app bundles the current `frontend` files and serves them from Androi
 3. Open the completed run and download the `foodway-android-apk` artifact.
 4. Extract the ZIP and install `app-debug.apk`. If Android refuses to update the earlier APK, uninstall that version first and install the new one.
 
-Frontend changes are included in the next APK build, so install the new APK to update its screens. The app continues using the live backend data. This workflow creates a debug APK for testing; Play Store distribution requires a signed release build and protected signing key.
+Frontend changes are included in the next APK build, so install the new APK to update its screens. The app continues using the live backend data. This workflow creates a debug APK for client review; Play Store distribution requires a signed release build and protected signing key. The installable PWA described above is a separate option.

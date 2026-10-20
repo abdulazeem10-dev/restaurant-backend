@@ -99,7 +99,7 @@ Order status history and database notifications provide a durable record of prog
 
 ## 7. Payment behavior
 
-Checkout supports cash on delivery, Razorpay online checkout, and UPI QR selection. Razorpay order creation and payment confirmation are implemented, including signature checks, provider status verification, and webhook signature verification/idempotency. The flow is enabled only when the required server-side Razorpay keys and webhook secret are configured. UPI QR remains a payment preference; the app does not generate a QR code for it. Cash collection is recorded at delivery completion. Refund and settlement operations still require provider-side and operational procedures.
+Checkout supports cash on delivery plus online and UPI selections recorded as customer preferences. It does not currently initiate an online charge or generate a UPI QR code. Preliminary Razorpay controller code exists, but there are no mounted payment routes and the customer checkout does not invoke it; therefore Razorpay is not an available payment flow, regardless of credentials. Cash collection is recorded at delivery completion. Refund and settlement operations still require provider-side and operational procedures.
 
 No card number or CVV is stored by this application. Payment credentials must remain with the provider and backend secrets must never be shipped to browser code.
 
@@ -137,7 +137,7 @@ Location sharing requires a secure context (HTTPS or localhost). Access should r
 
 - The frontend is static browser JavaScript rather than a component framework; there is no dedicated mobile native client.
 - Order and location updates use polling, not websocket or push transport.
-- Razorpay online checkout requires server-side configuration; UPI QR generation is not implemented. Tax/delivery charges default to zero unless separately configured.
+- Online payment is not integrated into checkout; preliminary Razorpay controller code is not routed or called. UPI QR generation is not implemented. Tax/delivery charges default to zero unless separately configured.
 - The repository is a starter MVP. Production launch requires deployment-specific review of scale, monitoring, privacy, payment operations, and security controls.
 
 ## Related documents

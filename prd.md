@@ -38,7 +38,7 @@ The website and Android installable app use the same backend and MongoDB data. T
 - Restaurant listings expose useful service information such as open/closed state, food type, opening hours, delivery area, and available ratings.
 - The customer can view a restaurant menu, see whether a dish is available, choose quantities, and build a cart.
 - Checkout collects delivery recipient, phone, and address details. The server validates the order against current menu prices, restaurant status, service hours, and delivery coverage.
-- The customer can select cash on delivery, Razorpay online checkout, or UPI QR as a payment choice. Razorpay checkout is implemented but requires valid server-side credentials and a webhook secret; UPI QR remains a preference and no QR code is generated.
+- The customer can select cash on delivery or record online/UPI as a payment preference. Cash on delivery is the only implemented collection method. Online checkout is not wired to a payment provider, and no UPI QR code is generated.
 - Customers can save delivery addresses, reorder from an earlier order when menu items remain available, and view order history and progress.
 - Customers can submit a cancellation request while eligible, contact support about an order, and submit one rating/review for an eligible order.
 - Customers can opt in to share their current GPS location with the assigned delivery partner. They can view the delivery partner's shared location on a map while the order is in delivery.
@@ -91,7 +91,7 @@ The server calculates prices from current menu items rather than trusting client
 ## 7. Current limitations and future work
 
 - Map updates use page/API refresh polling and OpenStreetMap tiles; there is no turn-by-turn routing or websocket-based tracking.
-- Razorpay checkout is conditional on deployment credentials. UPI QR generation is not implemented. Settlement, refunds, and reconciliation require operational procedures.
+- Online provider checkout is not integrated into the customer flow. UPI QR generation is not implemented. Settlement, refunds, and reconciliation require operational procedures.
 - Email and SMS alerts are optional and do not send until providers are configured.
 - Taxes and delivery fees default to zero in the current order model unless separately implemented/configured.
 - The project is an MVP starter, not a production-ready marketplace. Before broad launch, add operational monitoring, backups, audit trails, payment/refund operations, automated coverage for critical workflows, and a reviewed privacy/security/compliance plan.
