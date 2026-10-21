@@ -276,30 +276,58 @@ async function loadMenu() {
   else { toggle.hidden = true; }
   const foodFilter = document.querySelector("#owner-food-filter").value;
   const visibleItems = foodFilter === "all" ? items : items.filter(item => item.foodType === foodFilter);
+  const menuCategories = ["Indian", "North Indian", "South Indian", "Chinese", "Italian", "Pizza", "Fast Food", "Burger", "Biryani", "Noodles", "Rolls", "Shawarma", "Vada", "Dosa", "Momo", "Desserts", "Salads", "Other"];
   for (const item of visibleItems) {
     const card = document.createElement("article");
-    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.category)} · ${formatRupees(item.pricePaise)}</p><label>Food type <select class="menu-food-type"><option value="" disabled>Choose type</option><option value="veg">Veg</option><option value="nonVeg">Non-Veg</option></select></label><p><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary">Delete</button></p>`;
-    const foodTypeSelect = card.querySelector(".menu-food-type");
-    foodTypeSelect.value = item.foodType || "";
-    const canEditMenu = restaurantStaffRole !== "viewer";
-    if (!canEditMenu) {
-      card.querySelector("label").remove();
-      card.querySelector(".menu-availability").closest("label").remove();
-      card.querySelector("button").remove();
-    }
-    foodTypeSelect.addEventListener("change", async () => {
-      foodTypeSelect.disabled = true;
+    const currentCategory = item.category || "Other";
+    const matchingCategory = menuCategories.find(category => category.toLocaleLowerCase() === currentCategory.toLocaleLowerCase());
+    const categoryOptions = [...menuCategories];
+    if (!matchingCategory && currentCategory) categoryOptions.unshift(currentCategory);
+    card.innerHTML = `<h3>${escapeHtml(item.name)}</h3><p class="menu-item-summary">${escapeHtml(currentCategory)} · ${formatRupees(item.pricePaise)}</p><button type="button" class="secondary menu-edit-toggle">Edit dish details</button><form class="menu-edit-form" hidden><label>Dish name<input name="name" required maxlength="150" value="${escapeHtml(item.name)}"></label><label>Category / cuisine<select name="category" required>${categoryOptions.map(category => `<option value="${escapeHtml(category)}" ${category === (matchingCategory || currentCategory) ? "selected" : ""}>${escapeHtml(category)}</option>`).join("")}</select></label><label>Food type<select name="foodType" required><option value="veg" ${item.foodType === "veg" ? "selected" : ""}>Veg</option><option value="nonVeg" ${item.foodType === "nonVeg" ? "selected" : ""}>Non-Veg</option></select></label><label>Price in rupees<input name="price" type="number" min="0.01" step="0.01" required value="${(Number(item.pricePaise) / 100).toFixed(2)}"></label><label>Description<textarea name="description" maxlength="1000">${escapeHtml(item.description || "")}</textarea></label><label>Dish image URL (HTTPS)<input name="imageUrl" type="url" maxlength="2048" placeholder="https://…" value="${escapeHtml(item.imageUrl || "")}"></label><div class="menu-edit-actions"><button type="submit">Save changes</button><button type="button" class="secondary menu-edit-cancel">Cancel</button></div></form><p class="menu-item-actions"><label><input class="menu-availability" type="checkbox" ${item.available ? "checked" : ""}> Available to customers</label> <button type="button" class="secondary menu-delete">Delete</button></p>`;
+    const editToggle = card.querySelector(".menu-edit-toggle");
+    const editForm = card.querySelector(".menu-edit-form");
+    editToggle.addEventListener("click", () => {
+      editForm.hidden = !editForm.hidden;
+      editToggle.textContent = editForm.hidden ? "Edit dish details" : "Close editor";
+    });
+    card.querySelector(".menu-edit-cancel").addEventListener("click", () => {
+      editForm.reset();
+      editForm.hidden = true;
+      editToggle.textContent = "Edit dish details";
+    });
+    editForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const formData = new FormData(editForm);
+      const saveButton = editForm.querySelector('button[type="submit"]');
+      saveButton.disabled = true;
+      msg.textContent = "";
       try {
-        await api(`/restaurants/owner/menu/${item._id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ foodType: foodTypeSelect.value }) });
-        msg.textContent = `${item.name} marked ${foodTypeSelect.value === "veg" ? "Veg" : "Non-Veg"}.`;
+        await api(`/restaurants/owner/menu/${item._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.get("name").trim(),
+            category: formData.get("category"),
+            foodType: formData.get("foodType"),
+            pricePaise: Math.round(Number(formData.get("price")) * 100),
+            description: formData.get("description"),
+            imageUrl: formData.get("imageUrl").trim()
+          })
+        });
+        msg.textContent = `${formData.get("name").trim()} updated.`;
         await loadMenu();
       } catch (error) {
         msg.textContent = error.message;
-        foodTypeSelect.value = item.foodType || "";
-      } finally {
-        foodTypeSelect.disabled = false;
+        saveButton.disabled = false;
       }
     });
+    const canEditMenu = restaurantStaffRole !== "viewer";
+    if (!canEditMenu) {
+      editToggle.remove();
+      editForm.remove();
+      card.querySelector(".menu-availability").closest("label").remove();
+      card.querySelector(".menu-delete").remove();
+    }
     if (item.imageUrl) {
       const image = document.createElement("img");
       image.src = item.imageUrl;
@@ -324,7 +352,7 @@ async function loadMenu() {
         availability.disabled = false;
       }
     });
-    if (canEditMenu) card.querySelector("button").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
+    if (canEditMenu) card.querySelector(".menu-delete").addEventListener("click", async () => { if (!confirm(`Delete ${item.name}?`)) return; try { await api(`/restaurants/owner/menu/${item._id}`, { method: "DELETE" }); await loadMenu(); } catch (error) { msg.textContent = error.message; } });
     root.append(card);
   }
   if (!items.length) root.textContent = "Add your first menu item above.";
