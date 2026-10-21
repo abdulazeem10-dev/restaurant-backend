@@ -13,3 +13,15 @@ android {
 dependencies {
     implementation 'androidx.webkit:webkit:1.17.1'
 }
+
+// The WebView serves the website from app assets. Sync the repository's live
+// frontend into the generated assets folder before every Android build so the
+// APK always contains current website screens and JavaScript.
+tasks.register('syncWebsiteAssets', Sync) {
+    from(new File(rootProject.projectDir.parentFile, 'frontend'))
+    into(layout.projectDirectory.dir('src/main/assets'))
+}
+
+tasks.named('preBuild').configure {
+    dependsOn('syncWebsiteAssets')
+}

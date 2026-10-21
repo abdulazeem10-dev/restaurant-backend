@@ -169,3 +169,13 @@ The Android app bundles the current `frontend` files and serves them from Androi
 4. Extract the ZIP and install `app-debug.apk`. If Android refuses to update the earlier APK, uninstall that version first and install the new one.
 
 Frontend changes are included in the next APK build, so install the new APK to update its screens. The app continues using the live backend data. This workflow creates a debug APK for client review; Play Store distribution requires a signed release build and protected signing key. The installable PWA described above is a separate option.
+
+### Build from Android Studio
+
+1. Install an Android Studio version compatible with Android Gradle Plugin `9.2.0` (Panda 4 / 2025.3.4 or newer) and select JDK 17 or newer for Gradle. Install Android SDK Platform 36 and Build Tools 36.0.0 in SDK Manager.
+2. In Android Studio, choose **File → Open** and open the repository's `android` folder (not the repository root). Wait for Gradle sync to finish.
+3. If prompted, set **Gradle JDK** under **File → Settings → Build, Execution, Deployment → Build Tools → Gradle** to the bundled JDK or another compatible JDK.
+4. To install directly on a connected phone/emulator, choose the `app` run configuration and click **Run**. To create the APK, choose **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
+5. After Android Studio reports the build succeeded, click **Locate** in its notification. The debug APK is `app/build/outputs/apk/debug/app-debug.apk`.
+
+The Gradle build automatically synchronizes the latest `frontend/` files into the app assets before building. `android/local.properties` is machine-specific and ignored by Git; if Android Studio cannot find the SDK, open **Tools → SDK Manager** and set the Android SDK location for this computer.
