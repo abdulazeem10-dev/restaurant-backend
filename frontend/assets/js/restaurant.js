@@ -141,7 +141,7 @@ if (restaurantProfileForm) restaurantProfileForm.addEventListener("submit", asyn
   try {
     const { restaurant, user } = await api("/restaurants/owner/profile", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(["restaurantName", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
+      body: JSON.stringify(Object.fromEntries(["restaurantName", "address", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
     });
     restaurantCurrentUser = user;
     document.querySelector("#restaurant-title").textContent = restaurant.name;
@@ -261,6 +261,7 @@ async function loadMenu() {
   document.querySelector("#restaurant-title").textContent = restaurant.name;
   if (restaurantProfileForm) {
     restaurantProfileForm.elements.restaurantName.value = restaurant.name || "";
+    restaurantProfileForm.elements.address.value = restaurant.address || "";
     restaurantProfileForm.elements.ownerName.value = restaurantCurrentUser?.name || "";
     restaurantProfileForm.elements.email.value = restaurantCurrentUser?.email || "";
     restaurantProfileForm.elements.phone.value = restaurantCurrentUser?.phone || "";

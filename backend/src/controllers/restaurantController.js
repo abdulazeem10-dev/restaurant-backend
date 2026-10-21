@@ -291,11 +291,12 @@ async function getOwnReports(req, res) {
 async function updateOwnProfile(req, res) {
   const parsed = z.object({
     restaurantName: z.string().trim().min(1).max(150),
+    address: z.string().trim().min(5).max(500),
     ownerName: z.string().trim().min(1).max(100),
     email: z.string().trim().email().max(254),
     phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
   }).strict().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Enter a restaurant name, owner name, valid email, and valid phone number" });
+  if (!parsed.success) return res.status(400).json({ error: "Enter a restaurant name, valid address, owner name, valid email, and valid phone number" });
   const restaurant = await Restaurant.findOne({ ownerId: req.user._id });
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const owner = await User.findOne({ _id: req.user._id, role: "restaurant" });
@@ -303,6 +304,7 @@ async function updateOwnProfile(req, res) {
   const email = parsed.data.email.toLowerCase();
   if (await User.exists({ email, _id: { $ne: owner._id } })) return res.status(409).json({ error: "Another account already uses this email / login" });
   restaurant.name = parsed.data.restaurantName;
+  restaurant.address = parsed.data.address;
   owner.name = parsed.data.ownerName;
   owner.email = email;
   owner.phone = parsed.data.phone;
@@ -313,7 +315,7 @@ async function updateOwnProfile(req, res) {
     throw error;
   }
   await restaurant.save();
-  return res.json({ restaurant: { id: restaurant._id, name: restaurant.name }, user: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+  return res.json({ restaurant: { id: restaurant._id, name: restaurant.name, address: restaurant.address }, user: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
 }
 
 async function deactivateOwnProfile(req, res) {
