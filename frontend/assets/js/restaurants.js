@@ -114,7 +114,11 @@ function renderRestaurants() {
     const foodType = ["veg", "nonVeg", "both"].includes(restaurant.foodType)
       ? restaurant.foodType
       : "both";
-    const foodTypeMatches = selectedFoodFilter === "all" || foodType === selectedFoodFilter;
+    // Vegetarian diners need a dedicated veg-only kitchen. Non-veg diners can
+    // also order from mixed kitchens, where vegetarian dishes are available.
+    const foodTypeMatches = selectedFoodFilter === "all"
+      || foodType === selectedFoodFilter
+      || (selectedFoodFilter === "nonVeg" && foodType === "both");
     const restaurantCuisines = Array.isArray(restaurant.cuisines) && restaurant.cuisines.length
       ? restaurant.cuisines
       : [restaurant.cuisine || "other"];
