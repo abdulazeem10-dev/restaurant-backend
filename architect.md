@@ -57,7 +57,7 @@ Backend validation uses fixed, simple regexes for bounded formats such as IDs, P
 | Model | Responsibility and relationships |
 | --- | --- |
 | `User` | Customer, restaurant owner/staff, delivery partner, or platform-admin identity; stores role and account data. |
-| `Restaurant` | Storefront, owner association, approval/open state, food type, service hours, delivery areas, and estimate settings. |
+| `Restaurant` | Storefront, owner association, approval/open state, food type, service hours, named delivery areas with PIN-code coverage, and estimate settings. |
 | `MenuItem` | Restaurant-owned dish, category, price, food type, image, and availability. |
 | `Order` | Customer and restaurant references, item/price snapshots, delivery details, lifecycle and status history, assignment and GPS data, payment state, help/cancellation requests. |
 | `Delivery` | Delivery-related records and workflow data where represented by the delivery model. |

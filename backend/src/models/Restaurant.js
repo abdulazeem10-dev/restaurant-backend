@@ -81,6 +81,13 @@ const restaurantSchema = new mongoose.Schema(
       type: [{ type: String, match: /^\d{6}$/ }],
       default: []
     },
+    deliveryAreas: {
+      type: [{
+        name: { type: String, required: true, trim: true, maxlength: 80 },
+        pincodes: { type: [{ type: String, match: /^\d{6}$/ }], default: [] }
+      }],
+      default: []
+    },
     prepTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
     deliveryTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
     location: {

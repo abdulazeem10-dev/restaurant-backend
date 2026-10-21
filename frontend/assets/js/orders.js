@@ -294,6 +294,11 @@ function renderOrders(orders) {
     const paymentStatusLabel = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled", awaiting_payment: "Waiting for payment" };
     card.innerHTML = `<h3>${escapeHtml(order.restaurantId?.name || "Restaurant")}</h3><p>${lines}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replaceAll("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel}</p><p>Payment status: ${paymentStatusLabel}</p><small>Order placed ${new Date(order.createdAt).toLocaleString("en-IN")}</small>`;
+    if (order.deliveryDetails?.deliveryAreaName) {
+      const area = document.createElement("p");
+      area.textContent = `Delivery area: ${order.deliveryDetails.deliveryAreaName}`;
+      card.append(area);
+    }
     if (order.estimatedDeliveryAt && !["delivered", "cancelled"].includes(order.status)) {
       const eta = document.createElement("p"); eta.className = "order-eta";
       eta.textContent = `Estimated delivery: ${new Date(order.estimatedDeliveryAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;

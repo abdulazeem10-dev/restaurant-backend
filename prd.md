@@ -35,10 +35,11 @@ The website and Android installable app use the same backend and MongoDB data. T
 ### 4.1 Customer discovery and ordering
 
 - The customer can browse approved restaurants, search by restaurant or area, filter by food type (all, vegetarian, non-vegetarian), sort results, and filter by delivery PIN code.
-- Restaurant listings expose useful service information such as open/closed state, food type, opening hours, delivery area, and available ratings.
+- Restaurant listings expose useful service information such as open/closed state, food type, opening hours, named delivery areas with their PIN codes, and available ratings. Customers can search by a named delivery area.
 - The customer can view a restaurant menu, see whether a dish is available, choose quantities, and build a cart.
 - Checkout collects delivery recipient, phone, and address details. The server validates the order against current menu prices, restaurant status, service hours, and delivery coverage.
 - The customer can select cash on delivery or record online/UPI as a payment preference. Cash on delivery is the only implemented collection method. Online checkout is not wired to a payment provider, and no UPI QR code is generated.
+- When an order PIN matches a named restaurant delivery area, the area name is shown during checkout and saved with the order for restaurant and delivery staff.
 - Customers can save delivery addresses, reorder from an earlier order when menu items remain available, and view order history and progress.
 - Customers can submit a cancellation request while eligible, contact support about an order, and submit one rating/review for an eligible order.
 - Customers can opt in to share their current GPS location with the assigned delivery partner. They can view the delivery partner's shared location on a map while the order is in delivery.
@@ -47,7 +48,7 @@ The website and Android installable app use the same backend and MongoDB data. T
 ### 4.2 Restaurant operations
 
 - Restaurant owners can manage menu items, categories, prices, food types, images, and customer-facing availability.
-- Owners can open or close service, configure weekly opening hours, delivery PIN codes, and delivery/preparation estimates.
+- Owners can open or close service, configure weekly opening hours, name their delivery areas and assign 6-digit PIN codes to each area, and set delivery/preparation estimates.
 - Restaurant staff can receive orders and progress them through confirmation, preparation, ready for pickup, and handoff for delivery.
 - Restaurant teams can review cancellation and support requests, read customer reviews, and see sales/order reports.
 - The primary restaurant admin can create at most one account for each available additional role: secondary admin, biller/modifier, and viewer. They can remove a staff account to free its role for replacement.

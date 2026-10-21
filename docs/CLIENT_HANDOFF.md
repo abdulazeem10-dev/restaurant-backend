@@ -7,7 +7,7 @@
 
 - Customer restaurant discovery, menu browsing, cart, checkout, order history, order status updates, notifications, reviews, saved addresses, and opt-in location sharing.
 - Separate platform admin, restaurant owner/staff, and delivery dashboards with role-scoped workflows.
-- Restaurant menu and service settings, delivery assignment acceptance/decline, and delivery completion.
+- Restaurant menu and service settings, named delivery areas with PIN coverage, delivery assignment acceptance/decline, and delivery completion.
 - Responsive website and Android WebView/PWA options using the same API and MongoDB data.
 - Optional Google sign-in, phone OTP, email, and SMS integrations when correctly configured.
 
@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | Online payments | Checkout stores online/UPI as a preference. It does not charge a card/UPI account or create a QR. COD is the implemented collection flow. | Do not accept online payment orders as paid. A provider integration must be completed and verified before claiming online payments are supported. |
 | Fees | Tax and delivery charges are currently zero. | Agree on commercial rules and implement/configure them before launch. |
-| Restaurant coverage | Public discovery depends on approved restaurant records and complete menus, hours, and PIN-code coverage. | Populate and review real operating data; incomplete information makes the marketplace feel empty or unreliable. |
+| Restaurant coverage | Delivery PIN codes are grouped under named restaurant areas; public discovery depends on approved restaurant records and complete menus, hours, and coverage. | Populate and review real operating data; incomplete information makes the marketplace feel empty or unreliable. |
 | Tracking | Location sharing is opt-in and refreshes by polling; maps provide visual context and external map links. | It is not turn-by-turn navigation and freshness depends on GPS permission, connectivity, and refresh interval. |
 | Notifications | In-app records are available; email and SMS depend on provider setup and delivery rules. | Verify each channel with production credentials and real devices before promising delivery. |
 | Deployment portability | The browser client currently points to the Foodway Vercel API URL in source. | Changing hosting environments requires updating and rebuilding/redeploying the frontend API base URL. |

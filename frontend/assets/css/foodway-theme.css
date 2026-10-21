@@ -92,3 +92,29 @@ body { color: var(--foodway-ink); }
   margin-inline: auto;
 }
 .customer-page .restaurant-grid > .restaurant-card:only-child { justify-self: center; }
+
+.delivery-area-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 0.85rem;
+  margin: 0 0 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--line, #e8e2d8);
+  border-radius: 1rem;
+  background: var(--surface-soft, #fbfaf7);
+}
+.delivery-area-row legend {
+  padding: 0 0.35rem;
+  color: var(--ink-muted, #6b6963);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.delivery-area-row label { display: grid; gap: 0.4rem; }
+.delivery-area-row input { width: 100%; }
+.delivery-area-remove { min-height: 2.75rem; }
+.delivery-area-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+@media (max-width: 640px) {
+  .delivery-area-row { grid-template-columns: minmax(0, 1fr); }
+  .delivery-area-remove { justify-self: start; }
+}

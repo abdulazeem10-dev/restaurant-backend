@@ -7,7 +7,7 @@ const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
   hours: ["Hours & cuisine", "Set your service hours and the cuisine customers use to find you."],
-  "delivery-areas": ["Delivery areas", "Choose the PIN codes your restaurant delivers to."],
+  "delivery-areas": ["Delivery areas", "Name the neighbourhoods you serve and assign their PIN codes."],
   accounts: ["Restaurant accounts", "Manage the three staff logins for your restaurant."],
   reviews: ["Customer reviews", "Read feedback from your customers."],
   orders: ["Incoming orders", "Review customer and delivery details and update order progress."],
@@ -206,6 +206,56 @@ function renderOpeningHours(schedule = {}) {
     root.append(row);
   }
 }
+function renderDeliveryAreas(areas = [], legacyPincodes = []) {
+  const root = document.querySelector("#delivery-areas-list");
+  if (!root) return;
+  root.replaceChildren();
+  const entries = areas.length
+    ? areas
+    : legacyPincodes.length ? [{ name: "Delivery area", pincodes: legacyPincodes }] : [{ name: "", pincodes: [] }];
+  for (const [index, area] of entries.entries()) {
+    const row = document.createElement("fieldset");
+    row.className = "delivery-area-row";
+    const legend = document.createElement("legend");
+    legend.textContent = `Area ${index + 1}`;
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = "Area name";
+    const nameInput = document.createElement("input");
+    nameInput.name = "deliveryAreaName";
+    nameInput.type = "text";
+    nameInput.maxLength = 80;
+    nameInput.required = true;
+    nameInput.placeholder = "e.g. Ulwe, Seawoods";
+    nameInput.value = area.name || "";
+    nameLabel.append(nameInput);
+    const pinLabel = document.createElement("label");
+    pinLabel.textContent = "6-digit PIN codes";
+    const pinInput = document.createElement("input");
+    pinInput.name = "deliveryAreaPincodes";
+    pinInput.type = "text";
+    pinInput.maxLength = 699;
+    pinInput.placeholder = "400706, 400703";
+    pinInput.value = (area.pincodes || []).join(", ");
+    pinInput.setAttribute("aria-label", `PIN codes for area ${index + 1}`);
+    pinLabel.append(pinInput);
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "secondary delivery-area-remove";
+    removeButton.textContent = "Remove area";
+    removeButton.addEventListener("click", () => row.remove());
+    row.append(legend, nameLabel, pinLabel, removeButton);
+    root.append(row);
+  }
+}
+function addDeliveryAreaRow() {
+  const root = document.querySelector("#delivery-areas-list");
+  const rows = [...root.querySelectorAll(".delivery-area-row")];
+  const areas = rows.map(row => ({
+    name: row.querySelector('[name="deliveryAreaName"]').value,
+    pincodes: row.querySelector('[name="deliveryAreaPincodes"]').value.split(/[\s,;]+/).filter(Boolean)
+  }));
+  renderDeliveryAreas([...areas, { name: "", pincodes: [] }]);
+}
 async function loadMenu() {
   const { restaurant, items } = await api("/restaurants/owner/menu"); const root = document.querySelector("#menu-items"); root.replaceChildren();
   document.querySelector("#restaurant-title").textContent = restaurant.name;
@@ -219,7 +269,7 @@ async function loadMenu() {
   renderOpeningHours(restaurant.openingHours);
   document.querySelector('#delivery-times-form [name="prepTimeMinutes"]').value = restaurant.prepTimeMinutes || 30;
   document.querySelector('#delivery-times-form [name="deliveryTimeMinutes"]').value = restaurant.deliveryTimeMinutes || 30;
-  document.querySelector("#delivery-pincodes").value = (restaurant.deliveryPincodes || []).join(", ");
+  renderDeliveryAreas(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
   document.querySelector('#cuisine-form [name="cuisine"]').value = restaurant.cuisine || "other";
   const toggle = document.querySelector("#open-toggle");
   if (restaurant.status === "approved" && (!restaurantStaffRole || restaurantStaffRole === "secondary_admin")) { toggle.hidden = false; toggle.textContent = restaurant.isOpen ? "Close restaurant" : "Open for orders"; toggle.onclick = async () => { try { await api("/restaurants/owner/open", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isOpen: !restaurant.isOpen }) }); await loadMenu(); } catch (error) { msg.textContent = error.message; } }; }
@@ -342,14 +392,29 @@ document.querySelector("#cuisine-form").addEventListener("submit", async event =
 document.querySelector("#delivery-area-form").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
-  const text = new FormData(form).get("deliveryPincodes");
-  const deliveryPincodes = String(text).split(/[\s,;]+/).filter(Boolean);
+  const deliveryAreas = [...form.querySelectorAll(".delivery-area-row")].map(row => ({
+    name: row.querySelector('[name="deliveryAreaName"]').value.trim(),
+    pincodes: row.querySelector('[name="deliveryAreaPincodes"]').value.split(/[\s,;]+/).filter(Boolean)
+  })).filter(area => area.name || area.pincodes.length);
+  if (deliveryAreas.some(area => !area.name || !area.pincodes.length)) {
+    msg.textContent = "Give every delivery area a name and at least one PIN code.";
+    return;
+  }
+  const deliveryPincodes = deliveryAreas.flatMap(area => area.pincodes);
+  if (deliveryAreas.length > 50 || deliveryPincodes.length > 100) {
+    msg.textContent = "You can add up to 50 areas and 100 PIN codes in total.";
+    return;
+  }
   if (deliveryPincodes.some(pincode => !/^\d{6}$/.test(pincode))) {
     msg.textContent = "Enter only valid 6-digit PIN codes, separated by commas.";
     return;
   }
-  if (deliveryPincodes.length > 100) {
-    msg.textContent = "You can add up to 100 delivery PIN codes.";
+  if (new Set(deliveryAreas.map(area => area.name.toLocaleLowerCase())).size !== deliveryAreas.length) {
+    msg.textContent = "Each delivery area must have a unique name.";
+    return;
+  }
+  if (new Set(deliveryPincodes).size !== deliveryPincodes.length) {
+    msg.textContent = "A PIN code can belong to only one delivery area.";
     return;
   }
   const button = form.querySelector('button[type="submit"]');
@@ -359,9 +424,9 @@ document.querySelector("#delivery-area-form").addEventListener("submit", async e
     await api("/restaurants/owner/service-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deliveryPincodes })
+      body: JSON.stringify({ deliveryAreas })
     });
-    msg.textContent = deliveryPincodes.length ? "Delivery areas saved." : "Delivery PIN restrictions cleared.";
+    msg.textContent = deliveryAreas.length ? "Named delivery areas saved." : "Delivery coverage cleared.";
     await loadMenu();
   } catch (error) {
     msg.textContent = error.message;
@@ -369,6 +434,7 @@ document.querySelector("#delivery-area-form").addEventListener("submit", async e
     button.disabled = false;
   }
 });
+document.querySelector("#add-delivery-area")?.addEventListener("click", addDeliveryAreaRow);
 
 function setDefaultReportDates() {
   const form = document.querySelector("#reports-filter");
@@ -468,7 +534,7 @@ async function loadOrders(fetchLatest = true) {
     const paymentStatus = order.paymentStatus === "paid" ? "Paid" : order.paymentStatus === "failed" ? "Failed" : order.paymentStatus === "refunded" ? "Refunded" : order.paymentMethod === "cash_on_delivery" ? "Unpaid · due on delivery" : "Not paid · preference only";
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
-    card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p><p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p>${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}<p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
     if (order.deliveryAssignmentStatus === "offered") {
       const note = document.createElement("p");
       note.className = "muted";

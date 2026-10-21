@@ -7,7 +7,8 @@ const deliveryDetailsSchema = new mongoose.Schema({
   flatBuilding: { type: String, required: true, trim: true, maxlength: 120 },
   lane: { type: String, required: true, trim: true, maxlength: 180 },
   landmark: { type: String, trim: true, maxlength: 120, default: "" },
-  pincode: { type: String, required: true, match: /^\d{6}$/ }
+  pincode: { type: String, required: true, match: /^\d{6}$/ },
+  deliveryAreaName: { type: String, trim: true, maxlength: 80, default: "" }
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({

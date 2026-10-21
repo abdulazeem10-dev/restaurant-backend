@@ -50,7 +50,8 @@ async function createOrder(req, res) {
   if (!restaurant.isOpen) return res.status(409).json({ error: "This restaurant is currently closed" });
   if (!isWithinOpeningHours(restaurant.openingHours)) return res.status(409).json({ error: "This restaurant is outside its listed opening hours" });
   if (restaurant.deliveryPincodes?.length && !restaurant.deliveryPincodes.includes(parsed.data.deliveryDetails.pincode)) {
-    return res.status(400).json({ error: "This restaurant does not deliver to that PIN code" });
+    const areaNames = (restaurant.deliveryAreas || []).map(area => area.name).filter(Boolean);
+    return res.status(400).json({ error: `This restaurant does not deliver to that PIN code${areaNames.length ? `. Available areas: ${areaNames.join(", ")}` : ""}` });
   }
 
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
@@ -70,6 +71,7 @@ async function createOrder(req, res) {
   if (!deliveryPartner) return res.status(503).json({ error: "Orders are temporarily unavailable because no delivery person is active. Please try again later." });
 
   const placedAt = new Date();
+  const deliveryArea = (restaurant.deliveryAreas || []).find(area => area.pincodes?.includes(parsed.data.deliveryDetails.pincode));
 
   let order;
   try {
@@ -79,7 +81,7 @@ async function createOrder(req, res) {
       idempotencyRequestHash: requestHash,
       restaurantId: restaurant._id,
       deliveryAddress: parsed.data.deliveryAddress,
-      deliveryDetails: parsed.data.deliveryDetails,
+      deliveryDetails: { ...parsed.data.deliveryDetails, deliveryAreaName: deliveryArea?.name || "" },
       deliveryPartnerId: deliveryPartner._id,
       deliveryAssignmentStatus: "offered",
       estimatedDeliveryAt: new Date(placedAt.getTime() + ((restaurant.prepTimeMinutes || 30) + (restaurant.deliveryTimeMinutes || 30)) * 60_000),

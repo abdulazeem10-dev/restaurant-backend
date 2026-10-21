@@ -234,10 +234,11 @@ async function loadStorefront() {
     status.textContent = restaurant.isOpen ? "Open for orders" : "Currently closed";
     status.classList.toggle("closed-badge", !restaurant.isOpen);
     document.querySelector("#restaurant-hours").textContent = formatTodayHours(restaurant.openingHours);
+    const areas = restaurant.deliveryAreas || [];
     const pincodes = restaurant.deliveryPincodes || [];
-    document.querySelector("#restaurant-delivery-area").textContent = pincodes.length
-      ? `Delivery PINs: ${pincodes.join(", ")}`
-      : "Delivery areas aren't listed.";
+    document.querySelector("#restaurant-delivery-area").textContent = areas.length
+      ? `Delivery areas: ${areas.slice(0, 4).map(area => `${area.name} (${area.pincodes.join(", ")})`).join(" · ")}${areas.length > 4 ? ` · +${areas.length - 4} more` : ""}`
+      : pincodes.length ? `Delivery PINs: ${pincodes.join(", ")}` : "Delivery areas aren't listed.";
     storefrontHero.setAttribute("aria-busy", "false");
     allMenuItems = items;
     renderFilteredMenu();

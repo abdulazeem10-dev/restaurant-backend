@@ -77,10 +77,14 @@ function formatTodayHours(openingHours) {
   return `Today: ${formatTime(hours.opensAt)}–${formatTime(hours.closesAt)}`;
 }
 
-function formatDeliveryPincodes(pincodes = []) {
+function formatDeliveryCoverage(areas = [], pincodes = []) {
+  if (areas.length) {
+    const visible = areas.slice(0, 3).map(area => `${area.name} (${area.pincodes.join(", ")})`).join(" · ");
+    return `Delivers to ${visible}${areas.length > 3 ? ` · +${areas.length - 3} more areas` : ""}`;
+  }
   if (!pincodes.length) return "Delivery areas not listed";
   const visible = pincodes.slice(0, 3).join(", ");
-  return `Delivers to ${visible}${pincodes.length > 3 ? ` +${pincodes.length - 3} more` : ""}`;
+  return `Delivers to PIN ${visible}${pincodes.length > 3 ? ` +${pincodes.length - 3} more` : ""}`;
 }
 
 function getCuisineImage(restaurant) {
@@ -104,7 +108,8 @@ function renderRestaurants() {
     button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter));
   });
   const matches = allRestaurants.filter(restaurant => {
-    const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""}`.toLocaleLowerCase().includes(term);
+    const areaNames = (restaurant.deliveryAreas || []).map(area => area.name).join(" ");
+    const searchMatches = `${restaurant.name} ${restaurant.address} ${restaurant.description || ""} ${areaNames}`.toLocaleLowerCase().includes(term);
     // Treat missing foodType values from older records as mixed restaurants.
     const foodType = ["veg", "nonVeg", "both"].includes(restaurant.foodType)
       ? restaurant.foodType
@@ -185,7 +190,7 @@ function renderRestaurants() {
     hours.textContent = formatTodayHours(restaurant.openingHours);
     const coverage = document.createElement("p");
     coverage.className = "restaurant-service-detail muted";
-    coverage.textContent = formatDeliveryPincodes(restaurant.deliveryPincodes);
+    coverage.textContent = formatDeliveryCoverage(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
     const link = document.createElement("a");
     link.className = "card-action";
     link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;

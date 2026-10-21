@@ -21,13 +21,29 @@ const dailyHoursSchema = z.object({
 const openingHoursInputSchema = z.object(Object.fromEntries(
   WEEKDAYS.map(day => [day, dailyHoursSchema])
 )).strict();
+const deliveryAreaInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  pincodes: z.array(z.string().length(6).regex(/^\d{6}$/)).min(1).max(100)
+}).strict();
 const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
   deliveryPincodes: z.array(z.string().length(6).regex(/^\d{6}$/)).max(100).optional(),
+  deliveryAreas: z.array(deliveryAreaInputSchema).max(50).optional(),
   cuisine: cuisineSchema.optional(),
   prepTimeMinutes: z.number().int().min(5).max(180).optional(),
   deliveryTimeMinutes: z.number().int().min(5).max(180).optional()
-}).strict().refine(value => value.openingHours !== undefined || value.deliveryPincodes !== undefined || value.cuisine !== undefined || value.prepTimeMinutes !== undefined || value.deliveryTimeMinutes !== undefined);
+}).strict().superRefine((value, context) => {
+  if (value.openingHours === undefined && value.deliveryPincodes === undefined && value.deliveryAreas === undefined && value.cuisine === undefined && value.prepTimeMinutes === undefined && value.deliveryTimeMinutes === undefined) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "At least one setting is required" });
+  }
+  if (value.deliveryAreas !== undefined) {
+    const names = value.deliveryAreas.map(area => area.name.toLocaleLowerCase());
+    if (new Set(names).size !== names.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["deliveryAreas"], message: "Each delivery area needs a unique name" });
+    const pincodes = value.deliveryAreas.flatMap(area => area.pincodes);
+    if (pincodes.length > 100) context.addIssue({ code: z.ZodIssueCode.custom, path: ["deliveryAreas"], message: "Add no more than 100 PIN codes across all areas" });
+    if (new Set(pincodes).size !== pincodes.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["deliveryAreas"], message: "A PIN code can belong to only one delivery area" });
+  }
+});
 const restaurantStaffSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
@@ -67,7 +83,7 @@ async function listRestaurants(req, res) {
     query.deliveryPincodes = req.query.pincode;
   }
   const restaurants = await Restaurant.find(query)
-    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes")
+    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas")
     .sort({ name: 1 }).limit(100).lean();
   const ratingStats = await Review.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
@@ -98,7 +114,7 @@ async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
     status: "approved"
-  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes").lean();
+  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const [stats] = await Review.aggregate([
@@ -190,12 +206,18 @@ async function setOwnOpenStatus(req, res) {
 
 async function updateOwnServiceSettings(req, res) {
   const parsed = serviceSettingsSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Enter valid opening hours and 6-digit delivery PIN codes" });
+  if (!parsed.success) return res.status(400).json({ error: "Enter valid opening hours and delivery areas with unique names and 6-digit PIN codes" });
 
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (parsed.data.openingHours) restaurant.openingHours = parsed.data.openingHours;
-  if (parsed.data.deliveryPincodes) restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
+  if (parsed.data.deliveryAreas !== undefined) {
+    restaurant.deliveryAreas = parsed.data.deliveryAreas.map(area => ({ name: area.name.trim(), pincodes: [...new Set(area.pincodes)] }));
+    restaurant.deliveryPincodes = [...new Set(restaurant.deliveryAreas.flatMap(area => area.pincodes))];
+  } else if (parsed.data.deliveryPincodes !== undefined) {
+    restaurant.deliveryPincodes = [...new Set(parsed.data.deliveryPincodes)];
+    restaurant.deliveryAreas = [];
+  }
   if (parsed.data.cuisine) restaurant.cuisine = parsed.data.cuisine;
   if (parsed.data.prepTimeMinutes !== undefined) restaurant.prepTimeMinutes = parsed.data.prepTimeMinutes;
   if (parsed.data.deliveryTimeMinutes !== undefined) restaurant.deliveryTimeMinutes = parsed.data.deliveryTimeMinutes;
@@ -205,6 +227,7 @@ async function updateOwnServiceSettings(req, res) {
       id: restaurant._id,
       openingHours: restaurant.openingHours,
       deliveryPincodes: restaurant.deliveryPincodes,
+      deliveryAreas: restaurant.deliveryAreas,
       cuisine: restaurant.cuisine || "other",
       prepTimeMinutes: restaurant.prepTimeMinutes,
       deliveryTimeMinutes: restaurant.deliveryTimeMinutes
@@ -324,6 +347,7 @@ async function getOwnMenu(req, res) {
       status: restaurant.status,
       openingHours: restaurant.openingHours,
       deliveryPincodes: restaurant.deliveryPincodes,
+      deliveryAreas: restaurant.deliveryAreas,
       prepTimeMinutes: restaurant.prepTimeMinutes,
       deliveryTimeMinutes: restaurant.deliveryTimeMinutes
     },

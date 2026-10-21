@@ -75,6 +75,9 @@ function renderPaymentSummary() {
   document.querySelector("#payment-restaurant").textContent = paymentCart.restaurantName || "Your order";
   document.querySelector("#payment-recipient").textContent = `${checkout.deliveryDetails.name} · ${checkout.deliveryDetails.phone}`;
   document.querySelector("#payment-address").textContent = checkout.deliveryAddress;
+  const area = document.querySelector("#payment-delivery-area");
+  area.hidden = !checkout.deliveryDetails.deliveryAreaName;
+  area.textContent = checkout.deliveryDetails.deliveryAreaName ? `Restaurant service area: ${checkout.deliveryDetails.deliveryAreaName}` : "";
   document.querySelector("#payment-total").textContent = formatRupees(subtotal);
 }
 
@@ -85,7 +88,7 @@ async function createOrder(paymentMethod) {
     body: JSON.stringify({
       restaurantId: paymentCart.restaurantId,
       deliveryAddress: checkout.deliveryAddress,
-      deliveryDetails: checkout.deliveryDetails,
+      deliveryDetails: Object.fromEntries(["recipientType", "name", "phone", "flatBuilding", "lane", "landmark", "pincode"].map(key => [key, checkout.deliveryDetails[key]])),
       paymentMethod,
       items: paymentCart.items.map(({ menuItemId, quantity }) => ({ menuItemId, quantity }))
     })

@@ -59,7 +59,7 @@ Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Cre
 In-app notifications are stored in MongoDB. Optional email alerts use Resend (`RESEND_API_KEY` and `EMAIL_FROM`); optional order SMS alerts use Twilio Messaging (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`). SMS delivery depends on Twilio account status, verified destinations in trial mode, and regional messaging rules. Copy `backend/.env.example` to `backend/.env` and keep provider credentials only in the backend environment. No SMS or email is sent until these values are configured.
 
 ## Restaurant hours and delivery areas
-Restaurant owners can set weekly opening hours in India Standard Time and list the 6-digit PIN codes they deliver to. Customers can filter restaurants by PIN, see today's hours and listed delivery areas, and checkout/order requests are checked against the restaurant's hours and delivery PIN list. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
+Restaurant owners can set weekly opening hours in India Standard Time and group delivery PIN codes under named neighbourhoods. Customers can search by area name or filter by PIN, and checkout/order requests are checked against the restaurant's hours and PIN coverage. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
 
 Owners and secondary admins can configure typical preparation and delivery times. Customers see an estimated delivery time; the estimate is reset when the restaurant marks the order ready. It is a restaurant-configured estimate, not a guaranteed arrival time.
 
@@ -100,7 +100,7 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `PATCH /api/restaurants/owner/menu/:id` — restaurant owner only
 - `DELETE /api/restaurants/owner/menu/:id` — restaurant owner only
 - `PATCH /api/restaurants/owner/open` — restaurant owner sets open/closed (approved restaurants only)
-- `PATCH /api/restaurants/owner/service-settings` — owner updates opening hours and delivery PIN codes
+- `PATCH /api/restaurants/owner/service-settings` — owner updates opening hours and named delivery areas with PIN codes
 - `GET /api/restaurants/owner/staff` — primary restaurant admin lists staff accounts
 - `POST /api/restaurants/owner/staff` — primary restaurant admin creates a secondary admin, biller/modifier, or viewer login
 - `DELETE /api/restaurants/owner/staff/:staffId` — primary restaurant admin removes a staff login

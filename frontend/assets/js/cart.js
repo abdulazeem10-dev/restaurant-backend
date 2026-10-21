@@ -236,8 +236,12 @@ checkoutForm.addEventListener("submit", async event => {
     if (!response.ok) throw new Error(data.error || "Could not check restaurant delivery availability.");
     if (!data.restaurant.isOpen) throw new Error("This restaurant is currently closed and cannot accept your order.");
     if (data.restaurant.deliveryPincodes?.length && !data.restaurant.deliveryPincodes.includes(deliveryDetails.pincode)) {
-      throw new Error(`This restaurant does not deliver to PIN code ${deliveryDetails.pincode}. Please update the address or choose another restaurant.`);
+      const servedAreas = (data.restaurant.deliveryAreas || []).map(area => area.name).filter(Boolean);
+      const areaHint = servedAreas.length ? ` It currently serves ${servedAreas.join(", ")}.` : "";
+      throw new Error(`This restaurant does not deliver to PIN code ${deliveryDetails.pincode}.${areaHint} Update the address or choose another restaurant.`);
     }
+    const matchedArea = (data.restaurant.deliveryAreas || []).find(area => area.pincodes?.includes(deliveryDetails.pincode));
+    if (matchedArea) deliveryDetails.deliveryAreaName = matchedArea.name;
     if (formData.get("saveAddress") === "on" && !addressSelect.value) {
       const saveResponse = await fetch(`${API_BASE}/customer/addresses`, {
         method: "POST",
