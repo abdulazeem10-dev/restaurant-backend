@@ -24,6 +24,12 @@ const cuisineImageFiles = Object.freeze({
   salads: "salads.webp",
   other: "other.webp"
 });
+const cuisineLabels = Object.freeze({
+  "north-indian": "North Indian", pizza: "Pizza", chinese: "Chinese", desserts: "Desserts",
+  burger: "Burger", biryani: "Biryani", "south-indian": "South Indian", noodles: "Noodles",
+  rolls: "Rolls", shawarma: "Shawarma", vada: "Vada", dosa: "Dosa", momo: "Momo",
+  salads: "Salads", other: "Local favourites"
+});
 let selectedFoodFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
@@ -167,10 +173,14 @@ function renderRestaurants() {
     open.textContent = restaurant.isOpen ? "Open now" : "Closed";
     open.classList.toggle("closed-badge", !restaurant.isOpen);
     const delivery = document.createElement("span");
-    delivery.className = "muted";
+    delivery.className = "restaurant-food-tag";
     const labels = { veg: "Veg only", nonVeg: "Non-Veg only", both: "Veg & Non-Veg" };
     delivery.textContent = labels[restaurant.foodType] || labels.both;
-    meta.append(open, delivery);
+    const cuisineTag = document.createElement("span");
+    cuisineTag.className = "restaurant-cuisine-tag";
+    const restaurantCuisine = restaurant.cuisine || restaurant.cuisines?.[0] || "other";
+    cuisineTag.textContent = cuisineLabels[restaurantCuisine] || "Local favourites";
+    meta.append(open, delivery, cuisineTag);
 
     const identity = document.createElement("div");
     identity.className = "restaurant-identity";
@@ -202,6 +212,7 @@ function renderRestaurants() {
     link.className = "card-action";
     link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;
     link.textContent = "View menu";
+    link.setAttribute("aria-label", `View ${restaurant.name} menu`);
     const service = document.createElement("div");
     service.className = "restaurant-service-list";
     const hoursLine = document.createElement("span");

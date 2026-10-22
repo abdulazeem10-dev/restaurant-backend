@@ -90,6 +90,28 @@
 .customer-page .restaurant-card { overflow: hidden; border-radius: 18px; }
 .customer-page .restaurant-cover { height: 220px; }
 .customer-page .restaurant-card-content { min-height: 226px; }
+.customer-page .restaurant-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.customer-page .restaurant-meta .open-badge,
+.customer-page .restaurant-food-tag,
+.customer-page .restaurant-cuisine-tag { min-height: 26px; display: inline-flex; align-items: center; padding: .28rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 750; line-height: 1; }
+.customer-page .restaurant-meta .open-badge { background: #eaf3e8; color: #286144; }
+.customer-page .restaurant-meta .open-badge.closed-badge { background: #f3eee8; color: #75675c; }
+.customer-page .restaurant-food-tag { background: #f5f5ef; color: #596359; }
+.customer-page .restaurant-cuisine-tag { background: #fff4e8; color: #8b5526; }
+.customer-page .restaurant-address { color: #59635c; }
+.customer-page .restaurant-card .card-action { border-radius: 11px; }
+.customer-page .restaurant-load-error,
+.customer-page .empty-state { padding: 2rem; border: 1px solid var(--foodway-line); background: #fff; box-shadow: 0 10px 30px #20252108; }
+.customer-page .empty-state h3 { margin-bottom: .4rem; }
+.customer-page .empty-state p { max-width: 42rem; color: var(--foodway-muted); line-height: 1.6; }
+.customer-page .empty-state .empty-icon { color: var(--foodway-green); }
+.customer-page .restaurant-card-skeleton { min-height: 0; }
+.customer-page .restaurant-card-skeleton .skeleton-cover { height: 220px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .customer-page .restaurant-card { transition: transform .2s ease, box-shadow .2s ease; }
+  .customer-page .restaurant-card:hover { transform: translateY(-3px); }
+}
 
 .mobile-bottom-nav { display: none; }
 
@@ -172,8 +194,14 @@
   .customer-page .restaurant-card-content { min-height: 0; padding: .95rem 1rem 1rem; }
   .customer-page .restaurant-identity { margin-top: .45rem; }
   .customer-page .restaurant-card h3 { font-size: 1.12rem; }
+  .customer-page .restaurant-meta .open-badge,
+  .customer-page .restaurant-food-tag,
+  .customer-page .restaurant-cuisine-tag { min-height: 24px; padding-inline: .48rem; font-size: .67rem; }
   .customer-page .restaurant-description { min-height: 0; margin: .4rem 0 .55rem; font-size: .9rem; }
   .customer-page .restaurant-service-list { margin-bottom: .75rem; padding-top: .65rem; font-size: .76rem; }
+  .customer-page .restaurant-load-error,
+  .customer-page .empty-state { padding: 1.4rem 1rem; border-radius: 16px; }
+  .customer-page .restaurant-card-skeleton .skeleton-cover { height: clamp(190px, 58vw, 245px); }
   .customer-page .site-footer { padding-bottom: 1.2rem; }
   .mobile-bottom-nav {
     position: fixed;
