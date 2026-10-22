@@ -373,3 +373,9 @@
 /* Keep the restaurant rail scrollable without showing a scrollbar. */
 .customer-page .restaurant-grid { scrollbar-width: none; -ms-overflow-style: none; }
 .customer-page .restaurant-grid::-webkit-scrollbar { display: none; }
+
+/* Final override: keep the restaurant carousel usable without a visible scrollbar. */
+.customer-page #restaurants { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+.customer-page #restaurants::-webkit-scrollbar,
+.customer-page #restaurants::-webkit-scrollbar-track,
+.customer-page #restaurants::-webkit-scrollbar-thumb { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
