@@ -362,6 +362,23 @@ function renderOrders(orders) {
       eta.textContent = `Estimated delivery: ${new Date(order.estimatedDeliveryAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
       card.append(eta);
     }
+    const prepMinutes = Number(order.restaurantId?.prepTimeMinutes);
+    const deliveryMinutes = Number(order.restaurantId?.deliveryTimeMinutes);
+    if (!["delivered", "cancelled"].includes(order.status) && Number.isFinite(prepMinutes) && Number.isFinite(deliveryMinutes)) {
+      const timing = document.createElement("section");
+      timing.className = "order-eta-breakdown";
+      const heading = document.createElement("strong");
+      heading.textContent = "Your delivery estimate";
+      const copy = document.createElement("p");
+      copy.textContent = `About ${prepMinutes} min preparation + ${deliveryMinutes} min delivery to your location.`;
+      timing.append(heading, copy);
+      if (order.estimatedDeliveryAt) {
+        const arrival = document.createElement("span");
+        arrival.textContent = `Expected by ${new Date(order.estimatedDeliveryAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+        timing.append(arrival);
+      }
+      card.append(timing);
+    }
     const location = order.deliveryLocation;
     const customerLocation = order.customerLocation;
     const activeRoute = ["out_for_delivery", "picked_up"].includes(order.status);

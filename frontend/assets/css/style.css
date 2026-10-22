@@ -728,6 +728,10 @@ textarea { min-height: unset; }
 .customer-page .order-timing-list dt { padding-top: .65rem; color: var(--foodway-muted); font-size: .8rem; font-weight: 700; }
 .customer-page .order-timing-list dd { margin: 0; padding-top: .65rem; font-size: .82rem; }
 .customer-page .order-timing-estimate { margin: 0; padding: .8rem 1rem; border-top: 1px solid var(--foodway-line); color: var(--foodway-green); font-size: .86rem; font-weight: 750; }
+.customer-page .order-eta-breakdown { display: grid; gap: .2rem; margin: .8rem 0; padding: .85rem 1rem; border: 1px solid #cddfc7; border-radius: 13px; background: linear-gradient(135deg, #f1f7ed, #fbfcf8); }
+.customer-page .order-eta-breakdown strong { color: var(--foodway-green); font-size: .88rem; }
+.customer-page .order-eta-breakdown p { margin: 0; color: var(--foodway-muted); font-size: .8rem; line-height: 1.4; }
+.customer-page .order-eta-breakdown span { color: var(--foodway-green); font-size: .86rem; font-weight: 800; }
 .customer-page .order-action-dropdown { margin-top: .75rem; border-top: 1px solid var(--foodway-line); }
 .customer-page .order-action-dropdown summary { cursor: pointer; padding: .75rem 0 .2rem; color: var(--foodway-green); font-size: .85rem; font-weight: 750; list-style: none; }
 .customer-page .order-action-dropdown summary::-webkit-details-marker { display: none; }
