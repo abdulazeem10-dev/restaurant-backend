@@ -359,7 +359,6 @@
 .customer-page .restaurant-service-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .customer-page .restaurant-card .card-action { min-height: 42px; margin-top: auto; border-radius: 10px; }
 .customer-page .restaurant-grid > .empty-state { width: min(84vw, 700px); min-height: 200px; }
-.customer-page .restaurant-grid:focus-visible { outline: 2px solid #47765b66; outline-offset: 3px; border-radius: 16px; }
 @media (max-width: 680px) {
   .customer-page .restaurant-grid { grid-auto-columns: min(86vw, 360px); gap: .75rem; }
   .customer-page .restaurant-card { min-height: 375px; }
