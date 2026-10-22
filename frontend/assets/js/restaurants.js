@@ -38,6 +38,51 @@ let selectedCuisineFilter = "all";
 let allRestaurants = [];
 let allFeaturedDishes = [];
 
+const passportTrail = Object.freeze([
+  { key: "sunrise-tiffin", label: "Sunrise Tiffin House", detail: "South Indian breakfast" },
+  { key: "spice-route", label: "Spice Route Kitchen", detail: "North Indian comfort food" },
+  { key: "wok-bowl", label: "Wok & Bowl", detail: "Chinese-style favourites" }
+]);
+
+function renderFoodPassport(visitedKeys = new Set()) {
+  const stamps = document.querySelector("#passport-stamps");
+  const label = document.querySelector("#passport-progress-label");
+  const bar = document.querySelector("#passport-progress-bar");
+  const hint = document.querySelector("#passport-progress-hint");
+  if (!stamps || !label || !bar || !hint) return;
+  const visited = passportTrail.filter(stop => visitedKeys.has(stop.key)).length;
+  label.textContent = `${visited} of ${passportTrail.length} kitchens visited`;
+  bar.style.width = `${Math.round((visited / passportTrail.length) * 100)}%`;
+  hint.textContent = visited === passportTrail.length
+    ? "Passport complete — your local-food reward is ready."
+    : getToken()
+      ? `${passportTrail.length - visited} more ${passportTrail.length - visited === 1 ? "kitchen" : "kitchens"} to unlock your reward.`
+      : "Sign in and complete an order to collect your first stamp.";
+  stamps.replaceChildren(...passportTrail.map(stop => {
+    const item = document.createElement("div");
+    item.className = `food-passport-stamp-card${visitedKeys.has(stop.key) ? " is-visited" : ""}`;
+    item.innerHTML = `<span class="food-passport-stamp-icon" aria-hidden="true">${visitedKeys.has(stop.key) ? "✓" : "○"}</span><span><strong>${stop.label}</strong><small>${stop.detail}</small></span>`;
+    return item;
+  }));
+}
+
+async function loadFoodPassport() {
+  renderFoodPassport();
+  if (!getToken()) return;
+  try {
+    const response = await fetch(`${API_BASE}/orders/mine`, { headers: authHeaders() });
+    if (!response.ok) return;
+    const data = await response.json();
+    const visited = new Set();
+    (data.orders || []).filter(order => order.status === "delivered").forEach(order => {
+      const name = String(order.restaurantId?.name || order.restaurantName || "").toLocaleLowerCase();
+      const match = passportTrail.find(stop => name.includes(stop.label.toLocaleLowerCase().split(" ")[0]));
+      if (match) visited.add(match.key);
+    });
+    renderFoodPassport(visited);
+  } catch { /* Keep the default passport visible if order history is unavailable. */ }
+}
+
 async function setupHomeAccountNav() {
   if (!getToken()) return;
   try {
@@ -423,3 +468,4 @@ clearFiltersButton.addEventListener("click", () => {
 });
 loadRestaurants();
 setupHomeAccountNav();
+loadFoodPassport();

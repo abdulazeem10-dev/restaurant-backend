@@ -336,6 +336,23 @@
 }
 
 /* Compact restaurant discovery rail: image first, useful facts second. */
+.customer-page .food-passport { display: grid; gap: 1rem; margin: 1.35rem 0 1.5rem; padding: clamp(1.1rem, 2vw, 1.55rem); border: 1px solid #dce5d6; border-radius: 20px; background: linear-gradient(135deg, #eff5ea, #fffaf0); box-shadow: 0 8px 24px #20252108; }
+.customer-page .food-passport-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.customer-page .food-passport-heading h2 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.04em; }
+.customer-page .food-passport-heading p.muted { max-width: 42rem; margin: .3rem 0 0; }
+.customer-page .food-passport-stamp { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; border: 2px dashed #5a7b57; border-radius: 50%; color: #5a7b57; font-size: 1.4rem; transform: rotate(8deg); }
+.customer-page .food-passport-progress { display: grid; gap: .45rem; }
+.customer-page .food-passport-progress strong { color: var(--foodway-green); font-size: .9rem; }
+.customer-page .food-passport-progress small { color: var(--foodway-muted); font-size: .78rem; }
+.customer-page .food-passport-track { height: 8px; overflow: hidden; border-radius: 999px; background: #dce5d6; }
+.customer-page .food-passport-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--foodway-green); transition: width .35s ease; }
+.customer-page .food-passport-stamps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
+.customer-page .food-passport-stamp-card { display: flex; min-width: 0; align-items: center; gap: .55rem; padding: .7rem; border: 1px solid #dce5d6; border-radius: 13px; background: #ffffffa8; }
+.customer-page .food-passport-stamp-card.is-visited { border-color: #8fb78d; background: #e8f3e4; }
+.customer-page .food-passport-stamp-icon { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border: 1px solid #9bb696; border-radius: 50%; color: #597c56; font-weight: 800; }
+.customer-page .food-passport-stamp-card span:last-child { display: grid; min-width: 0; gap: .1rem; }
+.customer-page .food-passport-stamp-card strong { overflow: hidden; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .food-passport-stamp-card small { overflow: hidden; color: var(--foodway-muted); font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
 .customer-page .restaurant-results-title { display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
 .customer-page .restaurant-results-title h2 { min-width: 0; margin: 0; }
 .customer-page .restaurant-carousel-controls { display: flex; flex: 0 0 auto; gap: .45rem; }
@@ -360,6 +377,8 @@
 .customer-page .restaurant-card .card-action { min-height: 42px; margin-top: auto; border-radius: 10px; }
 .customer-page .restaurant-grid > .empty-state { width: min(84vw, 700px); min-height: 200px; }
 @media (max-width: 680px) {
+  .customer-page .food-passport-stamps { grid-template-columns: 1fr; }
+  .customer-page .food-passport-stamp-card { padding: .6rem .7rem; }
   .customer-page .restaurant-grid { grid-auto-columns: min(86vw, 360px); gap: .75rem; }
   .customer-page .restaurant-card { min-height: 375px; }
   .customer-page .restaurant-results-title h2 { font-size: clamp(1.4rem, 6vw, 1.9rem); }
