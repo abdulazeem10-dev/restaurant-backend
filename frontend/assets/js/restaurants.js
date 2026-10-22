@@ -110,7 +110,11 @@ function getCuisineImage(restaurant) {
 
 function renderFeaturedDishes(dishes = []) {
   const section = document.querySelector(".featured-dishes-section");
+  const heading = document.querySelector("#featured-dishes-title");
   featuredDishesTrack.replaceChildren();
+  heading.textContent = selectedFoodFilter === "veg"
+    ? "Veg dishes to explore"
+    : selectedFoodFilter === "nonVeg" ? "Non‑Veg dishes to explore" : "Dishes to explore";
   if (!dishes.length) {
     section.hidden = !allFeaturedDishes.length;
     if (!section.hidden) {
@@ -202,6 +206,7 @@ function renderRestaurants() {
   });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
+  restaurantGrid.scrollLeft = 0;
   restaurantGrid.replaceChildren();
   const openCount = matches.filter(restaurant => restaurant.isOpen).length;
   const activeBudgetLabel = selectedBudgetFilter === "all" ? "" : ` · Dishes under ₹${selectedBudgetFilter}`;
@@ -211,7 +216,6 @@ function renderRestaurants() {
     card.className = "restaurant-card";
     const cover = document.createElement("div");
     cover.className = `restaurant-cover cover-${index % 4} has-image`;
-    cover.setAttribute("aria-hidden", "true");
     const coverImage = document.createElement("img");
     const cuisineImage = getCuisineImage(restaurant);
     let showingCuisineImage = !restaurant.imageUrl;
@@ -249,7 +253,7 @@ function renderRestaurants() {
     meta.append(open, delivery, cuisineTag);
 
     const identity = document.createElement("div");
-    identity.className = "restaurant-identity";
+    identity.className = "restaurant-cover-info";
     const title = document.createElement("h3");
     title.textContent = restaurant.name;
     identity.append(title);
@@ -262,31 +266,38 @@ function renderRestaurants() {
     const rating = document.createElement("span");
     rating.className = "restaurant-rating";
     rating.textContent = restaurant.ratingCount
-      ? `★ ${Number(restaurant.ratingAverage).toFixed(1)} · ${restaurant.ratingCount} ${restaurant.ratingCount === 1 ? "review" : "reviews"}`
+      ? `★ ${Number(restaurant.ratingAverage).toFixed(1)}`
       : "New";
     rating.setAttribute("aria-label", restaurant.ratingCount
       ? `Rated ${Number(restaurant.ratingAverage).toFixed(1)} out of 5 from ${restaurant.ratingCount} ${restaurant.ratingCount === 1 ? "review" : "reviews"}`
       : "New restaurant, no reviews yet");
     identity.append(rating);
-    const hours = document.createElement("p");
-    hours.className = "restaurant-service-detail muted";
-    hours.textContent = formatTodayHours(restaurant.openingHours);
-    const coverage = document.createElement("p");
-    coverage.className = "restaurant-service-detail muted";
-    coverage.textContent = formatDeliveryCoverage(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
+    cover.append(identity);
     const link = document.createElement("a");
     link.className = "card-action";
     link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;
-    link.textContent = "View menu";
-    link.setAttribute("aria-label", `View ${restaurant.name} menu`);
+    link.textContent = "Explore menu";
+    link.setAttribute("aria-label", `Explore ${restaurant.name} menu`);
     const service = document.createElement("div");
     service.className = "restaurant-service-list";
-    const hoursLine = document.createElement("span");
-    hoursLine.textContent = `◷ ${hours.textContent}`;
-    const coverageLine = document.createElement("span");
-    coverageLine.textContent = `⌖ ${coverage.textContent}`;
-    service.append(hoursLine, coverageLine);
-    details.append(meta, identity, address, description, service, link);
+    if (Number.isSafeInteger(restaurant.lowestPricePaise) && restaurant.lowestPricePaise > 0) {
+      const priceLine = document.createElement("span");
+      priceLine.textContent = `From ${formatRupees(restaurant.lowestPricePaise)} per dish`;
+      service.append(priceLine);
+    }
+    if (restaurant.openingHours) {
+      const hoursLine = document.createElement("span");
+      hoursLine.textContent = `Today · ${formatTodayHours(restaurant.openingHours).replace(/^Today:\s*/, "")}`;
+      service.append(hoursLine);
+    }
+    if ((restaurant.deliveryAreas || []).length || (restaurant.deliveryPincodes || []).length) {
+      const coverageLine = document.createElement("span");
+      coverageLine.textContent = formatDeliveryCoverage(restaurant.deliveryAreas || [], restaurant.deliveryPincodes || []);
+      service.append(coverageLine);
+    }
+    details.append(meta, address, description);
+    if (service.childElementCount) details.append(service);
+    details.append(link);
     card.append(cover, details);
     restaurantGrid.append(card);
   }
@@ -381,6 +392,12 @@ cuisineFilters.forEach(button => button.addEventListener("click", () => {
   renderRestaurants();
   document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
 }));
+document.querySelector("#restaurant-scroll-left").addEventListener("click", () => {
+  restaurantGrid.scrollBy({ left: -Math.max(300, restaurantGrid.clientWidth * .8), behavior: "smooth" });
+});
+document.querySelector("#restaurant-scroll-right").addEventListener("click", () => {
+  restaurantGrid.scrollBy({ left: Math.max(300, restaurantGrid.clientWidth * .8), behavior: "smooth" });
+});
 document.querySelector("#cuisine-scroll-left").addEventListener("click", () => {
   cuisineTrack.scrollBy({ left: -Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
 });

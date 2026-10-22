@@ -46,7 +46,7 @@
     </section>
 
     <section class="home-food-filters" aria-label="Restaurant filters">
-      <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants and dishes by food type"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
+      <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants and dishes by food type"><button type="button" data-quick-food="all" aria-pressed="true">All food</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
     </section>
 
     <section class="budget-discovery" aria-labelledby="budget-discovery-title">
@@ -91,11 +91,11 @@
         <div><p class="eyebrow">FRESH FROM LOCAL MENUS</p><h2 id="featured-dishes-title">Dishes to explore</h2></div>
         <div class="featured-dishes-controls" aria-label="Food carousel controls"><button id="food-scroll-left" type="button" aria-label="Scroll dishes left">←</button><button id="food-scroll-right" type="button" aria-label="Scroll dishes right">→</button></div>
       </div>
-      <div id="featured-dishes-track" class="featured-dishes-track" aria-live="polite" aria-label="Available dishes from local restaurants"></div>
+      <div id="featured-dishes-track" class="featured-dishes-track" role="region" tabindex="0" aria-roledescription="carousel" aria-live="polite" aria-label="Available dishes from local restaurants"></div>
     </section>
 
     <section class="discovery-heading" id="restaurant-listing">
-      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Good things are cooking</h2><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p></div>
+      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><div class="restaurant-results-title"><h2>Discover local restaurants</h2><div class="restaurant-carousel-controls" aria-label="Restaurant carousel controls"><button id="restaurant-scroll-left" type="button" aria-label="Scroll restaurants left">←</button><button id="restaurant-scroll-right" type="button" aria-label="Scroll restaurants right">→</button></div></div><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p></div>
       <div class="discovery-controls">
         <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
         <label class="food-filter delivery-pin-filter">Delivery PIN <input id="delivery-pincode-filter" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="6" placeholder="6-digit PIN"></label>
@@ -103,7 +103,7 @@
       </div>
     </section>
     <p id="results-count" class="results-count" aria-live="polite"></p>
-    <section id="restaurants" class="restaurant-grid" aria-live="polite" aria-busy="true"></section>
+    <section id="restaurants" class="restaurant-grid" role="region" tabindex="0" aria-roledescription="carousel" aria-label="Restaurant results carousel" aria-live="polite" aria-busy="true"></section>
     <p id="error" class="error-message" role="alert"></p>
     <section class="value-strip" aria-label="Why order with Foodway">
       <div><span aria-hidden="true">⌖</span><p><strong>Made for your area</strong><small>Explore restaurants serving nearby neighbourhoods.</small></p></div>
