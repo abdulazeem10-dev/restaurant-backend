@@ -328,7 +328,7 @@ function renderRestaurants() {
     open.classList.toggle("closed-badge", !restaurant.isOpen);
     const delivery = document.createElement("span");
     delivery.className = "restaurant-food-tag";
-    const labels = { veg: "Veg only", nonVeg: "Non-Veg only", both: "Veg & Non-Veg" };
+    const labels = { veg: "Pure Veg", nonVeg: "Non‑Veg / Mixed Menu", both: "Veg & Non‑Veg" };
     delivery.textContent = labels[restaurant.foodType] || labels.both;
     const cuisineTag = document.createElement("span");
     cuisineTag.className = "restaurant-cuisine-tag";
