@@ -41,6 +41,7 @@ async function setupHomeAccountNav() {
     const destinations = {
       admin: ["../admin/dashboard.html", "Admin dashboard"],
       restaurant: ["../restaurant/dashboard.html", "Restaurant dashboard"],
+      restaurant_staff: ["../restaurant/staff-dashboard.html", "Restaurant staff dashboard"],
       delivery: ["../delivery/dashboard.html", "Delivery dashboard"]
     };
     const destination = destinations[user?.role];
@@ -52,6 +53,8 @@ async function setupHomeAccountNav() {
     }
     const loginLink = document.querySelector(".login-link");
     if (loginLink) loginLink.hidden = true;
+    const mobileAccountLink = document.querySelector("#mobile-account-link");
+    if (mobileAccountLink) mobileAccountLink.href = destination?.[0] || "orders.html";
     const logout = document.querySelector("#home-logout");
     if (logout) {
       logout.hidden = false;

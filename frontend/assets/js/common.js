@@ -12,7 +12,7 @@ function setStatusMessage(element, message, state = "info") {
 function formatRupees(paise) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(paise / 100); }
 function readCart() { try { return JSON.parse(localStorage.getItem("food-platform-cart") || "null"); } catch { return null; } }
 function writeCart(cart) { localStorage.setItem("food-platform-cart", JSON.stringify(cart)); updateCartCount(); }
-function updateCartCount() { const el = document.querySelector("[data-cart-count]"); if (el) el.textContent = (readCart()?.items || []).reduce((sum, item) => sum + item.quantity, 0); }
+function updateCartCount() { const count = (readCart()?.items || []).reduce((sum, item) => sum + item.quantity, 0); document.querySelectorAll("[data-cart-count]").forEach(el => { el.textContent = count; }); }
 function escapeHtml(value) {
   const replacements = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   return String(value ?? "").replace(/[&<>"']/g, character => replacements[character]);

@@ -1,0 +1,220 @@
+/* Foodway customer home: image-led discovery and mobile-first navigation. */
+.customer-page .discovery-main {
+  width: min(100% - 3rem, 1280px);
+  max-width: 1280px;
+  margin: 1.4rem auto 4rem;
+}
+
+.customer-page .hero-banner {
+  min-height: 380px;
+  padding: clamp(2rem, 5vw, 4rem);
+  border: 1px solid #244b39;
+  border-radius: 28px;
+  background: linear-gradient(112deg, #12382d 0%, #173d32 51%, #234a39 100%);
+  box-shadow: 0 22px 55px #173d321c;
+}
+
+.customer-page .hero-copy { width: min(54%, 610px); }
+.customer-page .hero-copy h1 { max-width: 590px; font-size: clamp(3rem, 5.4vw, 5rem); }
+.customer-page .hero-copy > p:not(.eyebrow) { max-width: 430px; }
+.customer-page .hero-art {
+  position: absolute;
+  inset: 14px 14px 14px auto;
+  width: 47%;
+  height: auto;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  opacity: 1;
+  transform: none;
+}
+.customer-page .hero-food-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 54%;
+}
+.customer-page .hero-art::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #173d32 0%, #173d321c 35%, transparent 76%), linear-gradient(0deg, #102d2470, transparent 42%);
+  content: "";
+}
+.customer-page .hero-art .hero-orbit,
+.customer-page .hero-art .plate,
+.customer-page .hero-sticker,
+.customer-page .hero-food-note { display: none; }
+
+.customer-page .home-food-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.1rem 0 0;
+  padding: .65rem 1rem;
+  border: 1px solid var(--foodway-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 7px 22px #20252107;
+}
+.customer-page .home-food-filters > span {
+  flex: 0 0 auto;
+  color: var(--foodway-muted);
+  font-size: .78rem;
+  font-weight: 750;
+  letter-spacing: .045em;
+}
+.customer-page .home-food-filters .quick-food-filters { align-items: center; gap: .45rem; margin: 0; }
+.customer-page .home-food-filters .quick-food-filters button { min-height: 40px; padding: .5rem .9rem; border-color: #e6e9e1; background: #fff; color: #435047; }
+.customer-page .home-food-filters .quick-food-filters button[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
+.customer-page .home-food-filters [data-quick-food="veg"] span { color: #328252; }
+.customer-page .home-food-filters [data-quick-food="nonVeg"] span { color: #ba4537; }
+
+.customer-page .cuisine-section {
+  margin: 1.3rem 0 1.5rem;
+  padding: 1.15rem 1.3rem .95rem;
+  border-radius: 19px;
+  background: #fff;
+  box-shadow: 0 8px 24px #20252106;
+}
+.customer-page .cuisine-track { scrollbar-width: none; }
+.customer-page .cuisine-track::-webkit-scrollbar { display: none; }
+.customer-page .cuisine-option { min-height: 120px; }
+.customer-page .cuisine-option[aria-pressed="true"] { background: #f2f6ee; }
+.customer-page .value-strip { margin-top: 1.1rem; box-shadow: 0 7px 22px #20252106; }
+.customer-page .discovery-heading { margin-top: 3rem; }
+.customer-page .discovery-intro h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); }
+.customer-page .results-count { min-height: 1.5rem; }
+.customer-page .restaurant-grid { gap: 1.15rem; }
+.customer-page .restaurant-card { overflow: hidden; border-radius: 18px; }
+.customer-page .restaurant-cover { height: 220px; }
+.customer-page .restaurant-card-content { min-height: 226px; }
+
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 680px) {
+  .customer-page .site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "brand nav" "search search";
+    gap: .65rem .75rem;
+    min-height: 0;
+    padding: .65rem .85rem .75rem;
+    background: #fff;
+  }
+  .customer-page .wordmark { grid-area: brand; min-width: 0; }
+  .customer-page .top-search {
+    grid-area: search;
+    width: 100%;
+    max-width: none;
+    min-height: 48px;
+    padding: .25rem .35rem .25rem .85rem;
+    border-radius: 14px;
+  }
+  .customer-page .top-search input { min-height: 42px; font-size: 16px; }
+  .customer-page .top-search button { min-height: 40px; padding-inline: .9rem; }
+  .customer-page .site-nav { grid-area: nav; justify-content: flex-end; gap: .5rem; font-size: .86rem; }
+  .customer-page .site-nav > a[href="orders.html"],
+  .customer-page .site-nav > a.cart-link { display: none; }
+  .customer-page .site-nav .login-link { padding: .5rem .7rem; }
+  .customer-page .site-nav #home-logout { min-height: 38px; padding: .45rem .65rem; }
+  .customer-page .discovery-main { width: 100%; margin: .75rem auto 2rem; padding: 0 .85rem; }
+  .customer-page .hero-banner {
+    display: flex;
+    min-height: 340px;
+    align-items: flex-start;
+    padding: 1.7rem 1.25rem;
+    border-radius: 22px;
+  }
+  .customer-page .hero-copy { width: 100%; max-width: 430px; }
+  .customer-page .hero-copy .eyebrow { margin-bottom: .65rem; font-size: .66rem; }
+  .customer-page .hero-copy h1 { max-width: 370px; font-size: clamp(2.6rem, 11vw, 3.8rem); line-height: .98; }
+  .customer-page .hero-copy > p:not(.eyebrow) { max-width: 320px; margin: .85rem 0 1rem; font-size: .94rem; line-height: 1.5; }
+  .customer-page .hero-actions { flex-wrap: wrap; gap: .55rem .8rem; }
+  .customer-page .hero-cta { min-height: 46px; padding: .72rem 1rem; }
+  .customer-page .hero-caption { max-width: 170px; font-size: .72rem; }
+  .customer-page .hero-art { inset: auto -7% -8% auto; width: 75%; height: 62%; border-radius: 22px 0 22px 0; opacity: .86; }
+  .customer-page .hero-art::after { background: linear-gradient(180deg, #173d3200 20%, #173d325c 100%), linear-gradient(90deg, #173d32 0%, #173d321c 34%, transparent 75%); }
+  .customer-page .home-food-filters { align-items: flex-start; flex-direction: column; gap: .35rem; margin-top: .8rem; padding: .65rem .75rem; }
+  .customer-page .home-food-filters > span { font-size: .68rem; text-transform: uppercase; }
+  .customer-page .home-food-filters .quick-food-filters { width: 100%; flex-wrap: nowrap; }
+  .customer-page .home-food-filters .quick-food-filters button { flex: 1 1 auto; min-height: 38px; padding-inline: .45rem; font-size: .79rem; white-space: nowrap; }
+  .customer-page .cuisine-section { margin: .9rem 0 1.15rem; padding: .9rem .65rem .7rem; border-radius: 16px; }
+  .customer-page .cuisine-section-heading { align-items: center; margin: 0 .15rem .45rem; }
+  .customer-page .cuisine-section-heading .eyebrow { font-size: .62rem; }
+  .customer-page .cuisine-section-heading h2 { font-size: 1.15rem; }
+  .customer-page .cuisine-carousel-controls { display: none; }
+  .customer-page .cuisine-track { grid-auto-columns: 78px; gap: .2rem; padding-bottom: .25rem; }
+  .customer-page .cuisine-option { min-height: 100px; padding: .45rem .15rem; gap: .35rem; font-size: .72rem; }
+  .customer-page .cuisine-art { width: 62px; height: 62px; flex-basis: 62px; }
+  .customer-page .value-strip { grid-template-columns: minmax(0, 1fr); margin-top: .85rem; border-radius: 15px; }
+  .customer-page .value-strip > div { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; min-height: 0; padding: .7rem .85rem; }
+  .customer-page .value-strip > div + div { border-top: 1px solid var(--foodway-line); }
+  .customer-page .value-strip > div > span { width: 32px; height: 32px; }
+  .customer-page .value-strip p { margin: 0; }
+  .customer-page .value-strip strong { font-size: .83rem; }
+  .customer-page .value-strip small { font-size: .75rem; }
+  .customer-page .discovery-heading { display: grid; gap: .8rem; margin: 2rem 0 .85rem; }
+  .customer-page .discovery-intro .eyebrow { margin-bottom: .35rem; font-size: .65rem; }
+  .customer-page .discovery-intro h2 { font-size: 1.8rem; }
+  .customer-page .discovery-intro > .muted { margin-top: .3rem; font-size: .9rem; }
+  .customer-page .discovery-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .55rem; padding: .65rem; border-radius: 14px; }
+  .customer-page .discovery-controls .sort-control,
+  .customer-page .discovery-controls .delivery-pin-filter { display: grid; gap: .3rem; min-width: 0; font-size: .72rem; }
+  .customer-page .discovery-controls .sort-control select,
+  .customer-page .discovery-controls .delivery-pin-filter input { width: 100%; min-width: 0; min-height: 43px; font-size: .86rem; }
+  .customer-page .discovery-controls .filter-reset { grid-column: 1 / -1; justify-self: start; }
+  .customer-page .results-count { margin: .8rem 0 .35rem; font-size: .8rem; }
+  .customer-page .restaurant-grid { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+  .customer-page .restaurant-grid > .restaurant-card { max-width: none; border-radius: 17px; }
+  .customer-page .restaurant-cover { height: clamp(190px, 58vw, 245px); }
+  .customer-page .restaurant-card-content { min-height: 0; padding: .95rem 1rem 1rem; }
+  .customer-page .restaurant-identity { margin-top: .45rem; }
+  .customer-page .restaurant-card h3 { font-size: 1.12rem; }
+  .customer-page .restaurant-description { min-height: 0; margin: .4rem 0 .55rem; font-size: .9rem; }
+  .customer-page .restaurant-service-list { margin-bottom: .75rem; padding-top: .65rem; font-size: .76rem; }
+  .customer-page .site-footer { padding-bottom: 1.2rem; }
+  .mobile-bottom-nav {
+    position: fixed;
+    z-index: 30;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: .45rem .35rem calc(.45rem + env(safe-area-inset-bottom));
+    border-top: 1px solid #e7e8e1;
+    background: #fffffff2;
+    box-shadow: 0 -8px 24px #2025210c;
+    backdrop-filter: blur(14px);
+  }
+  .mobile-bottom-nav a {
+    display: grid;
+    min-height: 50px;
+    align-content: center;
+    justify-items: center;
+    gap: .15rem;
+    color: #667069;
+    font-size: .68rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .mobile-bottom-nav a.is-current { color: var(--foodway-green); }
+  .mobile-bottom-nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+  .mobile-bottom-nav a span { display: flex; align-items: center; gap: .25rem; }
+  .mobile-bottom-nav b { display: inline-grid; min-width: 16px; height: 16px; place-items: center; padding: 0 .2rem; border-radius: 999px; background: var(--foodway-green); color: #fff; font-size: .62rem; }
+  body.customer-page { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 380px) {
+  .customer-page .site-nav { gap: .3rem; }
+  .customer-page .site-nav .login-link { padding: .42rem .55rem; font-size: .78rem; }
+  .customer-page .hero-banner { min-height: 325px; padding: 1.45rem 1rem; }
+  .customer-page .hero-copy h1 { font-size: 2.55rem; }
+  .customer-page .home-food-filters .quick-food-filters button { padding-inline: .3rem; font-size: .73rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-page .restaurant-card { transition: none; }
+}

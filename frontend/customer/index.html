@@ -10,6 +10,7 @@
   <title>Foodway | Discover Mumbai restaurants</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/foodway-theme.css">
+  <link rel="stylesheet" href="../assets/css/customer-home.css">
 </head>
 <body class="customer-page">
   <header class="site-header">
@@ -41,8 +42,10 @@
           <span class="hero-caption"><span aria-hidden="true">✦</span> Independent kitchens, local favourites</span>
         </div>
       </div>
-      <div class="hero-art" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="plate"><svg class="plate-art" viewBox="0 0 300 300" role="presentation"><defs><radialGradient id="plate-glaze" cx="36%" cy="30%"><stop stop-color="#fff"/><stop offset=".72" stop-color="#fffdf8"/><stop offset="1" stop-color="#f3e7d8"/></radialGradient><linearGradient id="curry" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f8be58"/><stop offset="1" stop-color="#df7142"/></linearGradient><linearGradient id="rice" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff5d9"/><stop offset="1" stop-color="#efd29a"/></linearGradient></defs><circle cx="150" cy="150" r="139" fill="url(#plate-glaze)" stroke="#fff" stroke-width="7"/><circle cx="150" cy="150" r="111" fill="#f6eee4"/><ellipse cx="150" cy="162" rx="92" ry="66" fill="#d7a76e" opacity=".25"/><path d="M63 159c7-33 42-54 87-54s80 21 87 54c-8 34-42 55-87 55s-79-21-87-55Z" fill="url(#curry)"/><path d="M94 145c8-27 28-44 57-44s49 17 57 44c-17 14-37 20-57 20s-40-6-57-20Z" fill="url(#rice)"/><g fill="#fff9e9"><ellipse cx="116" cy="126" rx="16" ry="5" transform="rotate(-25 116 126)"/><ellipse cx="145" cy="116" rx="18" ry="5" transform="rotate(12 145 116)"/><ellipse cx="172" cy="124" rx="17" ry="5" transform="rotate(-18 172 124)"/><ellipse cx="131" cy="139" rx="17" ry="5" transform="rotate(18 131 139)"/><ellipse cx="161" cy="139" rx="18" ry="5" transform="rotate(-10 161 139)"/></g><g fill="#f2d27f"><circle cx="100" cy="169" r="9"/><circle cx="198" cy="170" r="10"/><circle cx="126" cy="188" r="8"/><circle cx="174" cy="190" r="8"/></g><g fill="#4f8756"><path d="M106 174c-11-14 0-23 14-18-2 12-6 17-14 18Z"/><path d="M185 150c-8-13 2-20 14-14-3 10-7 14-14 14Z"/><path d="M149 194c-7-13 3-19 14-12-3 9-7 13-14 12Z"/></g><g fill="#fff" opacity=".72"><circle cx="79" cy="111" r="3"/><circle cx="217" cy="103" r="2.5"/><circle cx="222" cy="194" r="3"/></g></svg></div><div class="hero-sticker sticker-one">Fresh<br>& local</div><div class="hero-sticker sticker-two">Made with<br>love ♡</div><div class="hero-food-note"><span>GOOD FOOD,</span><strong>right around you.</strong></div></div>
+      <div class="hero-art" aria-hidden="true"><img class="hero-food-image" src="../assets/images/foodway-thali-hero.jpg" alt="" fetchpriority="high"></div>
     </section>
+
+    <section class="home-food-filters" aria-label="Quick food preference filters"><span>I'm looking for</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></section>
 
     <section class="cuisine-section" aria-labelledby="cuisine-title">
       <div class="cuisine-section-heading">
@@ -79,7 +82,7 @@
     </section>
 
     <section class="discovery-heading" id="restaurant-listing">
-      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Good things are cooking</h2><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><span class="filter-group-label">Food preference</span><button type="button" data-quick-food="all" aria-pressed="true">Any preference</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
+      <div class="discovery-intro"><p class="eyebrow">YOUR NEIGHBOURHOOD, ON A PLATE</p><h2>Good things are cooking</h2><p class="muted">Browse local kitchens, find what you’re craving, and order your way.</p></div>
       <div class="discovery-controls">
         <label class="sort-control">Sort by <select id="sort-select"><option value="name">Name A–Z</option><option value="name-desc">Name Z–A</option></select></label>
         <label class="food-filter delivery-pin-filter">Delivery PIN <input id="delivery-pincode-filter" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="6" placeholder="6-digit PIN"></label>
@@ -91,6 +94,12 @@
     <p id="error" class="error-message" role="alert"></p>
   </main>
   <footer class="site-footer"><a class="wordmark" href="index.html"><span class="wordmark-icon">F</span><span>Foodway</span></a><span>Discover local food in Mumbai</span></footer>
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <a class="is-current" href="index.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Food</span></a>
+    <a href="orders.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-3-6 3zM9 8h6M9 12h6"/></svg><span>Orders</span></a>
+    <a href="cart.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 1.9-1.4L22 8H6M10 21h.01M18 21h.01"/></svg><span>Cart <b data-cart-count>0</b></span></a>
+    <a id="mobile-account-link" href="login.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Account</span></a>
+  </nav>
   <script src="../assets/js/common.js"></script>
   <script src="../assets/js/restaurants.js"></script>
   <script src="../assets/js/pwa.js"></script>
