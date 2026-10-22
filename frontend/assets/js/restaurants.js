@@ -54,7 +54,7 @@ function renderFoodPassport(visitedKeys = new Set()) {
   label.textContent = `${visited} of ${passportTrail.length} kitchens visited`;
   bar.style.width = `${Math.round((visited / passportTrail.length) * 100)}%`;
   hint.textContent = visited === passportTrail.length
-    ? "Passport complete — your local-food reward is ready."
+    ? "Passport complete — check participating restaurants for your available reward."
     : getToken()
       ? `${passportTrail.length - visited} more ${passportTrail.length - visited === 1 ? "kitchen" : "kitchens"} to unlock your reward.`
       : "Sign in and complete an order to collect your first stamp.";
@@ -63,6 +63,29 @@ function renderFoodPassport(visitedKeys = new Set()) {
     item.className = `food-passport-stamp-card${visitedKeys.has(stop.key) ? " is-visited" : ""}`;
     item.innerHTML = `<span class="food-passport-stamp-icon" aria-hidden="true">${visitedKeys.has(stop.key) ? "✓" : "○"}</span><span><strong>${stop.label}</strong><small>${stop.detail}</small></span>`;
     return item;
+  }));
+}
+
+function renderRecentOrders(orders = []) {
+  const section = document.querySelector("#recent-orders-section");
+  const track = document.querySelector("#recent-orders-track");
+  if (!section || !track) return;
+  const recent = orders.filter(order => order.status === "delivered" && order.restaurantId?._id).slice(0, 3);
+  if (!recent.length) { section.hidden = true; return; }
+  section.hidden = false;
+  track.replaceChildren(...recent.map(order => {
+    const card = document.createElement("a");
+    card.className = "recent-order-card";
+    card.href = `menu.html?id=${encodeURIComponent(order.restaurantId._id)}`;
+    const name = document.createElement("strong");
+    name.textContent = order.restaurantId.name || "Local restaurant";
+    const items = document.createElement("span");
+    items.textContent = (order.items || []).slice(0, 2).map(item => `${item.quantity} × ${item.name}`).join(" · ") || "View the current menu";
+    const action = document.createElement("span");
+    action.className = "recent-order-action";
+    action.textContent = "View menu →";
+    card.append(name, items, action);
+    return card;
   }));
 }
 
@@ -80,6 +103,7 @@ async function loadFoodPassport() {
       if (match) visited.add(match.key);
     });
     renderFoodPassport(visited);
+    renderRecentOrders(data.orders || []);
   } catch { /* Keep the default passport visible if order history is unavailable. */ }
 }
 
@@ -284,7 +308,7 @@ function renderRestaurants() {
     meta.className = "restaurant-meta";
     const open = document.createElement("span");
     open.className = "open-badge";
-    open.textContent = restaurant.isOpen ? "Open now" : "Closed";
+    open.textContent = restaurant.isOpen ? "Open now" : restaurant.openingHours ? "Closed · check hours" : "Closed";
     open.classList.toggle("closed-badge", !restaurant.isOpen);
     const delivery = document.createElement("span");
     delivery.className = "restaurant-food-tag";
@@ -295,6 +319,12 @@ function renderRestaurants() {
     const restaurantCuisine = restaurant.cuisine || restaurant.cuisines?.[0] || "other";
     cuisineTag.textContent = cuisineLabels[restaurantCuisine] || "Local favourites";
     meta.append(open, delivery, cuisineTag);
+    if (restaurant.ratingCount || restaurant.deliveryAreas?.length || restaurant.deliveryPincodes?.length) {
+      const trust = document.createElement("span");
+      trust.className = "restaurant-trust-tag";
+      trust.textContent = restaurant.ratingCount >= 10 ? "Popular with locals" : restaurant.ratingCount ? "Rated by customers" : "Area coverage listed";
+      meta.append(trust);
+    }
 
     const identity = document.createElement("div");
     identity.className = "restaurant-cover-info";
