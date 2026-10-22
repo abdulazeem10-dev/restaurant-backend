@@ -131,6 +131,49 @@ function renderOrderProgress(order) {
   return list;
 }
 
+function formatDuration(milliseconds) {
+  const totalMinutes = Math.max(0, Math.round(milliseconds / 60000));
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? `${hours} hr ${minutes} min` : `${hours} hr`;
+}
+
+function renderOrderTiming(order) {
+  const details = document.createElement("details");
+  details.className = "order-timing-dropdown";
+  const summary = document.createElement("summary");
+  summary.textContent = "View order timing";
+  details.append(summary);
+  const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+  const findTime = statuses => history.find(event => statuses.includes(event.status))?.at;
+  const placedAt = findTime(["placed", "confirmed"]) || order.createdAt;
+  const preparingAt = findTime(["preparing"]);
+  const readyAt = findTime(["ready"]);
+  const deliveryAt = findTime(["out_for_delivery", "picked_up"]);
+  const deliveredAt = findTime(["delivered"]);
+  const duration = (from, to) => from && to ? formatDuration(new Date(to).getTime() - new Date(from).getTime()) : null;
+  const configuredPrep = Number(order.restaurantId?.prepTimeMinutes);
+  const configuredDelivery = Number(order.restaurantId?.deliveryTimeMinutes);
+  const rows = [
+    ["Order placed", placedAt ? new Date(placedAt).toLocaleString("en-IN") : "—"],
+    ["Preparing", preparingAt ? new Date(preparingAt).toLocaleString("en-IN") : order.status === "awaiting_payment" ? "Waiting for payment" : "Not started yet"],
+    ["Ready for pickup", readyAt ? new Date(readyAt).toLocaleString("en-IN") : "Not recorded yet"],
+    ["Out for delivery", deliveryAt ? new Date(deliveryAt).toLocaleString("en-IN") : "Not recorded yet"],
+    ["Delivered", deliveredAt ? new Date(deliveredAt).toLocaleString("en-IN") : "Not delivered yet"]
+  ];
+  const list = document.createElement("dl");
+  list.className = "order-timing-list";
+  rows.forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = label; const description = document.createElement("dd"); description.textContent = value; list.append(term, description); });
+  const estimate = document.createElement("p");
+  estimate.className = "order-timing-estimate";
+  const preparationTime = duration(placedAt, preparingAt) || (Number.isFinite(configuredPrep) ? `about ${configuredPrep} min` : "not available yet");
+  const deliveryTime = duration(deliveryAt || readyAt, deliveredAt) || (Number.isFinite(configuredDelivery) ? `about ${configuredDelivery} min` : "not available yet");
+  estimate.textContent = `Preparation time: ${preparationTime} · Delivery time: ${deliveryTime}`;
+  details.append(list, estimate);
+  return details;
+}
+
 async function reorder(order, button) {
   button.disabled = true;
   errorRoot.textContent = "Checking the restaurant’s current menu…";
@@ -364,6 +407,7 @@ function renderOrders(orders) {
       card.append(pending);
     }
     card.append(renderOrderProgress(order));
+    card.append(renderOrderTiming(order));
     renderOrderHelp(order, card);
     if (order.customerReceivedAt) {
       const received = document.createElement("p");

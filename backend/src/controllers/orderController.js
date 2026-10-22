@@ -122,7 +122,7 @@ async function findLeastBusyDeliveryPartner(excludedIds = []) {
 }
 
 async function listMyOrders(req, res) {
-  const orders = await Order.find({ customerId: req.user._id }).populate("restaurantId", "name address").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
+  const orders = await Order.find({ customerId: req.user._id }).populate("restaurantId", "name address prepTimeMinutes deliveryTimeMinutes").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   const reviews = await Review.find({ customerId: req.user._id, orderId: { $in: orders.map(order => order._id) } }).select("orderId rating");
   const reviewByOrder = new Map(reviews.map(review => [String(review.orderId), review]));
   return res.json({ orders: orders.map(order => ({ ...order.toObject(), review: reviewByOrder.get(String(order._id)) || null })) });
