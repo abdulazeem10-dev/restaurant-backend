@@ -369,3 +369,7 @@
 @media (prefers-reduced-motion: reduce) {
   .customer-page .restaurant-cover.has-image img { transition: none; }
 }
+
+/* Keep the restaurant rail scrollable without showing a scrollbar. */
+.customer-page .restaurant-grid { scrollbar-width: none; -ms-overflow-style: none; }
+.customer-page .restaurant-grid::-webkit-scrollbar { display: none; }
