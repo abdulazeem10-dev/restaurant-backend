@@ -47,7 +47,15 @@
 
     <section class="home-food-filters" aria-label="Restaurant filters">
       <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
-      <div class="home-filter-group"><span>Budget</span><div class="budget-filters" role="group" aria-label="Filter restaurants by dish price"><button type="button" data-budget-filter="all" aria-pressed="true">Any price</button><button type="button" data-budget-filter="99" aria-pressed="false">Under ₹99</button><button type="button" data-budget-filter="299" aria-pressed="false">Under ₹299</button></div></div>
+    </section>
+
+    <section class="budget-discovery" aria-labelledby="budget-discovery-title">
+      <div class="budget-discovery-copy"><p class="eyebrow">GOOD FOOD, GOOD VALUE</p><h2 id="budget-discovery-title">Find a bite for your budget</h2><p>Explore real menu prices from nearby kitchens.</p></div>
+      <div class="budget-discovery-options" role="group" aria-label="Set a maximum dish price">
+        <button class="budget-tile" type="button" data-budget-filter="99" aria-pressed="false"><span class="budget-tile-price">₹99</span><span class="budget-tile-copy"><strong>Meals under ₹99</strong><small>View budget-friendly dishes</small></span><span class="budget-tile-arrow" aria-hidden="true">→</span></button>
+        <button class="budget-tile budget-tile-featured" type="button" data-budget-filter="299" aria-pressed="false"><span class="budget-tile-price">₹299</span><span class="budget-tile-copy"><strong>Meals under ₹299</strong><small>Explore more local favourites</small></span><span class="budget-tile-arrow" aria-hidden="true">→</span></button>
+        <button class="budget-reset" type="button" data-budget-filter="all" aria-pressed="true">All budgets</button>
+      </div>
     </section>
 
     <section class="cuisine-section" aria-labelledby="cuisine-title">

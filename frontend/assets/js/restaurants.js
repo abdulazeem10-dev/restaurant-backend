@@ -363,6 +363,7 @@ quickFoodFilters.forEach(button => button.addEventListener("click", () => {
 budgetFilters.forEach(button => button.addEventListener("click", () => {
   selectedBudgetFilter = button.dataset.budgetFilter;
   renderRestaurants();
+  document.querySelector("#restaurant-listing").scrollIntoView({ behavior: "smooth", block: "start" });
 }));
 cuisineFilters.forEach(button => button.addEventListener("click", () => {
   selectedCuisineFilter = button.dataset.cuisineFilter;

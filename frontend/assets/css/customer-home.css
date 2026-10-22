@@ -48,7 +48,7 @@
 
 .customer-page .home-food-filters {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: .85rem 1.2rem;
   margin: 1.1rem 0 0;
@@ -79,6 +79,35 @@
 .customer-page .budget-filters button[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
 .customer-page .home-food-filters [data-quick-food="veg"] span { color: #328252; }
 .customer-page .home-food-filters [data-quick-food="nonVeg"] span { color: #ba4537; }
+
+.customer-page .budget-discovery {
+  display: grid;
+  grid-template-columns: minmax(215px, .8fr) minmax(0, 1.7fr);
+  align-items: center;
+  gap: 1.2rem;
+  margin: 1rem 0 1.35rem;
+  padding: 1.2rem 1.35rem;
+  overflow: hidden;
+  border: 1px solid #dce5d7;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at 100% 0%, #e4eedc 0%, transparent 42%), linear-gradient(110deg, #f3f7ef, #fffaf0);
+}
+.customer-page .budget-discovery-copy .eyebrow { margin: 0 0 .3rem; color: var(--foodway-green); }
+.customer-page .budget-discovery-copy h2 { margin: 0; font-size: clamp(1.2rem, 2.1vw, 1.65rem); letter-spacing: -.04em; }
+.customer-page .budget-discovery-copy > p:last-child { margin: .3rem 0 0; color: var(--foodway-muted); font-size: .87rem; }
+.customer-page .budget-discovery-options { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: stretch; gap: .65rem; }
+.customer-page .budget-tile { display: grid; grid-template-columns: 52px minmax(0, 1fr) 20px; align-items: center; gap: .65rem; min-width: 0; min-height: 76px; padding: .75rem .85rem; border: 1px solid #e2e5dc; border-radius: 15px; background: #fff; color: var(--foodway-ink); text-align: left; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.customer-page .budget-tile:hover { transform: translateY(-2px); border-color: #c4d4bb; box-shadow: 0 8px 18px #183c2c12; }
+.customer-page .budget-tile[aria-pressed="true"] { border-color: #9eb394; box-shadow: inset 0 0 0 1px #9eb394; }
+.customer-page .budget-tile-price { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 50%; background: #fff0cf; color: #8b5715; font-size: 1rem; font-weight: 850; letter-spacing: -.04em; }
+.customer-page .budget-tile-featured .budget-tile-price { background: #e6f0df; color: var(--foodway-green); }
+.customer-page .budget-tile-copy { display: grid; gap: .2rem; min-width: 0; }
+.customer-page .budget-tile-copy strong { overflow: hidden; font-size: .88rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .budget-tile-copy small { overflow: hidden; color: var(--foodway-muted); font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .budget-tile-arrow { color: var(--foodway-green); font-size: 1.15rem; font-weight: 750; }
+.customer-page .budget-reset { align-self: center; min-height: 40px; padding: .5rem .65rem; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--foodway-muted); font-size: .76rem; font-weight: 700; white-space: nowrap; }
+.customer-page .budget-reset:hover { border-color: var(--foodway-line); background: #fff; color: var(--foodway-green); }
+.customer-page .budget-reset[aria-pressed="true"] { color: var(--foodway-green); }
 
 .customer-page .cuisine-section {
   margin: 1.3rem 0 1.5rem;
@@ -194,6 +223,18 @@
   .customer-page .budget-filters { width: 100%; flex-wrap: nowrap; }
   .customer-page .home-food-filters .quick-food-filters button,
   .customer-page .budget-filters button { flex: 1 1 auto; min-height: 37px; padding-inline: .38rem; font-size: .75rem; white-space: nowrap; }
+  .customer-page .budget-discovery { grid-template-columns: minmax(0, 1fr); gap: .8rem; margin: .8rem 0 1rem; padding: .9rem .75rem; border-radius: 16px; }
+  .customer-page .budget-discovery-copy .eyebrow { font-size: .62rem; }
+  .customer-page .budget-discovery-copy h2 { font-size: 1.18rem; }
+  .customer-page .budget-discovery-copy > p:last-child { font-size: .78rem; }
+  .customer-page .budget-discovery-options { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .45rem; }
+  .customer-page .budget-tile { grid-template-columns: minmax(0, 1fr) auto; gap: .45rem; min-height: 93px; padding: .6rem; border-radius: 13px; }
+  .customer-page .budget-tile-price { width: 39px; height: 39px; grid-column: 1; grid-row: 1; font-size: .88rem; }
+  .customer-page .budget-tile-copy { grid-column: 1 / -1; grid-row: 2; gap: .1rem; }
+  .customer-page .budget-tile-copy strong { font-size: .76rem; }
+  .customer-page .budget-tile-copy small { font-size: .66rem; }
+  .customer-page .budget-tile-arrow { grid-column: 2; grid-row: 1; }
+  .customer-page .budget-reset { grid-column: 1 / -1; justify-self: center; min-height: 32px; padding-block: .25rem; }
   .customer-page .cuisine-section { margin: .9rem 0 1.15rem; padding: .9rem .65rem .7rem; border-radius: 16px; }
   .customer-page .cuisine-section-heading { align-items: center; margin: 0 .15rem .45rem; }
   .customer-page .cuisine-section-heading .eyebrow { font-size: .62rem; }
