@@ -379,3 +379,9 @@
 .customer-page #restaurants::-webkit-scrollbar,
 .customer-page #restaurants::-webkit-scrollbar-track,
 .customer-page #restaurants::-webkit-scrollbar-thumb { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+
+/* Hide the browser's page-edge scrollbar on the customer homepage; scrolling remains enabled. */
+html.customer-document,
+body.customer-page { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+html.customer-document::-webkit-scrollbar,
+body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
