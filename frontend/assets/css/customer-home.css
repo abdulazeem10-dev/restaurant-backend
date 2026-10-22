@@ -142,6 +142,7 @@
 .customer-page .dish-food-type { grid-column: 1 / -1; width: fit-content; margin-top: .2rem; padding: .2rem .4rem; border-radius: 999px; font-size: .66rem; font-weight: 750; }
 .customer-page .dish-food-type-veg { background: #edf5eb; color: #286144; }
 .customer-page .dish-food-type-nonveg { background: #fff0ed; color: #a53b2f; }
+.customer-page .featured-dishes-empty { align-self: center; margin: 0; color: #706e68; font-size: .95rem; }
 .customer-page .value-strip { margin-top: 1.1rem; box-shadow: 0 7px 22px #20252106; }
 .customer-page .discovery-heading { margin-top: 3rem; }
 .customer-page .discovery-intro h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); }

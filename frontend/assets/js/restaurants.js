@@ -36,6 +36,7 @@ let selectedFoodFilter = "all";
 let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
+let allFeaturedDishes = [];
 
 async function setupHomeAccountNav() {
   if (!getToken()) return;
@@ -111,7 +112,13 @@ function renderFeaturedDishes(dishes = []) {
   const section = document.querySelector(".featured-dishes-section");
   featuredDishesTrack.replaceChildren();
   if (!dishes.length) {
-    section.hidden = true;
+    section.hidden = !allFeaturedDishes.length;
+    if (!section.hidden) {
+      const empty = document.createElement("p");
+      empty.className = "featured-dishes-empty";
+      empty.textContent = `No ${selectedFoodFilter === "veg" ? "Veg" : "Non‑Veg"} dishes are available right now.`;
+      featuredDishesTrack.append(empty);
+    }
     return;
   }
   section.hidden = false;
@@ -328,7 +335,8 @@ async function loadRestaurants() {
     if (!response.ok) throw new Error("Unable to load restaurants");
     const data = await response.json();
     allRestaurants = data.restaurants || [];
-    renderFeaturedDishes(data.featuredDishes || []);
+    allFeaturedDishes = data.featuredDishes || [];
+    renderFeaturedDishes(allFeaturedDishes);
     restaurantGrid.setAttribute("aria-busy", "false");
     renderRestaurants();
     error.textContent = "";
@@ -358,6 +366,9 @@ sortSelect.addEventListener("change", renderRestaurants);
 deliveryPincodeFilter.addEventListener("input", renderRestaurants);
 quickFoodFilters.forEach(button => button.addEventListener("click", () => {
   selectedFoodFilter = button.dataset.quickFood;
+  renderFeaturedDishes(selectedFoodFilter === "all"
+    ? allFeaturedDishes
+    : allFeaturedDishes.filter(dish => dish.foodType === selectedFoodFilter));
   renderRestaurants();
 }));
 budgetFilters.forEach(button => button.addEventListener("click", () => {
@@ -389,6 +400,7 @@ clearFiltersButton.addEventListener("click", () => {
   selectedBudgetFilter = "all";
   selectedCuisineFilter = "all";
   sortSelect.value = "name";
+  renderFeaturedDishes(allFeaturedDishes);
   renderRestaurants();
   searchInput.focus();
 });
