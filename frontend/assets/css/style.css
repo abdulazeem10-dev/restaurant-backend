@@ -975,7 +975,7 @@ body { color: var(--ink); text-rendering: optimizeLegibility; -webkit-font-smoot
   .storefront-hero { grid-template-columns: minmax(0, 1fr); }
   .storefront-art { min-height: 170px; }
   .menu-layout { grid-template-columns: minmax(0, 1fr); }
-  .menu-cart-card { position: static; order: -1; }
+  .menu-cart-card { position: static; order: 1; }
   .cart-checkout, .payment-summary { position: static; }
   .admin-shell, .restaurant-shell { padding-inline: .85rem; }
   .admin-page-heading, .restaurant-page-heading { align-items: flex-start; }

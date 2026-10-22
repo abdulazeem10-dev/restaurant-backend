@@ -33,13 +33,16 @@ function showPaymentError(message) {
 }
 
 function selectedPaymentMethod() {
-  return document.querySelector('input[name="paymentMethod"]:checked')?.value || "cash_on_delivery";
+  return document.querySelector('input[name="paymentMethod"]:checked:not(:disabled)')?.value || "cash_on_delivery";
 }
 
 function updatePaymentChoice() {
   const method = selectedPaymentMethod();
   sessionStorage.setItem("food-platform-payment-method", method);
-  paymentChoices.forEach(choice => choice.classList.toggle("payment-option-selected", choice.querySelector("input")?.checked));
+  paymentChoices.forEach(choice => {
+    const input = choice.querySelector("input");
+    choice.classList.toggle("payment-option-selected", Boolean(input?.checked && !input.disabled));
+  });
   const online = method === "online";
   document.querySelector("#payment-total-label").textContent = "Order total";
   document.querySelector("#payment-security-note").textContent = online
@@ -137,7 +140,10 @@ confirmOrderButton.addEventListener("click", async () => {
 });
 
 const savedPaymentMethod = sessionStorage.getItem("food-platform-payment-method");
-if (savedPaymentMethod && paymentChoices.some(choice => choice.querySelector("input")?.value === savedPaymentMethod)) {
+if (savedPaymentMethod && paymentChoices.some(choice => {
+  const input = choice.querySelector("input");
+  return input?.value === savedPaymentMethod && !input.disabled;
+})) {
   document.querySelector(`input[name="paymentMethod"][value="${savedPaymentMethod}"]`).checked = true;
 }
 paymentChoices.forEach(choice => choice.querySelector("input").addEventListener("change", updatePaymentChoice));

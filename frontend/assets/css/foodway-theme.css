@@ -118,3 +118,22 @@ body { color: var(--foodway-ink); }
   .delivery-area-row { grid-template-columns: minmax(0, 1fr); }
   .delivery-area-remove { justify-self: start; }
 }
+
+/* A compact sense of progress through menu and checkout. */
+.customer-page .checkout-progress { margin: .5rem 0 1.25rem; }
+.customer-page .checkout-progress ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.customer-page .checkout-progress li { display: flex; min-width: 0; align-items: center; gap: .55rem; color: var(--foodway-muted); font-size: .84rem; font-weight: 650; }
+.customer-page .checkout-progress-number { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 1px solid var(--foodway-line); border-radius: 50%; background: #fff; color: var(--foodway-muted); font-size: .75rem; font-weight: 800; }
+.customer-page .checkout-progress li.is-complete { color: var(--foodway-green); }
+.customer-page .checkout-progress li.is-complete .checkout-progress-number { border-color: #c9d8c2; background: #edf3e8; color: var(--foodway-green); }
+.customer-page .checkout-progress li.is-current { color: var(--foodway-ink); }
+.customer-page .checkout-progress li.is-current .checkout-progress-number { border-color: var(--foodway-green); background: var(--foodway-green); color: #fff; box-shadow: 0 0 0 3px #173d3214; }
+.customer-page .payment-option-unavailable { cursor: not-allowed; background: #f8f8f5; }
+.customer-page .payment-option-unavailable input { cursor: not-allowed; }
+.customer-page .payment-option-status { flex: 0 0 auto; padding: .3rem .5rem; border-radius: 999px; background: #f1f1ed; color: #5f6b63; font-size: .68rem; font-weight: 750; }
+.customer-page .menu-cart-card { order: 1; }
+@media (max-width: 680px) {
+  .customer-page .checkout-progress ol { gap: .25rem; }
+  .customer-page .checkout-progress li { align-items: flex-start; flex-direction: column; gap: .3rem; font-size: .72rem; line-height: 1.25; }
+  .customer-page .payment-option-status { max-width: 80px; white-space: normal; text-align: center; }
+}

@@ -120,11 +120,13 @@ function renderCart() {
     empty.append(icon, title, message, link);
     linesRoot.append(empty);
     checkoutForm.hidden = true;
+    document.querySelector(".checkout-progress").hidden = true;
     document.querySelector("#total").replaceChildren();
     return;
   }
 
   checkoutForm.hidden = false;
+  document.querySelector(".checkout-progress").hidden = false;
   let total = 0;
   for (const item of cart.items) {
     total += item.pricePaise * item.quantity;

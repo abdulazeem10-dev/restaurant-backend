@@ -19,6 +19,13 @@
       <div><p class="eyebrow">ONE LAST STEP</p><h1>Choose how to pay</h1><p class="muted">Review your delivery details and payment method.</p></div>
       <a class="back-link" href="cart.html">← Edit your order</a>
     </div>
+    <nav class="checkout-progress" aria-label="Order progress">
+      <ol>
+        <li class="is-complete"><span class="checkout-progress-number">✓</span><span>Choose dishes</span></li>
+        <li class="is-complete"><span class="checkout-progress-number">✓</span><span>Delivery details</span></li>
+        <li class="is-current" aria-current="step"><span class="checkout-progress-number">3</span><span>Payment</span></li>
+      </ol>
+    </nav>
     <p id="payment-error" class="error-message" role="alert"></p>
 
     <div class="payment-layout">
@@ -31,19 +38,19 @@
           <span class="payment-option-copy"><strong>Cash on delivery</strong><small>Pay the delivery partner when your order arrives.</small></span>
           <span class="payment-option-check" aria-hidden="true">✓</span>
         </label>
-        <label class="payment-option" data-payment-choice id="online-payment-choice">
-          <input type="radio" name="paymentMethod" value="online">
+        <label class="payment-option payment-option-unavailable" data-payment-choice id="online-payment-choice" aria-disabled="true">
+          <input type="radio" name="paymentMethod" value="online" disabled>
           <span class="payment-option-icon" aria-hidden="true">💳</span>
-          <span class="payment-option-copy"><strong>Online payment preference</strong><small>Tell the restaurant how you would prefer to pay. This does not charge you.</small></span>
-          <span class="payment-option-check" aria-hidden="true">✓</span>
+          <span class="payment-option-copy"><strong>Online payment</strong><small>Online payment is not available yet. Choose cash on delivery for this order.</small></span>
+          <span class="payment-option-status">Coming soon</span>
         </label>
-        <label class="payment-option" data-payment-choice id="upi-qr-choice">
-          <input type="radio" name="paymentMethod" value="upi_qr">
+        <label class="payment-option payment-option-unavailable" data-payment-choice id="upi-qr-choice" aria-disabled="true">
+          <input type="radio" name="paymentMethod" value="upi_qr" disabled>
           <span class="payment-option-icon" aria-hidden="true">▦</span>
-          <span class="payment-option-copy"><strong>UPI QR preference</strong><small>No QR code is generated; payment is not collected online.</small></span>
-          <span class="payment-option-check" aria-hidden="true">✓</span>
+          <span class="payment-option-copy"><strong>UPI QR</strong><small>A QR code cannot be generated yet.</small></span>
+          <span class="payment-option-status">Coming soon</span>
         </label>
-        <p class="payment-security-note" id="payment-security-note">Choose how you prefer to pay. This order form does not collect online payments.</p>
+        <p class="payment-security-note" id="payment-security-note">Pay the delivery partner when your order arrives. Online payment is not available yet.</p>
       </section>
 
       <aside class="panel payment-summary" aria-label="Order summary">
