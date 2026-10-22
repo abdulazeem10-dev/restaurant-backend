@@ -206,7 +206,6 @@ function renderRestaurants() {
   });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
-  restaurantGrid.scrollLeft = 0;
   restaurantGrid.replaceChildren();
   const openCount = matches.filter(restaurant => restaurant.isOpen).length;
   const activeBudgetLabel = selectedBudgetFilter === "all" ? "" : ` · Dishes under ₹${selectedBudgetFilter}`;
@@ -323,6 +322,7 @@ function renderRestaurants() {
     empty.append(icon, title, message);
     restaurantGrid.append(empty);
   }
+  restaurantGrid.scrollTo({ left: 0, top: 0, behavior: "instant" });
 }
 
 async function loadRestaurants() {
