@@ -5,8 +5,10 @@ const deliveryPincodeFilter = document.querySelector("#delivery-pincode-filter")
 const resultCount = document.querySelector("#results-count");
 const clearFiltersButton = document.querySelector("#clear-filters");
 const quickFoodFilters = [...document.querySelectorAll("[data-quick-food]")];
+const budgetFilters = [...document.querySelectorAll("[data-budget-filter]")];
 const cuisineFilters = [...document.querySelectorAll("[data-cuisine-filter]")];
 const cuisineTrack = document.querySelector("#cuisine-track");
+const featuredDishesTrack = document.querySelector("#featured-dishes-track");
 const cuisineImageFiles = Object.freeze({
   "north-indian": "north-indian.webp",
   pizza: "pizza.webp",
@@ -31,6 +33,7 @@ const cuisineLabels = Object.freeze({
   salads: "Salads", other: "Local favourites"
 });
 let selectedFoodFilter = "all";
+let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
 
@@ -104,14 +107,66 @@ function getCuisineImage(restaurant) {
   return `../assets/images/cuisines/${cuisineImageFiles[cuisine]}`;
 }
 
+function renderFeaturedDishes(dishes = []) {
+  const section = document.querySelector(".featured-dishes-section");
+  featuredDishesTrack.replaceChildren();
+  if (!dishes.length) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+  for (const dish of dishes) {
+    const card = document.createElement("a");
+    card.className = "featured-dish-card";
+    card.href = `menu.html?id=${encodeURIComponent(dish.restaurantId)}`;
+    card.setAttribute("aria-label", `View ${dish.name} from ${dish.restaurantName}, ${formatRupees(dish.pricePaise)}`);
+    const imageWrap = document.createElement("div");
+    imageWrap.className = "featured-dish-image-wrap";
+    const image = document.createElement("img");
+    const fallbackImage = getCuisineImage({ cuisine: dish.cuisine });
+    let showingFallback = !dish.imageUrl;
+    image.src = dish.imageUrl || fallbackImage;
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.addEventListener("error", () => {
+      if (!showingFallback) {
+        showingFallback = true;
+        image.src = fallbackImage;
+      } else {
+        imageWrap.classList.add("featured-dish-image-missing");
+        image.remove();
+      }
+    });
+    imageWrap.append(image);
+    const details = document.createElement("div");
+    details.className = "featured-dish-details";
+    const name = document.createElement("h3");
+    name.textContent = dish.name;
+    const price = document.createElement("strong");
+    price.textContent = formatRupees(dish.pricePaise);
+    const restaurant = document.createElement("span");
+    restaurant.textContent = dish.restaurantName;
+    const type = document.createElement("small");
+    type.className = dish.foodType === "veg" ? "dish-food-type dish-food-type-veg" : "dish-food-type dish-food-type-nonveg";
+    type.textContent = dish.foodType === "veg" ? "Veg" : "Non‑Veg";
+    details.append(name, price, restaurant, type);
+    card.append(imageWrap, details);
+    featuredDishesTrack.append(card);
+  }
+}
+
 function renderRestaurants() {
   const term = searchInput.value.trim().toLocaleLowerCase();
   const pin = deliveryPincodeFilter.value.trim();
   const hasCompletePin = /^\d{6}$/.test(pin);
-  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || selectedCuisineFilter !== "all" || sortSelect.value !== "name");
+  const hasActiveFilters = Boolean(term || pin || selectedFoodFilter !== "all" || selectedBudgetFilter !== "all" || selectedCuisineFilter !== "all" || sortSelect.value !== "name");
   clearFiltersButton.hidden = !hasActiveFilters;
   quickFoodFilters.forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.quickFood === selectedFoodFilter));
+  });
+  budgetFilters.forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.budgetFilter === selectedBudgetFilter));
   });
   cuisineFilters.forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.cuisineFilter === selectedCuisineFilter));
@@ -128,18 +183,22 @@ function renderRestaurants() {
     const foodTypeMatches = selectedFoodFilter === "all"
       || foodType === selectedFoodFilter
       || (selectedFoodFilter === "nonVeg" && foodType === "both");
+    const maxPricePaise = selectedBudgetFilter === "all" ? null : Number(selectedBudgetFilter) * 100;
+    const budgetMatches = maxPricePaise === null
+      || (Number.isFinite(restaurant.lowestPricePaise) && restaurant.lowestPricePaise <= maxPricePaise);
     const restaurantCuisines = Array.isArray(restaurant.cuisines) && restaurant.cuisines.length
       ? restaurant.cuisines
       : [restaurant.cuisine || "other"];
     const cuisineMatches = selectedCuisineFilter === "all" || restaurantCuisines.includes(selectedCuisineFilter);
     const pinMatches = !hasCompletePin || (restaurant.deliveryPincodes || []).includes(pin);
-    return searchMatches && foodTypeMatches && cuisineMatches && pinMatches;
+    return searchMatches && foodTypeMatches && budgetMatches && cuisineMatches && pinMatches;
   });
   matches.sort((a, b) => sortSelect.value === "name-desc" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name));
 
   restaurantGrid.replaceChildren();
   const openCount = matches.filter(restaurant => restaurant.isOpen).length;
-  resultCount.textContent = `${openCount} open now · ${matches.length} ${matches.length === 1 ? "restaurant" : "restaurants"}${pin && !hasCompletePin ? " · Enter a complete 6-digit PIN to filter delivery areas" : ""}`;
+  const activeBudgetLabel = selectedBudgetFilter === "all" ? "" : ` · Dishes under ₹${selectedBudgetFilter}`;
+  resultCount.textContent = `${openCount} open now · ${matches.length} ${matches.length === 1 ? "restaurant" : "restaurants"}${activeBudgetLabel}${pin && !hasCompletePin ? " · Enter a complete 6-digit PIN to filter delivery areas" : ""}`;
   for (const [index, restaurant] of matches.entries()) {
     const card = document.createElement("article");
     card.className = "restaurant-card";
@@ -235,6 +294,8 @@ function renderRestaurants() {
       title.textContent = "No restaurants found";
       message.textContent = hasCompletePin
         ? `No listed restaurants deliver to PIN ${pin}. Try another PIN code.`
+        : selectedBudgetFilter !== "all"
+          ? `No restaurants have available dishes under ₹${selectedBudgetFilter} with these filters. Try another budget or clear filters.`
         : selectedCuisineFilter !== "all"
           ? `No ${selectedCuisineFilter.replaceAll("-", " ")} restaurants match. Try another cuisine or clear filters.`
         : selectedFoodFilter === "all"
@@ -267,6 +328,7 @@ async function loadRestaurants() {
     if (!response.ok) throw new Error("Unable to load restaurants");
     const data = await response.json();
     allRestaurants = data.restaurants || [];
+    renderFeaturedDishes(data.featuredDishes || []);
     restaurantGrid.setAttribute("aria-busy", "false");
     renderRestaurants();
     error.textContent = "";
@@ -298,6 +360,10 @@ quickFoodFilters.forEach(button => button.addEventListener("click", () => {
   selectedFoodFilter = button.dataset.quickFood;
   renderRestaurants();
 }));
+budgetFilters.forEach(button => button.addEventListener("click", () => {
+  selectedBudgetFilter = button.dataset.budgetFilter;
+  renderRestaurants();
+}));
 cuisineFilters.forEach(button => button.addEventListener("click", () => {
   selectedCuisineFilter = button.dataset.cuisineFilter;
   renderRestaurants();
@@ -309,10 +375,17 @@ document.querySelector("#cuisine-scroll-left").addEventListener("click", () => {
 document.querySelector("#cuisine-scroll-right").addEventListener("click", () => {
   cuisineTrack.scrollBy({ left: Math.max(280, cuisineTrack.clientWidth * .75), behavior: "smooth" });
 });
+document.querySelector("#food-scroll-left").addEventListener("click", () => {
+  featuredDishesTrack.scrollBy({ left: -Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" });
+});
+document.querySelector("#food-scroll-right").addEventListener("click", () => {
+  featuredDishesTrack.scrollBy({ left: Math.max(260, featuredDishesTrack.clientWidth * .75), behavior: "smooth" });
+});
 clearFiltersButton.addEventListener("click", () => {
   searchInput.value = "";
   deliveryPincodeFilter.value = "";
   selectedFoodFilter = "all";
+  selectedBudgetFilter = "all";
   selectedCuisineFilter = "all";
   sortSelect.value = "name";
   renderRestaurants();

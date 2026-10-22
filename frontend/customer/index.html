@@ -45,7 +45,10 @@
       <div class="hero-art" aria-hidden="true"><img class="hero-food-image" src="../assets/images/foodway-thali-hero.jpg" alt="" fetchpriority="high"></div>
     </section>
 
-    <section class="home-food-filters" aria-label="Quick food preference filters"><span>I'm looking for</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></section>
+    <section class="home-food-filters" aria-label="Restaurant filters">
+      <div class="home-filter-group"><span>Food preference</span><div class="quick-food-filters" role="group" aria-label="Filter restaurants by food preference"><button type="button" data-quick-food="all" aria-pressed="true">All restaurants</button><button type="button" data-quick-food="veg" aria-pressed="false"><span aria-hidden="true">●</span> Veg only</button><button type="button" data-quick-food="nonVeg" aria-pressed="false"><span aria-hidden="true">●</span> Non‑Veg</button></div></div>
+      <div class="home-filter-group"><span>Budget</span><div class="budget-filters" role="group" aria-label="Filter restaurants by dish price"><button type="button" data-budget-filter="all" aria-pressed="true">Any price</button><button type="button" data-budget-filter="99" aria-pressed="false">Under ₹99</button><button type="button" data-budget-filter="299" aria-pressed="false">Under ₹299</button></div></div>
+    </section>
 
     <section class="cuisine-section" aria-labelledby="cuisine-title">
       <div class="cuisine-section-heading">
@@ -73,6 +76,14 @@
         <button class="cuisine-option" type="button" data-cuisine-filter="salads" aria-pressed="false"><span class="cuisine-art" aria-hidden="true"><img src="../assets/images/cuisines/salads.webp" alt="" loading="lazy" decoding="async"></span><span>Salads</span></button>
         <button class="cuisine-option" type="button" data-cuisine-filter="other" aria-pressed="false"><span class="cuisine-art" aria-hidden="true"><img src="../assets/images/cuisines/other.webp" alt="" loading="lazy" decoding="async"></span><span>Other</span></button>
       </div>
+    </section>
+
+    <section class="featured-dishes-section" aria-labelledby="featured-dishes-title" hidden>
+      <div class="featured-dishes-heading">
+        <div><p class="eyebrow">FRESH FROM LOCAL MENUS</p><h2 id="featured-dishes-title">Dishes to explore</h2></div>
+        <div class="featured-dishes-controls" aria-label="Food carousel controls"><button id="food-scroll-left" type="button" aria-label="Scroll dishes left">←</button><button id="food-scroll-right" type="button" aria-label="Scroll dishes right">→</button></div>
+      </div>
+      <div id="featured-dishes-track" class="featured-dishes-track" aria-live="polite" aria-label="Available dishes from local restaurants"></div>
     </section>
 
     <section class="value-strip" aria-label="Why order with Foodway">

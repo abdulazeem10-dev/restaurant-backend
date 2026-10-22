@@ -92,22 +92,47 @@ async function listRestaurants(req, res) {
   const ratingByRestaurant = new Map(ratingStats.map(stats => [String(stats._id), stats]));
   const menuCategories = await MenuItem.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true } },
-    { $group: { _id: "$restaurantId", categories: { $addToSet: "$category" } } }
+    { $group: {
+      _id: "$restaurantId",
+      categories: { $addToSet: "$category" },
+      lowestPricePaise: { $min: "$pricePaise" }
+    } }
   ]);
+  const featuredItems = await MenuItem.find({ restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true })
+    .select("name imageUrl pricePaise category foodType restaurantId")
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(32)
+    .lean();
   const cuisinesByRestaurant = new Map(menuCategories.map(({ _id, categories }) => [
     String(_id), [...new Set(categories.map(cuisineForMenuCategory).filter(Boolean))]
   ]));
+  const lowestPriceByRestaurant = new Map(menuCategories.map(({ _id, lowestPricePaise }) => [String(_id), lowestPricePaise]));
+  const restaurantById = new Map(restaurants.map(restaurant => [String(restaurant._id), restaurant]));
 
-  return res.json({ restaurants: restaurants.map(restaurant => ({
+  return res.json({
+    restaurants: restaurants.map(restaurant => ({
     ...restaurant,
     cuisines: [...new Set([
       ...(cuisinesByRestaurant.get(String(restaurant._id)) || []),
       ...(restaurant.cuisine && restaurant.cuisine !== "other" ? [restaurant.cuisine] : [])
     ])],
+    lowestPricePaise: lowestPriceByRestaurant.get(String(restaurant._id)) ?? null,
     isOpen: isRestaurantOpenNow(restaurant),
     ratingAverage: ratingByRestaurant.get(String(restaurant._id))?.ratingAverage || 0,
     ratingCount: ratingByRestaurant.get(String(restaurant._id))?.ratingCount || 0
-  })) });
+    })),
+    featuredDishes: featuredItems.map(item => ({
+      _id: item._id,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      pricePaise: item.pricePaise,
+      category: item.category,
+      foodType: item.foodType,
+      restaurantId: item.restaurantId,
+      restaurantName: restaurantById.get(String(item.restaurantId))?.name || "Local restaurant",
+      cuisine: cuisineForMenuCategory(item.category) || "other"
+    }))
+  });
 }
 
 async function getRestaurant(req, res) {

@@ -47,10 +47,10 @@
 .customer-page .hero-food-note { display: none; }
 
 .customer-page .home-food-filters {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: .85rem 1.2rem;
   margin: 1.1rem 0 0;
   padding: .65rem 1rem;
   border: 1px solid var(--foodway-line);
@@ -58,16 +58,25 @@
   background: #fff;
   box-shadow: 0 7px 22px #20252107;
 }
-.customer-page .home-food-filters > span {
+.customer-page .home-filter-group {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: .7rem;
+}
+.customer-page .home-filter-group > span {
   flex: 0 0 auto;
   color: var(--foodway-muted);
   font-size: .78rem;
   font-weight: 750;
   letter-spacing: .045em;
 }
-.customer-page .home-food-filters .quick-food-filters { align-items: center; gap: .45rem; margin: 0; }
-.customer-page .home-food-filters .quick-food-filters button { min-height: 40px; padding: .5rem .9rem; border-color: #e6e9e1; background: #fff; color: #435047; }
-.customer-page .home-food-filters .quick-food-filters button[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
+.customer-page .home-food-filters .quick-food-filters,
+.customer-page .budget-filters { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; min-width: 0; margin: 0; }
+.customer-page .home-food-filters .quick-food-filters button,
+.customer-page .budget-filters button { min-height: 40px; padding: .5rem .8rem; border-color: #e6e9e1; background: #fff; color: #435047; white-space: nowrap; }
+.customer-page .home-food-filters .quick-food-filters button[aria-pressed="true"],
+.customer-page .budget-filters button[aria-pressed="true"] { border-color: #c8d6bd; background: #edf3e8; color: var(--foodway-green); }
 .customer-page .home-food-filters [data-quick-food="veg"] span { color: #328252; }
 .customer-page .home-food-filters [data-quick-food="nonVeg"] span { color: #ba4537; }
 
@@ -82,6 +91,26 @@
 .customer-page .cuisine-track::-webkit-scrollbar { display: none; }
 .customer-page .cuisine-option { min-height: 120px; }
 .customer-page .cuisine-option[aria-pressed="true"] { background: #f2f6ee; }
+.customer-page .featured-dishes-section { margin: 1.2rem 0 1.6rem; padding: 1.15rem 1.25rem 1.1rem; overflow: hidden; border: 1px solid var(--foodway-line); border-radius: 19px; background: #fff; box-shadow: 0 8px 24px #20252106; }
+.customer-page .featured-dishes-section[hidden] { display: none; }
+.customer-page .featured-dishes-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+.customer-page .featured-dishes-heading .eyebrow { margin: 0 0 .25rem; color: var(--foodway-green); }
+.customer-page .featured-dishes-heading h2 { margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.65rem); letter-spacing: -.04em; }
+.customer-page .featured-dishes-controls { display: flex; gap: .45rem; }
+.customer-page .featured-dishes-controls button { display: grid; width: 38px; height: 38px; min-height: 38px; padding: 0; place-items: center; border: 1px solid var(--foodway-line); border-radius: 50%; background: #f3f5f0; color: var(--foodway-ink); font-size: 1.15rem; }
+.customer-page .featured-dishes-track { display: grid; grid-auto-columns: minmax(170px, 220px); grid-auto-flow: column; gap: .75rem; overflow-x: auto; padding: .15rem .05rem .45rem; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #ccd3c7 transparent; }
+.customer-page .featured-dish-card { min-width: 0; overflow: hidden; border: 1px solid #e9e9e2; border-radius: 15px; background: #fff; color: var(--foodway-ink); text-decoration: none; scroll-snap-align: start; transition: transform .18s ease, box-shadow .18s ease; }
+.customer-page .featured-dish-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px #20252112; text-decoration: none; }
+.customer-page .featured-dish-image-wrap { height: 145px; overflow: hidden; background: #f0f2eb; }
+.customer-page .featured-dish-image-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.customer-page .featured-dish-image-missing { background: linear-gradient(145deg, #edf3e8, #f8eee2); }
+.customer-page .featured-dish-details { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .5rem; padding: .75rem .8rem .8rem; }
+.customer-page .featured-dish-details h3 { grid-column: 1 / -1; margin: 0; overflow: hidden; font-size: .95rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .featured-dish-details strong { color: var(--foodway-green); font-size: .88rem; }
+.customer-page .featured-dish-details > span { min-width: 0; overflow: hidden; color: var(--foodway-muted); font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .dish-food-type { grid-column: 1 / -1; width: fit-content; margin-top: .2rem; padding: .2rem .4rem; border-radius: 999px; font-size: .66rem; font-weight: 750; }
+.customer-page .dish-food-type-veg { background: #edf5eb; color: #286144; }
+.customer-page .dish-food-type-nonveg { background: #fff0ed; color: #a53b2f; }
 .customer-page .value-strip { margin-top: 1.1rem; box-shadow: 0 7px 22px #20252106; }
 .customer-page .discovery-heading { margin-top: 3rem; }
 .customer-page .discovery-intro h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); }
@@ -158,10 +187,13 @@
   .customer-page .hero-caption { max-width: 170px; font-size: .72rem; }
   .customer-page .hero-art { inset: auto -7% -8% auto; width: 75%; height: 62%; border-radius: 22px 0 22px 0; opacity: .86; }
   .customer-page .hero-art::after { background: linear-gradient(180deg, #173d3200 20%, #173d325c 100%), linear-gradient(90deg, #173d32 0%, #173d321c 34%, transparent 75%); }
-  .customer-page .home-food-filters { align-items: flex-start; flex-direction: column; gap: .35rem; margin-top: .8rem; padding: .65rem .75rem; }
-  .customer-page .home-food-filters > span { font-size: .68rem; text-transform: uppercase; }
-  .customer-page .home-food-filters .quick-food-filters { width: 100%; flex-wrap: nowrap; }
-  .customer-page .home-food-filters .quick-food-filters button { flex: 1 1 auto; min-height: 38px; padding-inline: .45rem; font-size: .79rem; white-space: nowrap; }
+  .customer-page .home-food-filters { grid-template-columns: minmax(0, 1fr); gap: .55rem; margin-top: .8rem; padding: .65rem .75rem; }
+  .customer-page .home-filter-group { align-items: flex-start; flex-direction: column; gap: .3rem; }
+  .customer-page .home-filter-group > span { font-size: .66rem; text-transform: uppercase; }
+  .customer-page .home-food-filters .quick-food-filters,
+  .customer-page .budget-filters { width: 100%; flex-wrap: nowrap; }
+  .customer-page .home-food-filters .quick-food-filters button,
+  .customer-page .budget-filters button { flex: 1 1 auto; min-height: 37px; padding-inline: .38rem; font-size: .75rem; white-space: nowrap; }
   .customer-page .cuisine-section { margin: .9rem 0 1.15rem; padding: .9rem .65rem .7rem; border-radius: 16px; }
   .customer-page .cuisine-section-heading { align-items: center; margin: 0 .15rem .45rem; }
   .customer-page .cuisine-section-heading .eyebrow { font-size: .62rem; }
@@ -170,6 +202,15 @@
   .customer-page .cuisine-track { grid-auto-columns: 78px; gap: .2rem; padding-bottom: .25rem; }
   .customer-page .cuisine-option { min-height: 100px; padding: .45rem .15rem; gap: .35rem; font-size: .72rem; }
   .customer-page .cuisine-art { width: 62px; height: 62px; flex-basis: 62px; }
+  .customer-page .featured-dishes-section { margin: .85rem 0 1rem; padding: .9rem .65rem .7rem; border-radius: 16px; }
+  .customer-page .featured-dishes-heading { margin: 0 .15rem .55rem; }
+  .customer-page .featured-dishes-heading .eyebrow { font-size: .61rem; }
+  .customer-page .featured-dishes-heading h2 { font-size: 1.14rem; }
+  .customer-page .featured-dishes-controls button { width: 34px; height: 34px; min-height: 34px; }
+  .customer-page .featured-dishes-track { grid-auto-columns: 150px; gap: .55rem; scrollbar-width: none; }
+  .customer-page .featured-dishes-track::-webkit-scrollbar { display: none; }
+  .customer-page .featured-dish-image-wrap { height: 125px; }
+  .customer-page .featured-dish-details { padding: .65rem; }
   .customer-page .value-strip { grid-template-columns: minmax(0, 1fr); margin-top: .85rem; border-radius: 15px; }
   .customer-page .value-strip > div { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: center; min-height: 0; padding: .7rem .85rem; }
   .customer-page .value-strip > div + div { border-top: 1px solid var(--foodway-line); }
@@ -240,7 +281,8 @@
   .customer-page .site-nav .login-link { padding: .42rem .55rem; font-size: .78rem; }
   .customer-page .hero-banner { min-height: 325px; padding: 1.45rem 1rem; }
   .customer-page .hero-copy h1 { font-size: 2.55rem; }
-  .customer-page .home-food-filters .quick-food-filters button { padding-inline: .3rem; font-size: .73rem; }
+  .customer-page .home-food-filters .quick-food-filters button,
+  .customer-page .budget-filters button { padding-inline: .28rem; font-size: .7rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
