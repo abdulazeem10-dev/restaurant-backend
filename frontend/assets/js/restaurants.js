@@ -37,6 +37,22 @@ let selectedBudgetFilter = "all";
 let selectedCuisineFilter = "all";
 let allRestaurants = [];
 let allFeaturedDishes = [];
+const favouriteRestaurantIds = new Set(JSON.parse(localStorage.getItem("foodway-favourite-restaurants") || "[]"));
+
+function saveFavouriteRestaurants() {
+  localStorage.setItem("foodway-favourite-restaurants", JSON.stringify([...favouriteRestaurantIds]));
+}
+
+function renderSearchSuggestions() {
+  const list = document.querySelector("#restaurant-search-suggestions");
+  if (!list) return;
+  const values = allRestaurants.flatMap(restaurant => [restaurant.name, ...(restaurant.deliveryAreas || []).map(area => area.name)]).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).slice(0, 80);
+  list.replaceChildren(...values.map(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    return option;
+  }));
+}
 
 const passportTrail = Object.freeze([
   { key: "sunrise-tiffin", label: "Sunrise Tiffin House", detail: "South Indian breakfast" },
@@ -325,6 +341,24 @@ function renderRestaurants() {
       trust.textContent = restaurant.ratingCount >= 10 ? "Popular with locals" : restaurant.ratingCount ? "Rated by customers" : "Area coverage listed";
       meta.append(trust);
     }
+    const favourite = document.createElement("button");
+    favourite.type = "button";
+    favourite.className = "restaurant-favourite";
+    const restaurantId = String(restaurant._id);
+    const updateFavouriteLabel = () => {
+      const saved = favouriteRestaurantIds.has(restaurantId);
+      favourite.textContent = saved ? "♥" : "♡";
+      favourite.setAttribute("aria-pressed", String(saved));
+      favourite.setAttribute("aria-label", `${saved ? "Remove" : "Save"} ${restaurant.name} ${saved ? "from" : "to"} favourites`);
+    };
+    updateFavouriteLabel();
+    favourite.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (favouriteRestaurantIds.has(restaurantId)) favouriteRestaurantIds.delete(restaurantId); else favouriteRestaurantIds.add(restaurantId);
+      saveFavouriteRestaurants();
+      updateFavouriteLabel();
+    });
 
     const identity = document.createElement("div");
     identity.className = "restaurant-cover-info";
@@ -347,6 +381,7 @@ function renderRestaurants() {
       : "New restaurant, no reviews yet");
     identity.append(rating);
     cover.append(identity);
+    cover.append(favourite);
     const link = document.createElement("a");
     link.className = "card-action";
     link.href = `menu.html?id=${encodeURIComponent(restaurant._id)}`;
@@ -358,6 +393,12 @@ function renderRestaurants() {
       const priceLine = document.createElement("span");
       priceLine.textContent = `From ${formatRupees(restaurant.lowestPricePaise)} per dish`;
       service.append(priceLine);
+    }
+    const deliveryMinutes = Number(restaurant.prepTimeMinutes) + Number(restaurant.deliveryTimeMinutes);
+    if (Number.isFinite(deliveryMinutes) && deliveryMinutes > 0) {
+      const etaLine = document.createElement("span");
+      etaLine.textContent = `Estimated delivery · ${deliveryMinutes} min`;
+      service.append(etaLine);
     }
     if (restaurant.openingHours) {
       const hoursLine = document.createElement("span");
@@ -422,6 +463,7 @@ async function loadRestaurants() {
     const data = await response.json();
     allRestaurants = data.restaurants || [];
     allFeaturedDishes = data.featuredDishes || [];
+    renderSearchSuggestions();
     renderFeaturedDishes(allFeaturedDishes);
     restaurantGrid.setAttribute("aria-busy", "false");
     renderRestaurants();

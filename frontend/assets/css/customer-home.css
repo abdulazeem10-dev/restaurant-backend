@@ -378,6 +378,8 @@
 .customer-page .restaurant-cover-info { position: absolute; z-index: 1; right: .85rem; bottom: .8rem; left: .9rem; display: flex; min-width: 0; align-items: flex-end; justify-content: space-between; gap: .6rem; }
 .customer-page .restaurant-cover-info h3 { min-width: 0; margin: 0; overflow: hidden; color: #fff; font-size: 1.12rem; font-weight: 800; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 6px #0008; }
 .customer-page .restaurant-cover-info .restaurant-rating { flex: 0 0 auto; margin: 0; padding: .25rem .45rem; border-radius: 999px; background: #147c4b; color: #fff; font-size: .75rem; font-weight: 800; }
+.customer-page .restaurant-favourite { position: absolute; z-index: 2; top: .75rem; right: .75rem; display: grid; width: 36px; height: 36px; min-height: 36px; padding: 0; place-items: center; border: 1px solid #ffffff8c; border-radius: 50%; background: #1017138a; color: #fff; font-size: 1.25rem; line-height: 1; backdrop-filter: blur(8px); }
+.customer-page .restaurant-favourite:hover { background: #147c4bdd; }
 .customer-page .restaurant-card-content { display: flex; min-height: 0; flex-direction: column; gap: .55rem; padding: .8rem .9rem .9rem; }
 .customer-page .restaurant-meta { gap: .35rem; }
 .customer-page .restaurant-meta .open-badge, .customer-page .restaurant-food-tag, .customer-page .restaurant-cuisine-tag, .customer-page .restaurant-trust-tag { min-height: 24px; padding: .25rem .45rem; font-size: .67rem; }

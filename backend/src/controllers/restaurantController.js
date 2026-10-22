@@ -83,7 +83,7 @@ async function listRestaurants(req, res) {
     query.deliveryPincodes = req.query.pincode;
   }
   const restaurants = await Restaurant.find(query)
-    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas")
+    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
   const ratingStats = await Review.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
@@ -139,7 +139,7 @@ async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
     status: "approved"
-  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas").lean();
+  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const [stats] = await Review.aggregate([
