@@ -593,7 +593,13 @@ async function loadOrders(force = false) {
       return;
     }
     if (!response.ok) throw new Error(data.error || "Could not load orders");
-    renderOrders(data.orders || []);
+    const orders = data.orders || [];
+    renderOrders(orders);
+    const active = orders.filter(order => !["delivered", "cancelled", "awaiting_payment"].includes(order.status)).length;
+    const delivered = orders.filter(order => order.status === "delivered").length;
+    document.querySelector("#summary-active")?.replaceChildren(document.createTextNode(String(active)));
+    document.querySelector("#summary-delivered")?.replaceChildren(document.createTextNode(String(delivered)));
+    document.querySelector("#summary-total")?.replaceChildren(document.createTextNode(String(orders.length)));
     errorRoot.textContent = "";
     const refreshed = document.querySelector("#order-refresh");
     if (refreshed) refreshed.textContent = `Updated ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · Refreshes every 15 seconds`;
