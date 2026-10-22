@@ -695,6 +695,7 @@ textarea { min-height: unset; }
 .customer-page .notification-item { border-color: var(--foodway-line); border-radius: 12px; }
 .customer-page .notification-item.is-unread { border-color: #cdd9bd; background: #f4f7ef; }
 .customer-page .orders-main { max-width: 1120px; }
+.customer-page .orders-main > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .customer-page .orders-heading { padding: clamp(1.5rem, 4vw, 3rem) 0 1rem; }
 .customer-page .orders-heading h1 { font-size: clamp(2.5rem, 6vw, 4.6rem); }
 .customer-page .notification-panel { padding: clamp(1rem, 2.5vw, 1.5rem); overflow: hidden; }
@@ -718,6 +719,9 @@ textarea { min-height: unset; }
   .customer-page .notification-item { flex-wrap: wrap; }
   .customer-page .notification-item button { margin-left: 1.2rem; }
   .customer-page .order-progress::before { display: none; }
+}
+@media (max-width: 900px) {
+  .customer-page .orders-main > .grid { grid-template-columns: 1fr; }
 }
 .customer-page .orders-signin-state { display: grid; justify-items: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem; border: 1px solid var(--foodway-line); border-radius: 22px; background: linear-gradient(135deg, #fff, #f4f7ef); text-align: center; box-shadow: 0 12px 32px #20252108; }
 .customer-page .orders-signin-icon { display: grid; width: 52px; height: 52px; place-items: center; margin-bottom: .85rem; border-radius: 16px; background: #eaf1e5; color: var(--foodway-green); font-size: 1.6rem; font-weight: 800; }
