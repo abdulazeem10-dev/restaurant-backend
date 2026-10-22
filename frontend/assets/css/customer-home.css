@@ -384,3 +384,17 @@ html.customer-document,
 body.customer-page { scrollbar-width: none !important; -ms-overflow-style: none !important; }
 html.customer-document::-webkit-scrollbar,
 body.customer-page::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* Fit whole cards at common viewport widths so a tiny slice of the next photo never looks like a black bar. */
+@media (min-width: 681px) and (max-width: 799px) {
+  .customer-page .restaurant-grid { grid-auto-columns: calc((100% - 1rem) / 2); }
+}
+@media (min-width: 800px) and (max-width: 1199px) {
+  .customer-page .restaurant-grid { grid-auto-columns: calc((100% - 2rem) / 3); }
+}
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .customer-page .restaurant-grid { grid-auto-columns: calc((100% - 3rem) / 4); }
+}
+@media (min-width: 1500px) {
+  .customer-page .restaurant-grid { grid-auto-columns: calc((100% - 4rem) / 5); }
+}
