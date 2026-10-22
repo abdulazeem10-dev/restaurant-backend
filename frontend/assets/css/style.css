@@ -723,6 +723,12 @@ textarea { min-height: unset; }
 .customer-page .order-timing-list dt { padding-top: .65rem; color: var(--foodway-muted); font-size: .8rem; font-weight: 700; }
 .customer-page .order-timing-list dd { margin: 0; padding-top: .65rem; font-size: .82rem; }
 .customer-page .order-timing-estimate { margin: 0; padding: .8rem 1rem; border-top: 1px solid var(--foodway-line); color: var(--foodway-green); font-size: .86rem; font-weight: 750; }
+.customer-page .order-action-dropdown { margin-top: .75rem; border-top: 1px solid var(--foodway-line); }
+.customer-page .order-action-dropdown summary { cursor: pointer; padding: .75rem 0 .2rem; color: var(--foodway-green); font-size: .85rem; font-weight: 750; list-style: none; }
+.customer-page .order-action-dropdown summary::-webkit-details-marker { display: none; }
+.customer-page .order-action-dropdown summary::after { float: right; content: "＋"; font-size: 1rem; }
+.customer-page .order-action-dropdown[open] summary::after { content: "−"; }
+.customer-page .order-action-dropdown .order-review-form, .customer-page .order-action-dropdown .order-help-form, .customer-page .order-action-dropdown .order-cancel-form { margin-top: .5rem; }
 @media (max-width: 620px) {
   .customer-page .orders-heading { padding-top: 1.25rem; }
   .customer-page .notification-item { flex-wrap: wrap; }

@@ -237,7 +237,12 @@ function renderReview(order, card) {
         button.disabled = false;
       }
     });
-    card.append(form);
+    const reviewDetails = document.createElement("details");
+    reviewDetails.className = "order-action-dropdown";
+    const reviewSummary = document.createElement("summary");
+    reviewSummary.textContent = "Leave a review";
+    reviewDetails.append(reviewSummary, form);
+    card.append(reviewDetails);
   }
 }
 
@@ -269,7 +274,7 @@ function renderOrderHelp(order, card) {
   const cancellable = ["placed", "confirmed", "preparing", "ready"].includes(order.status);
   if (cancellable && order.paymentStatus !== "paid" && cancellation?.status !== "pending") {
     const form = document.createElement("form"); form.className = "order-cancel-form";
-    form.innerHTML = `<h4>Need to cancel?</h4><label>Reason <select name="reason" required><option value="" selected disabled>Choose a reason</option><option value="Ordered by mistake">Ordered by mistake</option><option value="Change of plans">Change of plans</option><option value="Incorrect order">Incorrect order</option><option value="Other">Other</option></select></label><label>More details (optional) <textarea name="details" rows="2" maxlength="500" placeholder="Add a note for the restaurant"></textarea></label><button type="submit" class="secondary">Request cancellation</button>`;
+    form.innerHTML = `<label>Reason <select name="reason" required><option value="" selected disabled>Choose a reason</option><option value="Ordered by mistake">Ordered by mistake</option><option value="Change of plans">Change of plans</option><option value="Incorrect order">Incorrect order</option><option value="Other">Other</option></select></label><label>More details (optional) <textarea name="details" rows="2" maxlength="500" placeholder="Add a note for the restaurant"></textarea></label><button type="submit" class="secondary">Request cancellation</button>`;
     form.addEventListener("submit", async event => {
       event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
       const fields = new FormData(form);
@@ -279,14 +284,19 @@ function renderOrderHelp(order, card) {
         await loadOrders(true);
       } catch (error) { errorRoot.textContent = error.message; button.disabled = false; }
     });
-    card.append(form);
+    const cancelDetails = document.createElement("details");
+    cancelDetails.className = "order-action-dropdown";
+    const cancelSummary = document.createElement("summary");
+    cancelSummary.textContent = "Need to cancel?";
+    cancelDetails.append(cancelSummary, form);
+    card.append(cancelDetails);
   } else if (order.paymentStatus === "paid" && cancellable) {
     const note = document.createElement("p"); note.className = "muted"; note.textContent = "For a paid order, contact support to discuss cancellation and a refund."; card.append(note);
   }
 
   if (order.status !== "awaiting_payment") {
     const form = document.createElement("form"); form.className = "order-help-form";
-    form.innerHTML = `<h4>Need help with this order?</h4><label>Topic <select name="category" required><option value="missing_item">Missing item</option><option value="food_quality">Food quality</option><option value="delivery">Delivery</option><option value="payment">Payment</option><option value="other">Other</option></select></label><label>Describe the issue <textarea name="message" rows="3" minlength="5" maxlength="1000" required placeholder="Tell the restaurant what happened"></textarea></label><button type="submit" class="secondary">Send to restaurant</button>`;
+    form.innerHTML = `<label>Topic <select name="category" required><option value="missing_item">Missing item</option><option value="food_quality">Food quality</option><option value="delivery">Delivery</option><option value="payment">Payment</option><option value="other">Other</option></select></label><label>Describe the issue <textarea name="message" rows="3" minlength="5" maxlength="1000" required placeholder="Tell the restaurant what happened"></textarea></label><button type="submit" class="secondary">Send to restaurant</button>`;
     form.addEventListener("submit", async event => {
       event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
       const fields = new FormData(form);
@@ -296,7 +306,12 @@ function renderOrderHelp(order, card) {
         await loadOrders(true);
       } catch (error) { errorRoot.textContent = error.message; button.disabled = false; }
     });
-    card.append(form);
+    const helpDetails = document.createElement("details");
+    helpDetails.className = "order-action-dropdown";
+    const helpSummary = document.createElement("summary");
+    helpSummary.textContent = "Need help with this order?";
+    helpDetails.append(helpSummary, form);
+    card.append(helpDetails);
   }
 }
 
