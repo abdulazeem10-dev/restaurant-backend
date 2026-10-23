@@ -384,7 +384,7 @@
 .customer-page .restaurant-meta { gap: .35rem; }
 .customer-page .restaurant-meta .open-badge, .customer-page .restaurant-food-tag, .customer-page .restaurant-cuisine-tag, .customer-page .restaurant-trust-tag { min-height: 24px; padding: .25rem .45rem; font-size: .67rem; }
 .customer-page .restaurant-trust-tag { border-radius: 999px; background: #eef4ec; color: #4c7250; font-weight: 700; }
-.customer-page .restaurant-card .restaurant-address { margin: 0; overflow: hidden; color: var(--foodway-muted); font-size: .82rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.customer-page .restaurant-card .restaurant-address { display: -webkit-box; min-height: 2.8em; margin: 0; overflow: hidden; color: var(--foodway-muted); font-size: .82rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .customer-page .restaurant-card .restaurant-description { display: -webkit-box; min-height: 2.5em; margin: 0; overflow: hidden; color: #59635c; font-size: .82rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .customer-page .restaurant-service-list { display: grid; gap: .2rem; margin: 0; color: var(--foodway-muted); font-size: .75rem; line-height: 1.35; }
 .customer-page .restaurant-service-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
