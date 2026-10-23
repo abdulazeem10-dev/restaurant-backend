@@ -43,6 +43,19 @@ function saveFavouriteRestaurants() {
   localStorage.setItem("foodway-favourite-restaurants", JSON.stringify([...favouriteRestaurantIds]));
 }
 
+async function syncFavouriteRestaurants() {
+  if (!getToken()) return;
+  try {
+    const response = await fetch(API_BASE + "/customer/favorites", { headers: authHeaders() });
+    if (!response.ok) return;
+    const data = await response.json();
+    favouriteRestaurantIds.clear();
+    (data.restaurantIds || []).forEach(id => favouriteRestaurantIds.add(String(id)));
+    saveFavouriteRestaurants();
+    renderRestaurants();
+  } catch { /* Keep local favourites if the account service is unavailable. */ }
+}
+
 function renderSearchSuggestions() {
   const list = document.querySelector("#restaurant-search-suggestions");
   if (!list) return;
@@ -355,9 +368,13 @@ function renderRestaurants() {
     favourite.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
-      if (favouriteRestaurantIds.has(restaurantId)) favouriteRestaurantIds.delete(restaurantId); else favouriteRestaurantIds.add(restaurantId);
+      const wasSaved = favouriteRestaurantIds.has(restaurantId);
+      if (wasSaved) favouriteRestaurantIds.delete(restaurantId); else favouriteRestaurantIds.add(restaurantId);
       saveFavouriteRestaurants();
       updateFavouriteLabel();
+      if (getToken()) {
+        fetch(API_BASE + "/customer/favorites/" + encodeURIComponent(restaurantId), { method: wasSaved ? "DELETE" : "POST", headers: authHeaders() }).catch(() => {});
+      }
     });
 
     const identity = document.createElement("div");
@@ -540,4 +557,5 @@ clearFiltersButton.addEventListener("click", () => {
 });
 loadRestaurants();
 setupHomeAccountNav();
+syncFavouriteRestaurants();
 loadFoodPassport();

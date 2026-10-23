@@ -1,6 +1,8 @@
 const { z } = require("zod");
 const User = require("../models/User");
 const Order = require("../models/Order");
+const Restaurant = require("../models/Restaurant");
+const mongoose = require("mongoose");
 
 const addressSchema = z.object({
   label: z.string().trim().min(1).max(40).default("Home"),
@@ -60,4 +62,23 @@ async function getLoyaltySummary(req, res) {
   });
 }
 
-module.exports = { listAddresses, addAddress, deleteAddress, getLoyaltySummary };
+async function listFavouriteRestaurants(req, res) {
+  const user = await User.findById(req.user._id).select("favoriteRestaurantIds").lean();
+  return res.json({ restaurantIds: (user?.favoriteRestaurantIds || []).map(String) });
+}
+
+async function addFavouriteRestaurant(req, res) {
+  if (!mongoose.isValidObjectId(req.params.restaurantId)) return res.status(400).json({ error: "Invalid restaurant" });
+  const restaurant = await Restaurant.findOne({ _id: req.params.restaurantId, status: "approved" }).select("_id").lean();
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  await User.updateOne({ _id: req.user._id }, { $addToSet: { favoriteRestaurantIds: restaurant._id } });
+  return res.status(204).end();
+}
+
+async function removeFavouriteRestaurant(req, res) {
+  if (!mongoose.isValidObjectId(req.params.restaurantId)) return res.status(400).json({ error: "Invalid restaurant" });
+  await User.updateOne({ _id: req.user._id }, { $pull: { favoriteRestaurantIds: req.params.restaurantId } });
+  return res.status(204).end();
+}
+
+module.exports = { listAddresses, addAddress, deleteAddress, getLoyaltySummary, listFavouriteRestaurants, addFavouriteRestaurant, removeFavouriteRestaurant };
