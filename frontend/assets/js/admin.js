@@ -96,6 +96,7 @@ async function loadRestaurants() {
     profileForm.innerHTML = `
       <label>Restaurant name<br><input name="restaurantName" required maxlength="150" value="${escapeHtml(restaurant.name || "")}"></label>
       <label>Restaurant address<br><input name="address" required maxlength="500" value="${escapeHtml(restaurant.address || "")}" placeholder="Street, area, city"></label>
+      <label class="admin-profile-description">Restaurant description<br><textarea name="description" maxlength="2000" rows="3" placeholder="Describe the food, specialties, and atmosphere">${escapeHtml(restaurant.description || "")}</textarea></label>
       <label>Owner name<br><input name="ownerName" required maxlength="100" value="${escapeHtml(owner.name || "")}"></label>
       <label>Owner email / login<br><input name="email" type="email" required maxlength="254" value="${escapeHtml(owner.email || "")}"></label>
       <label>Owner phone<br><input name="phone" type="tel" maxlength="20" value="${escapeHtml(owner.phone || "")}"></label>
@@ -108,7 +109,7 @@ async function loadRestaurants() {
         const values = new FormData(profileForm);
         await adminRequest(`/admin/restaurants/${encodeURIComponent(restaurant._id)}/profile`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(Object.fromEntries(["restaurantName", "address", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
+          body: JSON.stringify(Object.fromEntries(["restaurantName", "address", "description", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
         });
         message.textContent = "Restaurant address, name, and owner contact details updated.";
         await loadRestaurants();

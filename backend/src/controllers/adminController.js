@@ -92,6 +92,7 @@ async function updateRestaurantProfile(req, res) {
   const parsed = z.object({
     restaurantName: z.string().trim().min(1).max(150),
     address: z.string().trim().min(5).max(500),
+    description: z.string().trim().max(2000),
     ownerName: z.string().trim().min(1).max(100),
     email: z.string().trim().email().max(254),
     phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
@@ -104,6 +105,7 @@ async function updateRestaurantProfile(req, res) {
   if (await User.exists({ email, _id: { $ne: owner._id } })) return res.status(409).json({ error: "Another account already uses this email / login" });
   restaurant.name = parsed.data.restaurantName;
   restaurant.address = parsed.data.address;
+  restaurant.description = parsed.data.description;
   owner.name = parsed.data.ownerName;
   owner.email = email;
   owner.phone = parsed.data.phone;

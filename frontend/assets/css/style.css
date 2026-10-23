@@ -700,6 +700,8 @@ textarea { min-height: unset; }
 .customer-page .order-summary span { grid-row: span 2; display: grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: #eaf1e5; color: var(--foodway-green); font-size: 1.1rem; font-weight: 800; }
 .customer-page .order-summary strong { font-size: 1.25rem; line-height: 1; }
 .customer-page .order-summary small { color: var(--foodway-muted); font-size: .74rem; }
+.admin-profile-description { grid-column: 1 / -1; }
+.admin-profile-description textarea { width: 100%; min-height: 92px; resize: vertical; }
 .customer-page .orders-main > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
 .customer-page .orders-heading { padding: clamp(1.5rem, 4vw, 3rem) 0 1rem; }
 .customer-page .orders-heading h1 { font-size: clamp(2.5rem, 6vw, 4.6rem); }
