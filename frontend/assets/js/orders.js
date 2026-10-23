@@ -596,6 +596,25 @@ async function loadNotifications() {
   renderNotifications(data.notifications || [], data.unreadCount || 0);
 }
 
+async function loadLoyaltySummary() {
+  if (!getToken()) return;
+  const response = await fetch(API_BASE + "/customer/loyalty", { headers: authHeaders() });
+  const data = await response.json();
+  if (response.status === 401) return;
+  if (!response.ok) throw new Error(data.error || "Could not load loyalty points");
+  const loyalty = data.loyalty || {};
+  const summary = document.querySelector(".order-summary");
+  if (!summary) return;
+  let card = document.querySelector("#summary-points")?.closest("div");
+  if (!card) {
+    card = document.createElement("div");
+    card.innerHTML = '<span aria-hidden="true">✦</span><strong id="summary-points">0</strong><small>Foodway points</small>';
+    summary.append(card);
+  }
+  card.querySelector("#summary-points").textContent = Number(loyalty.points || 0).toLocaleString("en-IN");
+  card.title = loyalty.rewardMessage || "Points earned from delivered orders";
+}
+
 async function loadOrders(force = false) {
   if (!getToken()) { showOrdersSignIn(); return; }
   notificationPanel.hidden = false;
@@ -617,6 +636,7 @@ async function loadOrders(force = false) {
     document.querySelector("#summary-active")?.replaceChildren(document.createTextNode(String(active)));
     document.querySelector("#summary-delivered")?.replaceChildren(document.createTextNode(String(delivered)));
     document.querySelector("#summary-total")?.replaceChildren(document.createTextNode(String(orders.length)));
+    loadLoyaltySummary().catch(error => { errorRoot.textContent = error.message; });
     errorRoot.textContent = "";
     const refreshed = document.querySelector("#order-refresh");
     if (refreshed) refreshed.textContent = `Updated ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · Refreshes every 15 seconds`;

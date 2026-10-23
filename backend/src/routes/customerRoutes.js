@@ -6,6 +6,7 @@ const asyncHandler = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(authenticate, authorize("customer"));
+router.get("/loyalty", asyncHandler(controller.getLoyaltySummary));
 router.get("/addresses", asyncHandler(controller.listAddresses));
 router.post("/addresses", asyncHandler(controller.addAddress));
 router.delete("/addresses/:id", asyncHandler(controller.deleteAddress));

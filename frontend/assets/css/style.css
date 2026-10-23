@@ -695,7 +695,7 @@ textarea { min-height: unset; }
 .customer-page .notification-item { border-color: var(--foodway-line); border-radius: 12px; }
 .customer-page .notification-item.is-unread { border-color: #cdd9bd; background: #f4f7ef; }
 .customer-page .orders-main { max-width: 1120px; }
-.customer-page .order-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 0 0 1.25rem; }
+.customer-page .order-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 0 0 1.25rem; }
 .customer-page .order-summary > div { display: grid; grid-template-columns: auto 1fr; column-gap: .65rem; align-items: center; padding: .9rem 1rem; border: 1px solid var(--foodway-line); border-radius: 15px; background: #fff; box-shadow: 0 6px 20px #20252108; }
 .customer-page .order-summary span { grid-row: span 2; display: grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; background: #eaf1e5; color: var(--foodway-green); font-size: 1.1rem; font-weight: 800; }
 .customer-page .order-summary strong { font-size: 1.25rem; line-height: 1; }
@@ -740,6 +740,9 @@ textarea { min-height: unset; }
 .customer-page .order-action-dropdown summary::after { float: right; content: "＋"; font-size: 1rem; }
 .customer-page .order-action-dropdown[open] summary::after { content: "−"; }
 .customer-page .order-action-dropdown .order-review-form, .customer-page .order-action-dropdown .order-help-form, .customer-page .order-action-dropdown .order-cancel-form { margin-top: .5rem; }
+@media (min-width: 621px) and (max-width: 900px) {
+  .customer-page .order-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 620px) {
   .customer-page .order-summary { grid-template-columns: 1fr; }
   .customer-page .orders-heading { padding-top: 1.25rem; }

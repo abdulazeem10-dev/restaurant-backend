@@ -1,5 +1,6 @@
 const { z } = require("zod");
 const User = require("../models/User");
+const Order = require("../models/Order");
 
 const addressSchema = z.object({
   label: z.string().trim().min(1).max(40).default("Home"),
@@ -38,4 +39,25 @@ async function deleteAddress(req, res) {
   return res.status(204).end();
 }
 
-module.exports = { listAddresses, addAddress, deleteAddress };
+async function getLoyaltySummary(req, res) {
+  const orders = await Order.find({ customerId: req.user._id, status: "delivered" })
+    .select("totalPaise")
+    .lean();
+
+  const totalSpentPaise = orders.reduce((sum, order) => sum + (Number(order.totalPaise) || 0), 0);
+  // One point per ₹10 paid on a delivered order. Calculating this on the server
+  // keeps the balance consistent across browsers and prevents client-side edits.
+  const points = orders.reduce((sum, order) => sum + Math.floor((Number(order.totalPaise) || 0) / 1000), 0);
+
+  return res.json({
+    loyalty: {
+      points,
+      deliveredOrders: orders.length,
+      totalSpentPaise,
+      pointsPerTenRupees: 1,
+      rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders"
+    }
+  });
+}
+
+module.exports = { listAddresses, addAddress, deleteAddress, getLoyaltySummary };
