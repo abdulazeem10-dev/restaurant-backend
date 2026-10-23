@@ -95,7 +95,7 @@ async function loadRestaurants() {
     profileForm.className = "form-grid admin-profile-form";
     profileForm.innerHTML = `
       <label>Restaurant name<br><input name="restaurantName" required maxlength="150" value="${escapeHtml(restaurant.name || "")}"></label>
-      <label>Restaurant address<br><input name="address" required maxlength="500" value="${escapeHtml(restaurant.address || "")}" placeholder="Street, area, city"></label>
+      <label>Restaurant address<br><textarea name="address" required maxlength="500" rows="3" placeholder="Full street address, area, city, PIN">${escapeHtml(restaurant.address || "")}</textarea></label>
       <label class="admin-profile-description">Restaurant description<br><textarea name="description" maxlength="2000" rows="3" placeholder="Describe the food, specialties, and atmosphere">${escapeHtml(restaurant.description || "")}</textarea></label>
       <label>Owner name<br><input name="ownerName" required maxlength="100" value="${escapeHtml(owner.name || "")}"></label>
       <label>Owner email / login<br><input name="email" type="email" required maxlength="254" value="${escapeHtml(owner.email || "")}"></label>
