@@ -37,7 +37,15 @@ async function loadSavedAddresses() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not load saved addresses");
     savedAddresses = data.addresses || [];
+    const rememberedAddressId = localStorage.getItem("foodway-default-address-id");
+    const defaultAddress = savedAddresses.find(address => address._id === rememberedAddressId) || savedAddresses[0];
     renderSavedAddresses();
+    if (defaultAddress && !addressSelect.value) {
+      addressSelect.value = defaultAddress._id;
+      fillSavedAddress(defaultAddress);
+      document.querySelector("#delete-saved-address").hidden = false;
+      document.querySelector(".save-address-choice").hidden = true;
+    }
     const profileResponse = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
     if (profileResponse.ok) {
       const { user } = await profileResponse.json();
@@ -52,7 +60,10 @@ async function loadSavedAddresses() {
 
 addressSelect.addEventListener("change", () => {
   const address = savedAddresses.find(item => item._id === addressSelect.value);
-  if (address) fillSavedAddress(address);
+  if (address) {
+    fillSavedAddress(address);
+    localStorage.setItem("foodway-default-address-id", address._id);
+  }
   document.querySelector("#delete-saved-address").hidden = !address;
   document.querySelector(".save-address-choice").hidden = Boolean(address);
 });
@@ -66,6 +77,7 @@ document.querySelector("#delete-saved-address").addEventListener("click", async 
     if (!response.ok) { const data = await response.json(); throw new Error(data.error || "Could not delete this address"); }
     savedAddresses = savedAddresses.filter(item => item._id !== id);
     addressSelect.value = "";
+    localStorage.removeItem("foodway-default-address-id");
     renderSavedAddresses();
     document.querySelector(".save-address-choice").hidden = false;
     error.textContent = "Saved address deleted.";
@@ -261,6 +273,7 @@ checkoutForm.addEventListener("submit", async event => {
       });
       const savedData = await saveResponse.json();
       if (!saveResponse.ok) throw new Error(savedData.error || "Could not save this address");
+      if (savedData.address?._id) localStorage.setItem("foodway-default-address-id", savedData.address._id);
     }
     sessionStorage.setItem("food-platform-checkout", JSON.stringify({ deliveryDetails, deliveryAddress }));
     location.href = "payment.html";
