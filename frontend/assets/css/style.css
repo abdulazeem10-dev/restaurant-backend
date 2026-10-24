@@ -1962,3 +1962,5 @@ textarea::placeholder {
     align-items: flex-start;
   }
 }
+
+.order-print-bill { margin-top: .65rem; }

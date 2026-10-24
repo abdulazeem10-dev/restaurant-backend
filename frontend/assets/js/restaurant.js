@@ -3,6 +3,7 @@ const openingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "sa
 let restaurantStaffRole = null;
 let restaurantOrdersCache = [];
 let restaurantCurrentUser = null;
+let restaurantCurrentRestaurant = null;
 const restaurantViewInfo = {
   overview: ["Overview", "A quick look at your restaurant workspace."],
   menu: ["Menu", "Manage dishes, prices, food types, and availability."],
@@ -144,7 +145,8 @@ if (restaurantProfileForm) restaurantProfileForm.addEventListener("submit", asyn
       body: JSON.stringify(Object.fromEntries(["restaurantName", "address", "ownerName", "email", "phone"].map(key => [key, values.get(key)])))
     });
     restaurantCurrentUser = user;
-    document.querySelector("#restaurant-title").textContent = restaurant.name;
+    restaurantCurrentRestaurant = restaurant;
+  document.querySelector("#restaurant-title").textContent = restaurant.name;
     msg.textContent = "Restaurant and owner profile updated.";
   } catch (error) {
     msg.textContent = error.message;
@@ -525,6 +527,18 @@ async function loadReports() {
 }
 
 document.querySelector("#reports-filter").addEventListener("submit", event => { event.preventDefault(); loadReports(); });
+function printRestaurantOrderBill(order) {
+  const printWindow = window.open("", "_blank", "width=760,height=900");
+  if (!printWindow) { msg.textContent = "Allow pop-ups to print the bill."; return; }
+  const restaurantName = restaurantCurrentRestaurant?.name || document.querySelector("#restaurant-title")?.textContent || "Restaurant";
+  const items = (order.items || []).map(item => "<tr><td>" + escapeHtml(item.name) + "</td><td>" + item.quantity + "</td><td>" + formatRupees(item.unitPricePaise) + "</td><td>" + formatRupees(item.unitPricePaise * item.quantity) + "</td></tr>").join("");
+  const recipient = order.deliveryDetails;
+  const address = [recipient?.flatBuilding, recipient?.lane, recipient?.landmark, recipient?.pincode].filter(Boolean).join(", ") || order.deliveryAddress || "—";
+  const payment = order.paymentMethod === "cash_on_delivery" ? "Cash on delivery" : order.paymentMethod === "upi_qr" ? "UPI QR" : "Online payment";
+  const html = "<!doctype html><html><head><meta charset='utf-8'><title>Bill " + escapeHtml(order._id.slice(-6)) + "</title><style>body{font:14px Arial,sans-serif;color:#202521;max-width:720px;margin:32px auto;padding:0 24px}h1{margin:0 0 4px;font-size:26px}h2{margin:26px 0 8px;font-size:16px}p{margin:5px 0;color:#59635c;line-height:1.45}.bill-head{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #174b3d;padding-bottom:18px}.bill-meta{text-align:right}.bill-meta strong{display:block;color:#174b3d}.bill-box{margin-top:22px;padding:14px;border:1px solid #dfe2d9;border-radius:10px}.bill-box h2{margin-top:0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{text-align:left;padding:9px 6px;border-bottom:1px solid #e9ece6}th:nth-child(n+2),td:nth-child(n+2){text-align:right}.total{margin-top:14px;text-align:right;font-size:18px;font-weight:700}.footer{margin-top:34px;text-align:center;font-size:12px;color:#7a847c}@media print{body{margin:0;max-width:none}.no-print{display:none}}</style></head><body><div class='bill-head'><div><h1>" + escapeHtml(restaurantName) + "</h1><p>Order bill</p></div><div class='bill-meta'><strong>Order #" + escapeHtml(order._id.slice(-6)) + "</strong><span>" + escapeHtml(new Date(order.createdAt).toLocaleString("en-IN")) + "</span></div></div><div class='bill-box'><h2>Customer</h2><p><strong>" + escapeHtml(recipient?.name || order.customerId?.name || "Customer") + "</strong>" + (recipient?.phone ? " · " + escapeHtml(recipient.phone) : "") + "</p><p>" + escapeHtml(address) + "</p></div><h2>Items</h2><table><thead><tr><th>Dish</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>" + items + "</tbody></table><p class='total'>Total: " + formatRupees(order.totalPaise) + "</p><div class='bill-box'><p><strong>Payment:</strong> " + escapeHtml(payment) + " · " + escapeHtml(order.paymentStatus || "pending") + "</p><p><strong>Delivery:</strong> " + escapeHtml(order.deliveryPartnerId?.name || "Assigned delivery person") + "</p></div><p class='footer'>Thank you for ordering from " + escapeHtml(restaurantName) + ".</p><button class='no-print' onclick='window.print()'>Print bill</button></body></html>";
+  printWindow.document.write(html); printWindow.document.close(); printWindow.focus();
+}
+
 function filterRestaurantOrders(orders) {
   const query = document.querySelector("#order-search")?.value.trim().toLocaleLowerCase() || "";
   const status = document.querySelector("#order-status-filter")?.value || "all";
@@ -564,6 +578,11 @@ async function loadOrders(fetchLatest = true) {
     const receivedLabel = order.customerReceivedAt ? `Customer confirmed receipt ${new Date(order.customerReceivedAt).toLocaleString("en-IN")}` : "Awaiting customer receipt confirmation";
     const statusLabels = { placed: "Order placed", confirmed: "Order placed", preparing: "Preparing", ready: "Ready for pickup", out_for_delivery: "Out for delivery", picked_up: "Out for delivery", delivered: "Delivery done", cancelled: "Cancelled" };
     card.innerHTML = `<h3>Order ${escapeHtml(order._id.slice(-6))}</h3><p>${escapeHtml(order.customerId?.name || "Customer")} · ${escapeHtml(order.customerId?.email || "")}</p>${recipientText ? `<p>${escapeHtml(recipientText)}</p>` : ""}<p>${escapeHtml(itemText)}</p><p>Address: ${escapeHtml(order.deliveryAddress)}</p>${order.deliveryDetails?.deliveryAreaName ? `<p>Delivery area: ${escapeHtml(order.deliveryDetails.deliveryAreaName)}</p>` : ""}<p>${escapeHtml(deliveryPartnerText)}</p><p><strong>${escapeHtml(statusLabels[order.status] || order.status.replace("_", " "))}</strong> · ${formatRupees(order.totalPaise)}</p><p>Payment mode: ${paymentLabel} · ${paymentStatus}</p>${["delivered", "cancelled"].includes(order.status) ? `<p>${escapeHtml(receivedLabel)}</p>` : ""}`;
+    if (order.deliveryAssignmentStatus === "accepted") {
+      const printButton = document.createElement("button"); printButton.type = "button";
+      printButton.className = "secondary order-print-bill"; printButton.textContent = "Print bill";
+      printButton.addEventListener("click", () => printRestaurantOrderBill(order)); card.append(printButton);
+    }
     if (order.deliveryAssignmentStatus === "offered") {
       const note = document.createElement("p");
       note.className = "muted";
