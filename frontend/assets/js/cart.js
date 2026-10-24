@@ -3,6 +3,41 @@ const checkoutForm = document.querySelector("#checkout-form");
 const addressSelect = document.querySelector("#saved-address-select");
 let savedAddresses = [];
 
+function setupGoogleAddressAutocomplete() {
+  const input = document.querySelector("#address-search");
+  const key = window.FOODWAY_GOOGLE_MAPS_API_KEY || "";
+  if (!input || !key || key.startsWith("YOUR_")) return;
+  const load = () => {
+    if (!window.google?.maps?.places) return;
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: "in" },
+      fields: ["address_components", "formatted_address"],
+      types: ["address"]
+    });
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      const parts = {};
+      (place.address_components || []).forEach(component => component.types.forEach(type => { parts[type] = component.long_name; }));
+      const flat = [parts.subpremise, parts.premise, parts.street_number].filter(Boolean).join(" ");
+      const lane = [parts.route, parts.sublocality_level_2, parts.sublocality_level_1, parts.locality].filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(", ");
+      if (flat) checkoutForm.elements.flatBuilding.value = flat;
+      if (lane) checkoutForm.elements.lane.value = lane;
+      if (parts.postal_code) checkoutForm.elements.pincode.value = parts.postal_code;
+      if (parts.point_of_interest || parts.establishment) checkoutForm.elements.landmark.value = parts.point_of_interest || parts.establishment;
+      input.value = place.formatted_address || input.value;
+      addressSelect.value = "";
+      document.querySelector("#delete-saved-address").hidden = true;
+      document.querySelector(".save-address-choice").hidden = false;
+    });
+  };
+  if (window.google?.maps?.places) { load(); return; }
+  const script = document.createElement("script");
+  script.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(key) + "&libraries=places";
+  script.async = true; script.defer = true; script.onload = load;
+  script.onerror = () => { document.querySelector("#error").textContent = "Google address suggestions could not load. You can still enter the address manually."; };
+  document.head.append(script);
+}
+
 function fillSavedAddress(address) {
   if (!address) return;
   const recipientRadio = checkoutForm.querySelector(`input[name="recipientType"][value="${address.recipientType}"]`);
@@ -23,8 +58,12 @@ function fillSavedAddress(address) {
 function renderSavedAddresses() {
   const chosenId = addressSelect.value;
   addressSelect.replaceChildren(new Option("Enter a new address", ""));
+  const seenAddresses = new Set();
   for (const address of savedAddresses) {
-    addressSelect.add(new Option(`${address.label} · ${address.flatBuilding}, ${address.pincode}`, address._id));
+    const key = [address.recipientType, address.name, address.phone, address.flatBuilding, address.lane, address.landmark, address.pincode].map(value => String(value || "").trim().toLocaleLowerCase()).join("|");
+    if (seenAddresses.has(key)) continue;
+    seenAddresses.add(key);
+    addressSelect.add(new Option(String(address.label || "Home") + " · " + String(address.flatBuilding || "") + ", " + String(address.pincode || ""), address._id));
   }
   if (savedAddresses.some(address => address._id === chosenId)) addressSelect.value = chosenId;
   document.querySelector("#delete-saved-address").hidden = !addressSelect.value;
@@ -286,3 +325,4 @@ checkoutForm.addEventListener("submit", async event => {
 renderCart();
 document.querySelector(".save-address-choice").hidden = false;
 loadSavedAddresses();
+setupGoogleAddressAutocomplete();

@@ -26,6 +26,8 @@ async function addAddress(req, res) {
   const user = await User.findById(req.user._id);
   if (!user) return res.status(404).json({ error: "Customer account not found" });
   if (user.savedAddresses.length >= 10) return res.status(400).json({ error: "You can save up to 10 addresses" });
+  const duplicate = user.savedAddresses.some(address => ["recipientType", "name", "phone", "flatBuilding", "lane", "landmark", "pincode"].every(key => String(address[key] || "").trim().toLocaleLowerCase() === String(parsed.data[key] || "").trim().toLocaleLowerCase()));
+  if (duplicate) return res.status(409).json({ error: "This delivery address is already saved" });
   user.savedAddresses.push(parsed.data);
   await user.save();
   return res.status(201).json({ address: user.savedAddresses[user.savedAddresses.length - 1] });
