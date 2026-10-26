@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "create-admin": "node scripts/create-admin.js",
     "seed:demo": "node scripts/seed-demo-restaurants.js",
-    "test": "node --test"
+    "test": "node --test",
+    "update-admin": "node scripts/update-admin.js"
   },
   "engines": {
     "node": ">=20"
