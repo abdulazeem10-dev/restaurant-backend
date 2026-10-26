@@ -206,4 +206,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, renewRestaurantSubscription, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile, setDeliveryPartnerProfileStatus, setRestaurantProfileStatus };
+module.exports = { createRestaurant, listRestaurants, renewRestaurantSubscription, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, updateRestaurantProfile, setRestaurantProfileStatus };
