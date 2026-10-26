@@ -67,7 +67,7 @@ async function createOrder(req, res) {
   });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
 
-  const deliveryPartner = await findLeastBusyDeliveryPartner();
+  const deliveryPartner = await findLeastBusyDeliveryPartner(restaurant._id);
   if (!deliveryPartner) return res.status(503).json({ error: "Orders are temporarily unavailable because no delivery person is active. Please try again later." });
 
   const placedAt = new Date();
@@ -182,8 +182,8 @@ async function collectDineInPayment(req, res) {
   return res.json({ order });
 }
 
-async function findLeastBusyDeliveryPartner(excludedIds = []) {
-  const partners = await User.find({ role: "delivery", status: "active", _id: { $nin: excludedIds } }).select("_id").lean();
+async function findLeastBusyDeliveryPartner(restaurantId, excludedIds = []) {
+  const partners = await User.find({ restaurantId, role: "delivery", status: "active", _id: { $nin: excludedIds } }).select("_id").lean();
   if (!partners.length) return null;
   const activeCounts = await Order.aggregate([
     { $match: { deliveryPartnerId: { $in: partners.map(partner => partner._id) }, status: { $nin: ["delivered", "cancelled", "awaiting_payment"] } } },
@@ -277,7 +277,7 @@ async function respondToDeliveryAssignment(req, res) {
   }
 
   const declinedIds = [...new Set([...(order.declinedDeliveryPartnerIds || []).map(String), String(req.user._id)])];
-  const nextPartner = await findLeastBusyDeliveryPartner(declinedIds);
+  const nextPartner = await findLeastBusyDeliveryPartner(order.restaurantId, declinedIds);
   order.declinedDeliveryPartnerIds = declinedIds;
   order.deliveryPartnerId = nextPartner?._id || null;
   order.deliveryAssignmentStatus = nextPartner ? "offered" : "unassigned";
@@ -299,7 +299,7 @@ async function reassignDeliveryOrder(req, res) {
   if (!order) return res.status(404).json({ error: "Order not found" });
   if (order.deliveryAssignmentStatus !== "unassigned" || order.deliveryPartnerId) return res.status(409).json({ error: "This order already has a delivery assignment" });
   if (["out_for_delivery", "picked_up", "delivered", "cancelled", "awaiting_payment"].includes(order.status)) return res.status(409).json({ error: "This order can no longer be assigned" });
-  const partner = await findLeastBusyDeliveryPartner(order.declinedDeliveryPartnerIds || []);
+  const partner = await findLeastBusyDeliveryPartner(restaurant._id, order.declinedDeliveryPartnerIds || []);
   if (!partner) return res.status(409).json({ error: "No other active delivery person is available" });
   order.deliveryPartnerId = partner._id;
   order.deliveryAssignmentStatus = "offered";

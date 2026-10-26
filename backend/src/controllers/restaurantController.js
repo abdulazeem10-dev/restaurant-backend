@@ -176,6 +176,44 @@ async function getOwnedRestaurant(user) {
   return Restaurant.findOne({ ownerId: user._id });
 }
 
+const deliveryPartnerSchema = z.object({
+ name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254),
+ phone:z.string().trim().max(32).transform(v=>v.replace(/[\s().-]/g,"")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
+ password:z.string().min(12).max(128)
+}).strict();
+const deliveryPartnerProfileSchema=z.object({
+ name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254),
+ phone:z.string().trim().max(32).transform(v=>v.replace(/[\s().-]/g,"")).pipe(z.string().max(15).regex(/^$|^\+?[1-9]\d{7,14}$/))
+}).strict();
+const deliveryProfileStatusSchema=z.object({active:z.boolean()}).strict();
+async function listOwnDeliveryPartners(req,res){
+ const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
+ const deliveryPartners=await User.find({restaurantId:restaurant._id,role:"delivery"}).select("name email phone status profileDeactivatedAt createdAt").sort({createdAt:-1}).limit(200).lean();return res.json({deliveryPartners});
+}
+async function createOwnDeliveryPartner(req,res){
+ const parsed=deliveryPartnerSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Enter a name, valid email, phone number, and password of at least 12 characters"});
+ const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});const email=parsed.data.email.toLowerCase();
+ if(await User.findOne({email}))return res.status(409).json({error:"An account already uses this email"});
+ const partner=await User.create({name:parsed.data.name,email,phone:parsed.data.phone,passwordHash:await bcrypt.hash(parsed.data.password,12),role:"delivery",restaurantId:restaurant._id,status:"active"});
+ return res.status(201).json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone}});
+}
+async function updateOwnDeliveryPartner(req,res){
+ const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
+ const parsed=deliveryPartnerProfileSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Enter a name, valid email, and valid phone number"});
+ const partner=await User.findOne({_id:req.params.id,restaurantId:restaurant._id,role:"delivery"});if(!partner)return res.status(404).json({error:"Delivery account not found"});
+ partner.name=parsed.data.name;partner.email=parsed.data.email.toLowerCase();partner.phone=parsed.data.phone;
+ try{await partner.save()}catch(error){if(error.code===11000)return res.status(409).json({error:"Another account already uses this email / login"});throw error}
+ return res.json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone}});
+}
+async function setOwnDeliveryPartnerProfileStatus(req,res){
+ const parsed=deliveryProfileStatusSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Choose whether to activate or deactivate the account"});
+ const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
+ const partner=await User.findOne({_id:req.params.id,restaurantId:restaurant._id,role:"delivery"});if(!partner)return res.status(404).json({error:"Delivery account not found"});
+ if(parsed.data.active){if(!partner.profileDeactivatedAt)return res.status(409).json({error:"This account is not deactivated"});partner.status=partner.statusBeforeProfileDeactivation||"active";partner.profileDeactivatedAt=null;partner.statusBeforeProfileDeactivation=null}
+ else{if(partner.profileDeactivatedAt)return res.status(409).json({error:"This account is already deactivated"});partner.statusBeforeProfileDeactivation=partner.status;partner.status="suspended";partner.profileDeactivatedAt=new Date()}
+ await partner.save();return res.json({deliveryPartner:{id:partner._id,status:partner.status,profileDeactivatedAt:partner.profileDeactivatedAt}});
+}
+
 async function listOwnStaff(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -509,5 +547,5 @@ async function deleteMenuItem(req, res) {
 module.exports = { getOwnSubscription, requestOwnSubscriptionRenewal,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
-  listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports, updateOwnProfile, deactivateOwnProfile
+  listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };

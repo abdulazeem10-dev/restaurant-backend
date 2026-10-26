@@ -10,6 +10,10 @@ const router = express.Router();
 // Keep fixed /owner paths before /:id routes so "owner" is not cast as an ObjectId.
 router.get("/owner/subscription", authenticate, authorize("restaurant"), asyncHandler(controller.getOwnSubscription));
 router.post("/owner/subscription/renewal-request", authenticate, authorize("restaurant"), asyncHandler(controller.requestOwnSubscriptionRenewal));
+router.get("/owner/delivery-partners", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.listOwnDeliveryPartners));
+router.post("/owner/delivery-partners", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.createOwnDeliveryPartner));
+router.patch("/owner/delivery-partners/:id/profile", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnDeliveryPartner));
+router.patch("/owner/delivery-partners/:id/profile-status", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnDeliveryPartnerProfileStatus));
 router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandler(controller.getOwnMenu));
 router.patch("/owner/profile", authenticate, authorize("restaurant"), asyncHandler(controller.updateOwnProfile));
 router.patch("/owner/deactivate-profile", authenticate, authorize("restaurant"), asyncHandler(controller.deactivateOwnProfile));
