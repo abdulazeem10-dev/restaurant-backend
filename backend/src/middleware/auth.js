@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Restaurant = require("../models/Restaurant");
+const Subscription = require("../models/Subscription");
 
 async function authenticate(req, res, next) {
   try {
@@ -18,6 +20,12 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: "Account unavailable" });
     }
 
+    const isSubscriptionSelfService = req.path.startsWith("/owner/subscription") || req.path === "/me";
+    if ((user.role === "restaurant" || user.role === "restaurant_staff") && !isSubscriptionSelfService) {
+      const restaurant = user.role === "restaurant_staff" ? await Restaurant.findById(user.restaurantId).select("_id") : await Restaurant.findOne({ ownerId: user._id }).select("_id");
+      const subscription = restaurant ? await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).select("status currentPeriodEnd") : null;
+      if (subscription && (subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date())) return res.status(403).json({ error: "Restaurant subscription expired. Contact the platform administrator to renew access.", code: "subscription_expired" });
+    }
     req.user = user;
     return next();
   } catch {

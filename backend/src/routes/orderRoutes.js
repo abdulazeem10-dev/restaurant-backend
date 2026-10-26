@@ -11,6 +11,9 @@ router.get("/mine", authenticate, authorize("customer"), asyncHandler(controller
 router.patch("/:id/customer-location", authenticate, authorize("customer"), asyncHandler(controller.updateCustomerLocation));
 router.delete("/:id/customer-location", authenticate, authorize("customer"), asyncHandler(controller.clearCustomerLocation));
 router.get("/restaurant", authenticate, authorizeRestaurant("read"), asyncHandler(controller.listRestaurantOrders));
+router.post("/restaurant/dine-in", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.createDineInOrder));
+router.post("/restaurant/:id/items", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.addItemsToRestaurantOrder));
+router.patch("/restaurant/:id/payment", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.collectDineInPayment));
 router.patch("/restaurant/:id/reassign-delivery", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.reassignDeliveryOrder));
 router.patch("/restaurant/:id", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.updateRestaurantOrder));
 router.patch("/restaurant/:id/cancellation", authenticate, authorizeRestaurant("orders"), asyncHandler(controller.reviewCancellationRequest));

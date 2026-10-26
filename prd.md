@@ -5,7 +5,7 @@
 
 ## 1. Product summary
 
-Food Platform is a multi-restaurant ordering service focused on helping customers discover nearby independent restaurants, order from their menus, and follow an order through delivery. Restaurant teams manage their storefront and incoming orders, delivery partners handle assigned deliveries, and platform administrators onboard restaurants and delivery accounts.
+Food Platform is a restaurant ordering and operations product for a dedicated restaurant storefront. Customers order from Sunrise Tiffin House; the restaurant owner and staff manage menu, service, and orders; delivery partners handle assigned deliveries; and the platform administrator provisions restaurant-owner accounts with 1-, 2-, or 3-year subscriptions.
 
 The website and Android installable app use the same backend and MongoDB data. This document describes the product represented by the current code; it does not imply that every optional provider is configured in a deployment.
 
@@ -15,7 +15,7 @@ The website and Android installable app use the same backend and MongoDB data. T
 - Give customers visibility into order progress, payment method, and delivery status.
 - Give restaurant teams role-appropriate tools for menus, service settings, orders, and staff.
 - Give delivery partners a focused workflow for accepting assignments, navigating to customer details, sharing location, and completing delivery.
-- Give platform administrators a separate workspace for restaurant onboarding and account operations.
+- Give platform administrators a separate workspace to provision owner accounts, record subscription terms and expiry, and renew access.
 - Keep website and Android app data consistent by using one API and database.
 
 ## 3. User roles
@@ -28,13 +28,20 @@ The website and Android installable app use the same backend and MongoDB data. T
 | Biller / modifier | Manage menu and order tasks needed for daily service. |
 | Viewer | Read-only access to permitted restaurant information. |
 | Delivery partner | Review and accept or decline delivery offers, see pickup and customer details, share GPS location, and mark delivery complete. |
-| Platform admin | Provision restaurants and delivery accounts, approve or suspend restaurants, and maintain platform operations. |
+| Platform admin | Provision the restaurant owner login and subscription, renew access, approve or suspend restaurant operations, and maintain platform accounts. |
 
 ## 4. Product requirements
 
-### 4.1 Customer discovery and ordering
+### 4.0 Restaurant account and subscription lifecycle
 
-- The customer can browse approved restaurants, search by restaurant or area, filter by food type (all, vegetarian, non-vegetarian), sort results, and filter by delivery PIN code.
+- The platform admin creates an owner login with name, email, phone, initial password, restaurant profile, and a 1-, 2-, or 3-year subscription term.
+- The subscription expiry is visible in the admin workspace. The platform admin can renew a subscription for 1, 2, or 3 years; a renewal extends from the current expiry when still active or from the renewal date when expired.
+- Owner and staff API access is blocked after an existing subscription expires. Legacy owner accounts without a subscription record remain accessible until the platform admin records their term.
+- Payment collection for subscription terms is not automated in this release; the admin records the subscription period after arranging payment separately.
+
+### 4.1 Customer storefront and ordering
+
+- The customer storefront is branded for Sunrise Tiffin House and presents that restaurant’s menu, service status, delivery areas, and breakfast categories.
 - Restaurant listings expose useful service information such as open/closed state, food type, opening hours, named delivery areas with their PIN codes, and available ratings. Customers can search by a named delivery area.
 - The customer can view a restaurant menu, see whether a dish is available, choose quantities, and build a cart.
 - Checkout collects delivery recipient, phone, and address details. The server validates the order against current menu prices, restaurant status, service hours, and delivery coverage.
@@ -49,7 +56,8 @@ The website and Android installable app use the same backend and MongoDB data. T
 
 - Restaurant owners can manage menu items, categories, prices, food types, images, and customer-facing availability.
 - Owners can open or close service, configure weekly opening hours, name their delivery areas and assign 6-digit PIN codes to each area, and set delivery/preparation estimates.
-- Restaurant staff can receive orders and progress them through confirmation, preparation, ready for pickup, and handoff for delivery.
+- Restaurant staff can receive delivery orders and progress them through confirmation, preparation, ready for pickup, and handoff for delivery.
+- Restaurant staff can open a dine-in order for a table, view the dishes and running total, add dishes while the table is open, record cash/UPI/card payment as collected, and print the final bill. Dine-in orders do not require a customer login or delivery address.
 - Restaurant teams can review cancellation and support requests, read customer reviews, and see sales/order reports.
 - The primary restaurant admin can create at most one account for each available additional role: secondary admin, biller/modifier, and viewer. They can remove a staff account to free its role for replacement.
 - Permissions are enforced by the API as well as by the dashboard UI.

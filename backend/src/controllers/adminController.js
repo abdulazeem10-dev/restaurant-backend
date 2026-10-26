@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const { z } = require("zod");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
+const Subscription = require("../models/Subscription");
 const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
 
 const deliveryPartnerSchema = z.object({
@@ -161,7 +162,9 @@ const restaurantImageUrlSchema = z.string().trim().max(2048).optional().default(
 const createSchema = z.object({
   ownerName: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
   password: z.string().min(12).max(128),
+  subscriptionYears: z.coerce.number().int().min(1).max(3),
   restaurantName: z.string().trim().min(1).max(150),
   description: z.string().max(2000).optional().default(""),
   address: z.string().trim().min(5).max(500),
@@ -179,12 +182,14 @@ async function createRestaurant(req, res) {
   const owner = await User.create({
     name: parsed.data.ownerName,
     email,
+    phone: parsed.data.phone,
     passwordHash: await bcrypt.hash(parsed.data.password, 12),
     role: "restaurant",
     status: "active"
   });
+  let restaurant;
   try {
-    const restaurant = await Restaurant.create({
+    restaurant = await Restaurant.create({
       ownerId: owner._id,
       name: parsed.data.restaurantName,
       description: parsed.data.description,
@@ -195,8 +200,13 @@ async function createRestaurant(req, res) {
       status: "pending",
       isOpen: false
     });
-    return res.status(201).json({ restaurant, owner: { id: owner._id, name: owner.name, email: owner.email } });
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt);
+    endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.subscriptionYears);
+    const subscription = await Subscription.create({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.subscriptionYears + "-year", termYears: parsed.data.subscriptionYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt });
+    return res.status(201).json({ restaurant, subscription, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
   } catch (error) {
+    if (restaurant) { await Subscription.deleteMany({ restaurantId: restaurant._id }); await Restaurant.deleteOne({ _id: restaurant._id }); }
     await User.deleteOne({ _id: owner._id });
     throw error;
   }
@@ -204,7 +214,26 @@ async function createRestaurant(req, res) {
 
 async function listRestaurants(req, res) {
   const restaurants = await Restaurant.find().populate("ownerId", "name email phone status").sort({ createdAt: -1 }).limit(200);
-  return res.json({ restaurants });
+  const subscriptions = await Subscription.find({ restaurantId: { $in: restaurants.map(item => item._id) } }).sort({ currentPeriodEnd: -1 }).lean();
+  const byRestaurant = new Map();
+  for (const subscription of subscriptions) if (!byRestaurant.has(String(subscription.restaurantId))) byRestaurant.set(String(subscription.restaurantId), subscription);
+  return res.json({ restaurants: restaurants.map(restaurant => ({ ...restaurant.toObject(), subscription: byRestaurant.get(String(restaurant._id)) || null })) });
+}
+
+async function renewRestaurantSubscription(req, res) {
+  const parsed = z.object({ years: z.coerce.number().int().min(1).max(3) }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose a renewal term of 1, 2, or 3 years" });
+  const restaurant = await Restaurant.findById(req.params.id);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
+  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.years + "-year", termYears: parsed.data.years });
+  const now = new Date();
+  const startsAt = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now ? subscription.currentPeriodEnd : now;
+  const endsAt = new Date(startsAt);
+  endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.years);
+  Object.assign(subscription, { currentPeriodStart: startsAt, currentPeriodEnd: endsAt, termYears: parsed.data.years, planId: "sunrise-" + parsed.data.years + "-year", status: "active", cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
+  await subscription.save();
+  return res.json({ subscription });
 }
 
 async function setRestaurantStatus(req, res) {
@@ -259,4 +288,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile, setDeliveryPartnerProfileStatus, setRestaurantProfileStatus };
+module.exports = { createRestaurant, listRestaurants, renewRestaurantSubscription, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, createDeliveryPartner, listDeliveryPartners, updateDeliveryPartner, updateRestaurantProfile, setDeliveryPartnerProfileStatus, setRestaurantProfileStatus };

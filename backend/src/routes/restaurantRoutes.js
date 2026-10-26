@@ -8,6 +8,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const router = express.Router();
 
 // Keep fixed /owner paths before /:id routes so "owner" is not cast as an ObjectId.
+router.get("/owner/subscription", authenticate, authorize("restaurant"), asyncHandler(controller.getOwnSubscription));
+router.post("/owner/subscription/renewal-request", authenticate, authorize("restaurant"), asyncHandler(controller.requestOwnSubscriptionRenewal));
 router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandler(controller.getOwnMenu));
 router.patch("/owner/profile", authenticate, authorize("restaurant"), asyncHandler(controller.updateOwnProfile));
 router.patch("/owner/deactivate-profile", authenticate, authorize("restaurant"), asyncHandler(controller.deactivateOwnProfile));

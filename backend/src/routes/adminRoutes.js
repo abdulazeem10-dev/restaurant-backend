@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authenticate, authorize("admin"));
 router.get("/restaurants", asyncHandler(controller.listRestaurants));
 router.post("/restaurants", asyncHandler(controller.createRestaurant));
+router.patch("/restaurants/:id/subscription/renew", asyncHandler(controller.renewRestaurantSubscription));
 router.get("/delivery-partners", asyncHandler(controller.listDeliveryPartners));
 router.post("/delivery-partners", asyncHandler(controller.createDeliveryPartner));
 router.patch("/delivery-partners/:id/profile", asyncHandler(controller.updateDeliveryPartner));

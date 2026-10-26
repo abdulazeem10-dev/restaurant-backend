@@ -107,6 +107,81 @@ async function createOrder(req, res) {
   return res.status(201).json({ order, deliveryAssigned: true });
 }
 
+const dineInOrderSchema = z.object({
+  tableNumber: z.coerce.number().int().min(1).max(500),
+  customerName: z.string().trim().max(100).optional().default(""),
+  customerPhone: z.string().trim().max(20).optional().default(""),
+  paymentMethod: z.enum(["cash_on_delivery", "upi_qr", "online"]).default("cash_on_delivery"),
+  items: z.array(z.object({ menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i), quantity: z.number().int().min(1).max(20) }).strict()).min(1).max(50)
+}).strict();
+
+async function getRestaurantForAccount(user) {
+  return user.role === "restaurant_staff" ? Restaurant.findById(user.restaurantId) : Restaurant.findOne({ ownerId: user._id });
+}
+
+async function createDineInOrder(req, res) {
+  const parsed = dineInOrderSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter a table number and at least one valid menu item" });
+  const restaurant = await getRestaurantForAccount(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
+  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
+  if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more dishes are unavailable" });
+  const byId = new Map(menuItems.map(item => [String(item._id), item]));
+  let subtotalPaise = 0;
+  const items = parsed.data.items.map(line => { const menuItem = byId.get(line.menuItemId); subtotalPaise += menuItem.pricePaise * line.quantity; return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity }; });
+  if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
+  const now = new Date();
+  const order = await Order.create({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, customerName: parsed.data.customerName, customerPhone: parsed.data.customerPhone, deliveryAddress: "Dine-in · Table " + parsed.data.tableNumber, items, subtotalPaise, deliveryFeePaise: 0, taxPaise: 0, totalPaise: subtotalPaise, paymentMethod: parsed.data.paymentMethod, paymentStatus: "pending", status: "preparing", statusHistory: [{ status: "preparing", at: now }] });
+  console.log("[orders] dine-in created", String(order._id), "table", order.tableNumber, "status", 201);
+  return res.status(201).json({ order });
+}
+
+async function addItemsToRestaurantOrder(req, res) {
+  const parsed = z.object({ items: z.array(z.object({ menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i), quantity: z.number().int().min(1).max(20) }).strict()).min(1).max(50) }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose at least one valid menu item and quantity" });
+  const restaurant = await getRestaurantForAccount(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id, orderType: "dine_in" });
+  if (!order) return res.status(404).json({ error: "Dine-in order not found" });
+  if (["delivered", "cancelled"].includes(order.status) || order.paymentStatus === "paid") return res.status(409).json({ error: "This order is closed or already paid" });
+  const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
+  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
+  if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more dishes are unavailable" });
+  const byId = new Map(menuItems.map(item => [String(item._id), item]));
+  for (const line of parsed.data.items) {
+    const menuItem = byId.get(line.menuItemId);
+    const existing = order.items.find(item => String(item.menuItemId).toLowerCase() === line.menuItemId.toLowerCase());
+    if (existing) { if (existing.quantity + line.quantity > 20) return res.status(400).json({ error: "A dish cannot exceed 20 items per table order" }); existing.quantity += line.quantity; existing.unitPricePaise = menuItem.pricePaise; existing.name = menuItem.name; }
+    else order.items.push({ menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity });
+  }
+  order.subtotalPaise = order.items.reduce((sum, item) => sum + item.unitPricePaise * item.quantity, 0);
+  if (!Number.isSafeInteger(order.subtotalPaise) || order.subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
+  order.totalPaise = order.subtotalPaise + order.deliveryFeePaise + order.taxPaise;
+  await order.save();
+  console.log("[orders] dine-in items updated", String(order._id), "status", 200);
+  return res.json({ order });
+}
+
+async function collectDineInPayment(req, res) {
+  const parsed = z.object({ paymentMethod: z.enum(["cash_on_delivery", "upi_qr", "online"]) }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose cash, UPI, or online payment" });
+  const restaurant = await getRestaurantForAccount(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id, orderType: "dine_in" });
+  if (!order) return res.status(404).json({ error: "Dine-in order not found" });
+  if (order.status === "cancelled") return res.status(409).json({ error: "A cancelled table order cannot be paid" });
+  if (order.paymentStatus === "paid") return res.status(409).json({ error: "This bill is already marked paid" });
+  order.paymentMethod = parsed.data.paymentMethod;
+  order.paymentStatus = "paid";
+  order.paymentCollectedAt = new Date();
+  order.status = "delivered";
+  order.statusHistory.push({ status: "delivered", at: new Date() });
+  await order.save();
+  console.log("[orders] dine-in payment recorded", String(order._id), "status", 200);
+  return res.json({ order });
+}
+
 async function findLeastBusyDeliveryPartner(excludedIds = []) {
   const partners = await User.find({ role: "delivery", status: "active", _id: { $nin: excludedIds } }).select("_id").lean();
   if (!partners.length) return null;
@@ -146,6 +221,7 @@ async function updateRestaurantOrder(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
   if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.orderType === "dine_in" && req.body.status === "out_for_delivery") return res.status(400).json({ error: "Dine-in orders cannot be sent for delivery" });
   if (req.body.status === "cancelled" && order.paymentStatus === "paid") return res.status(409).json({ error: "This order is paid; handle cancellation and any refund through the payment provider first" });
   if (req.body.status === "out_for_delivery" && order.deliveryAssignmentStatus && order.deliveryAssignmentStatus !== "accepted") {
     return res.status(409).json({ error: "Wait for the assigned delivery person to accept this order first" });
@@ -167,7 +243,7 @@ async function updateRestaurantOrder(req, res) {
   if (req.body.status === "cancelled") order.estimatedDeliveryAt = null;
   await order.save();
   const statusLabels = { confirmed: "confirmed", preparing: "being prepared", ready: "ready for pickup", out_for_delivery: "out for delivery", cancelled: "cancelled" };
-  await notifyOrderParticipants(order, {
+  if (order.customerId) await notifyOrderParticipants(order, {
     type: "order_status_updated",
     title: req.body.status === "cancelled" ? "Order cancelled" : "Order status updated",
     customerMessage: `Order #${String(order._id).slice(-6)} from ${restaurant.name} is ${statusLabels[order.status]}.`,
@@ -461,4 +537,4 @@ async function resolveOrderHelpRequest(req, res) {
   return res.json({ order, request: support });
 }
 
-module.exports = { createOrder, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, updateCustomerLocation, clearCustomerLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
+module.exports = { createOrder, createDineInOrder, addItemsToRestaurantOrder, collectDineInPayment, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, updateCustomerLocation, clearCustomerLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };

@@ -1,6 +1,6 @@
 # Food Platform Starter
 
-A starter MVP scaffold for a multi-restaurant ordering platform, including basic delivery-partner assignment, payment collection state, and customer receipt confirmation.
+A restaurant ordering and operations app for the Sunrise Tiffin House storefront, with customer, platform-admin, restaurant-owner, and staff workspaces.
 
 ## Project documentation
 - [Product requirements](prd.md)
@@ -20,7 +20,7 @@ A starter MVP scaffold for a multi-restaurant ordering platform, including basic
 - Deployment target: GitHub + Render
 
 ## Important
-This is an MVP, not yet a production marketplace. It includes customer registration/login, restaurant onboarding and management, orders, delivery assignment, order status notifications, optional email/SMS alerts, opt-in delivery location sharing, ETA estimates, cancellation/help requests, and restaurant sales reports. Some external capabilities require provider credentials. Online and UPI choices are currently preferences only; checkout does not charge a customer. Authentication uses short-lived access tokens in sessionStorage; review the production checklist below before launch.
+This is an MVP. The customer storefront is dedicated to Sunrise Tiffin House. It includes customer registration/login, restaurant-owner account provisioning with 1-, 2-, or 3-year subscription periods and renewal, restaurant management, delivery orders and assignment, order status notifications, optional email/SMS alerts, opt-in delivery location sharing, ETA estimates, cancellation/help requests, and restaurant sales reports. Some external capabilities require provider credentials. Online and UPI choices are currently preferences only; checkout does not charge a customer. Authentication uses short-lived access tokens in sessionStorage; review the production checklist below before launch.
 
 ## Requirements
 - Node.js 20+

@@ -5,6 +5,7 @@ const { z } = require("zod");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const Order = require("../models/Order");
+const Subscription = require("../models/Subscription");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -217,6 +218,27 @@ async function removeOwnStaff(req, res) {
   const account = await User.findOneAndDelete({ _id: req.params.staffId, restaurantId: restaurant._id, role: "restaurant_staff" }).select("_id");
   if (!account) return res.status(404).json({ error: "Restaurant staff account not found" });
   return res.status(204).end();
+}
+
+async function getOwnSubscription(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).lean();
+  return res.json({ subscription: subscription ? { termYears: subscription.termYears, status: subscription.status, currentPeriodStart: subscription.currentPeriodStart, currentPeriodEnd: subscription.currentPeriodEnd, renewalRequest: subscription.renewalRequest || { status: "none" } } : null });
+}
+
+async function requestOwnSubscriptionRenewal(req, res) {
+  const parsed = z.object({ years: z.coerce.number().int().min(1).max(3) }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose a renewal request of 1, 2, or 3 years" });
+  if (req.user.role !== "restaurant") return res.status(403).json({ error: "Only the restaurant owner can request subscription renewal" });
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
+  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.years + "-year", termYears: parsed.data.years });
+  if (subscription.renewalRequest?.status === "pending") return res.status(409).json({ error: "A renewal request is already waiting for the platform administrator" });
+  subscription.renewalRequest = { years: parsed.data.years, status: "pending", requestedAt: new Date() };
+  await subscription.save();
+  return res.status(201).json({ subscription: { termYears: subscription.termYears, status: subscription.status, currentPeriodEnd: subscription.currentPeriodEnd, renewalRequest: subscription.renewalRequest } });
 }
 
 async function setOwnOpenStatus(req, res) {
@@ -484,7 +506,7 @@ async function deleteMenuItem(req, res) {
   return res.status(204).end();
 }
 
-module.exports = {
+module.exports = { getOwnSubscription, requestOwnSubscriptionRenewal,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   listOwnStaff, createOwnStaff, removeOwnStaff, getOwnReports, updateOwnProfile, deactivateOwnProfile

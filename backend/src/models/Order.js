@@ -12,12 +12,16 @@ const deliveryDetailsSchema = new mongoose.Schema({
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
-  customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
   // A client supplied key makes order creation safe to retry after a timeout.
   idempotencyKey: { type: String, minlength: 36, maxlength: 36, select: false },
   idempotencyRequestHash: { type: String, minlength: 64, maxlength: 64, select: false },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true, index: true },
-  deliveryAddress: { type: String, required: true, trim: true, maxlength: 500 },
+  orderType: { type: String, enum: ["delivery", "dine_in"], default: "delivery", index: true },
+  tableNumber: { type: Number, min: 1, max: 500, default: null },
+  customerName: { type: String, trim: true, maxlength: 100, default: "" },
+  customerPhone: { type: String, trim: true, maxlength: 20, default: "" },
+  deliveryAddress: { type: String, trim: true, maxlength: 500, default: "" },
   deliveryDetails: { type: deliveryDetailsSchema, default: undefined },
   deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
   deliveryAssignmentStatus: { type: String, enum: ["offered", "accepted", "unassigned"] },
