@@ -26,7 +26,8 @@ const allowedOrigins = [...new Set([...configuredOrigins, "https://restaurant-fr
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    const isOwnedFrontendPreview = typeof origin === "string" && origin.startsWith("https://restaurant-frontend-frontend-") && origin.endsWith("-abdulazeem31975-2509.vercel.app");
+    if (!origin || allowedOrigins.includes(origin) || isOwnedFrontendPreview) return callback(null, true);
     return callback(new Error("Origin not allowed by CORS"));
   }
 }));
