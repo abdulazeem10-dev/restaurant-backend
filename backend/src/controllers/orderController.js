@@ -124,6 +124,8 @@ async function createDineInOrder(req, res) {
   if (!parsed.success) return res.status(400).json({ error: "Enter a table number and at least one valid menu item" });
   const restaurant = await getRestaurantForAccount(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const tableCount = restaurant.dineInTableCount || 10;
+  if (parsed.data.tableNumber > tableCount) return res.status(400).json({ error: "Choose a table from 1 to " + tableCount });
   const openTableOrder = await Order.findOne({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, paymentStatus: { $ne: "paid" }, status: { $nin: ["cancelled", "delivered"] } }).select("_id");
   if (openTableOrder) return res.status(409).json({ error: `Table ${parsed.data.tableNumber} already has an open bill (order #${String(openTableOrder._id).slice(-6)}). Add dishes to that order instead.` });
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];

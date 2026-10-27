@@ -32,9 +32,10 @@ const serviceSettingsSchema = z.object({
   deliveryAreas: z.array(deliveryAreaInputSchema).max(50).optional(),
   cuisine: cuisineSchema.optional(),
   prepTimeMinutes: z.number().int().min(5).max(180).optional(),
-  deliveryTimeMinutes: z.number().int().min(5).max(180).optional()
+  deliveryTimeMinutes: z.number().int().min(5).max(180).optional(),
+  dineInTableCount: z.number().int().min(1).max(500).optional()
 }).strict().superRefine((value, context) => {
-  if (value.openingHours === undefined && value.deliveryPincodes === undefined && value.deliveryAreas === undefined && value.cuisine === undefined && value.prepTimeMinutes === undefined && value.deliveryTimeMinutes === undefined) {
+  if (value.openingHours === undefined && value.deliveryPincodes === undefined && value.deliveryAreas === undefined && value.cuisine === undefined && value.prepTimeMinutes === undefined && value.deliveryTimeMinutes === undefined && value.dineInTableCount === undefined) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "At least one setting is required" });
   }
   if (value.deliveryAreas !== undefined) {
@@ -306,6 +307,7 @@ async function updateOwnServiceSettings(req, res) {
   if (parsed.data.cuisine) restaurant.cuisine = parsed.data.cuisine;
   if (parsed.data.prepTimeMinutes !== undefined) restaurant.prepTimeMinutes = parsed.data.prepTimeMinutes;
   if (parsed.data.deliveryTimeMinutes !== undefined) restaurant.deliveryTimeMinutes = parsed.data.deliveryTimeMinutes;
+  if (parsed.data.dineInTableCount !== undefined) restaurant.dineInTableCount = parsed.data.dineInTableCount;
   await restaurant.save();
   return res.json({
     restaurant: {
@@ -315,7 +317,8 @@ async function updateOwnServiceSettings(req, res) {
       deliveryAreas: restaurant.deliveryAreas,
       cuisine: restaurant.cuisine || "other",
       prepTimeMinutes: restaurant.prepTimeMinutes,
-      deliveryTimeMinutes: restaurant.deliveryTimeMinutes
+      deliveryTimeMinutes: restaurant.deliveryTimeMinutes,
+      dineInTableCount: restaurant.dineInTableCount
     }
   });
 }
@@ -436,7 +439,8 @@ async function getOwnMenu(req, res) {
       deliveryPincodes: restaurant.deliveryPincodes,
       deliveryAreas: restaurant.deliveryAreas,
       prepTimeMinutes: restaurant.prepTimeMinutes,
-      deliveryTimeMinutes: restaurant.deliveryTimeMinutes
+      deliveryTimeMinutes: restaurant.deliveryTimeMinutes,
+      dineInTableCount: restaurant.dineInTableCount
     },
     items
   });

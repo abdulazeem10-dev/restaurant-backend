@@ -90,6 +90,7 @@ const restaurantSchema = new mongoose.Schema(
     },
     prepTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
     deliveryTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
+    dineInTableCount: { type: Number, min: 1, max: 500, default: 10 },
     location: {
       type: locationSchema,
       default: undefined
