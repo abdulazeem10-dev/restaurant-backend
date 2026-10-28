@@ -14,26 +14,26 @@ This plan organizes the product into reviewable milestones. It records the curre
 
 **Exit criteria:** API and database start with documented configuration; protected routes enforce role and ownership checks.
 
-## Phase 2 — Sunrise storefront and ordering
+## Phase 2 — Al-Madina storefront and ordering
 
 **Status: Implemented.**
 
-- Sunrise Tiffin House storefront, breakfast categories, dish search/filters, and menu availability.
-- Sunrise profile/menu display, cart, checkout, and delivery coverage validation.
+- Al-Madina storefront, cuisine and veg/non-veg filters, dish search/filters, and menu availability.
+- Al-Madina profile/menu display, cart, checkout, and delivery coverage validation.
 - Cart, delivery details, checkout, order history, and reorder/saved addresses.
 - Server-calculated totals and validation against current menu/service settings.
 
-**Exit criteria:** a customer can order only from Sunrise's currently eligible menu and see the saved order.
+**Exit criteria:** a customer can order only from Al-Madina's currently eligible menu and see the saved order.
 
 ## Phase 3 — Restaurant operations
 
 **Status: Implemented; continue usability and permission review.**
 
-- Sunrise owner dashboard and staff accounts for secondary admin, biller/modifier, and viewer.
-- Sunrise menu CRUD and availability, open/close, opening hours, delivery areas, table count, dine-in billing, and kitchen queue.
+- Al-Madina owner dashboard and staff accounts for secondary admin, biller/modifier, and viewer.
+- Al-Madina menu CRUD and availability, open/close, opening hours, delivery areas, table count, dine-in billing, and kitchen queue.
 - Incoming orders, preparation/handoff statuses, support/cancellation requests, reviews, and sales reporting.
 
-**Exit criteria:** each Sunrise role can perform only its permitted operations and orders can be progressed to delivery handoff.
+**Exit criteria:** each Al-Madina role can perform only its permitted operations and orders can be progressed to delivery handoff.
 
 ## Phase 4 — Delivery dispatch and tracking
 

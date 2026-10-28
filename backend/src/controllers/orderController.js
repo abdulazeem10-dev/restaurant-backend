@@ -45,7 +45,7 @@ async function createOrder(req, res) {
     return res.status(200).json({ order: existingOrder, deliveryAssigned: Boolean(existingOrder.deliveryPartnerId), replayed: true });
   }
 
-  const restaurant = await Restaurant.findOne({ _id: parsed.data.restaurantId, name: /^Sunrise Tiffin House$/i, status: "approved" });
+  const restaurant = await Restaurant.findOne({ _id: parsed.data.restaurantId, name: /^Al-Madina$/i, status: "approved" });
   if (!restaurant) return res.status(404).json({ error: "Restaurant is not accepting orders" });
   if (!restaurant.isOpen) return res.status(409).json({ error: "This restaurant is currently closed" });
   if (!isWithinOpeningHours(restaurant.openingHours)) return res.status(409).json({ error: "This restaurant is outside its listed opening hours" });
@@ -201,9 +201,9 @@ async function findLeastBusyDeliveryPartner(restaurantId, excludedIds = []) {
 }
 
 async function listMyOrders(req, res) {
-  const sunrise = await Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
-  if (!sunrise) return res.json({ orders: [] });
-  const orders = await Order.find({ customerId: req.user._id, restaurantId: sunrise._id }).populate("restaurantId", "name address prepTimeMinutes deliveryTimeMinutes").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
+  const alMadina = await Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" }).select("_id").lean();
+  if (!alMadina) return res.json({ orders: [] });
+  const orders = await Order.find({ customerId: req.user._id, restaurantId: alMadina._id }).populate("restaurantId", "name address prepTimeMinutes deliveryTimeMinutes").populate("deliveryPartnerId", "name phone").sort({ createdAt: -1 }).limit(100);
   const reviews = await Review.find({ customerId: req.user._id, orderId: { $in: orders.map(order => order._id) } }).select("orderId rating");
   const reviewByOrder = new Map(reviews.map(review => [String(review.orderId), review]));
   return res.json({ orders: orders.map(order => ({ ...order.toObject(), review: reviewByOrder.get(String(order._id)) || null })) });

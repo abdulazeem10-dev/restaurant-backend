@@ -5,7 +5,7 @@
 
 ## 1. System overview
 
-The product has a static browser frontend, an Express API, and MongoDB persistence. The public customer website and Android Progressive Web App are branded for Sunrise Tiffin House and expose only its approved restaurant profile and menu. The platform-admin workspace remains separate for provisioning and managing the Sunrise owner account. The website and PWA use the same API and records. External integrations are optional and activated with server-side environment variables.
+The product has a static browser frontend, an Express API, and MongoDB persistence. The public customer website and Android Progressive Web App are branded for Al-Madina and expose only its approved restaurant profile and menu. The platform-admin workspace remains separate for provisioning and managing the Al-Madina owner account. The website and PWA use the same API and records. External integrations are optional and activated with server-side environment variables.
 
 ```mermaid
 flowchart LR
@@ -42,7 +42,7 @@ flowchart LR
 2. Express applies security headers, allowlisted CORS, JSON parsing with a size limit and raw-body retention, and the general API rate limit.
 3. Before API routes run, the backend checks that `JWT_SECRET` is sufficiently long and ensures MongoDB is connected.
 4. Route middleware authenticates the token and enforces role, restaurant ownership, order assignment, and action-specific permissions.
-5. Controllers validate inputs and business rules, read/write Mongoose documents, and return JSON. Public restaurant listing, profile, menu, review, and customer order creation are restricted to the approved Sunrise Tiffin House record; platform-admin account management remains a separate protected surface. The common error middleware formats failures; unknown routes return a JSON 404.
+5. Controllers validate inputs and business rules, read/write Mongoose documents, and return JSON. Public restaurant listing, profile, menu, review, and customer order creation are restricted to the approved Al-Madina record; platform-admin account management remains a separate protected surface. The common error middleware formats failures; unknown routes return a JSON 404.
 
 The configured CORS allowlist includes the configured frontend origins and the secure Android WebView asset origin. `trust proxy` is configured for one hosting proxy hop.
 
@@ -57,7 +57,7 @@ Backend validation uses fixed, simple regexes for bounded formats such as IDs, P
 | Model | Responsibility and relationships |
 | --- | --- |
 | `User` | Customer, restaurant owner/staff, delivery partner, or platform-admin identity; stores role and account data. |
-| `Restaurant` | Sunrise storefront, owner association, approval/open state, food type, service hours, named delivery areas with PIN-code coverage, and estimate settings. |
+| `Restaurant` | Al-Madina storefront, owner association, approval/open state, food type, service hours, named delivery areas with PIN-code coverage, and estimate settings. |
 | `MenuItem` | Restaurant-owned dish, category, price, food type, image, and availability. |
 | `Order` | Customer and restaurant references, item/price snapshots, delivery details, lifecycle and status history, assignment and GPS data, payment state, help/cancellation requests. |
 | `Delivery` | Delivery-related records and workflow data where represented by the delivery model. |
@@ -118,7 +118,7 @@ Location sharing requires a secure context (HTTPS or localhost). Access should r
 
 ## 10. Deployment and configuration
 
-- Deploy the static frontend as HTTPS content. Its customer surface is the Sunrise Tiffin House storefront; do not expose a restaurant directory or fall back to another restaurant's data.
+- Deploy the static frontend as HTTPS content. Its customer surface is the Al-Madina storefront; do not expose a restaurant directory or fall back to another restaurant's data.
 - Run the Express backend on Node.js 20+ with MongoDB connectivity. The app can run as a long-lived Node server or through a compatible serverless adapter.
 - Configure `MONGODB_URI`, a high-entropy `JWT_SECRET` of at least 32 characters, and exact allowed `FRONTEND_ORIGIN` values. Add optional provider secrets only when those features are intentionally enabled.
 - Keep production secrets in the hosting platform's secret manager. Do not commit `.env` files, production tokens, or user data.
@@ -135,7 +135,7 @@ Location sharing requires a secure context (HTTPS or localhost). Access should r
 
 ## 12. Known architecture limits
 
-- The frontend is static browser JavaScript rather than a component framework; there is no dedicated mobile native client. Platform account records may be managed separately, but customer-facing restaurant APIs are Sunrise-only.
+- The frontend is static browser JavaScript rather than a component framework; there is no dedicated mobile native client. Platform account records may be managed separately, but customer-facing restaurant APIs are Al-Madina-only.
 - Order and location updates use polling, not websocket or push transport.
 - Online payment is not integrated into checkout; preliminary Razorpay controller code is not routed or called. UPI QR generation is not implemented. Tax/delivery charges default to zero unless separately configured.
 - The repository is a starter MVP. Production launch requires deployment-specific review of scale, monitoring, privacy, payment operations, and security controls.

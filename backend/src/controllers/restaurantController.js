@@ -77,9 +77,9 @@ function cuisineForMenuCategory(category) {
 }
 
 async function listRestaurants(req, res) {
-  // The customer storefront belongs to Sunrise Tiffin House. Admin-managed
+  // The customer storefront belongs to Al-Madina. Admin-managed
   // restaurant records must never turn this public endpoint into a directory.
-  const query = { status: "approved", name: /^Sunrise Tiffin House$/i };
+  const query = { status: "approved", name: /^Al-Madina$/i };
   const restaurants = await Restaurant.find(query)
     .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
@@ -136,7 +136,7 @@ async function listRestaurants(req, res) {
 async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
-    name: /^Sunrise Tiffin House$/i,
+    name: /^Al-Madina$/i,
     status: "approved"
   }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
@@ -156,7 +156,7 @@ async function getRestaurant(req, res) {
 async function getPublicMenu(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
-    name: /^Sunrise Tiffin House$/i,
+    name: /^Al-Madina$/i,
     status: "approved"
   }).select("_id");
 
@@ -271,7 +271,7 @@ async function requestOwnSubscriptionRenewal(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
-  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.years + "-year", termYears: parsed.data.years });
+  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.years + "-year", termYears: parsed.data.years });
   if (subscription.renewalRequest?.status === "pending") return res.status(409).json({ error: "A renewal request is already waiting for the platform administrator" });
   subscription.renewalRequest = { years: parsed.data.years, status: "pending", requestedAt: new Date() };
   await subscription.save();

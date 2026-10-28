@@ -13,12 +13,12 @@ async function createReview(req, res) {
   const parsed = createReviewSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a rating from 1 to 5 and enter a comment under 500 characters" });
 
-  const sunrise = await Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
-  if (!sunrise) return res.status(404).json({ error: "Sunrise Tiffin House is not available" });
+  const alMadina = await Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" }).select("_id").lean();
+  if (!alMadina) return res.status(404).json({ error: "Al-Madina is not available" });
   const order = await Order.findOne({
     _id: parsed.data.orderId,
     customerId: req.user._id,
-    restaurantId: sunrise._id,
+    restaurantId: alMadina._id,
     status: { $in: ["ready", "out_for_delivery", "picked_up", "delivered"] }
   }).select("restaurantId");
   if (!order) return res.status(403).json({ error: "You can review an order after the restaurant marks it ready for pickup" });
@@ -39,7 +39,7 @@ async function createReview(req, res) {
 }
 
 async function listRestaurantReviews(req, res) {
-  const restaurant = await Restaurant.findOne({ _id: req.params.id, name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id");
+  const restaurant = await Restaurant.findOne({ _id: req.params.id, name: /^Al-Madina$/i, status: "approved" }).select("_id");
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const [reviews, stats] = await Promise.all([
     Review.find({ restaurantId: restaurant._id }).populate("customerId", "name").sort({ createdAt: -1 }).limit(30),

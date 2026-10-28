@@ -5,8 +5,8 @@
 
 ## What is included
 
-- Sunrise Tiffin House breakfast storefront, menu browsing, cart, checkout, order history, order status updates, notifications, reviews, saved addresses, and opt-in location sharing. Customer-facing APIs must not show or accept other restaurant records.
-- Separate platform admin, Sunrise owner/staff, and delivery dashboards with role-scoped workflows. The Sunrise owner creates and manages delivery accounts; platform admin manages only Sunrise owner access, subscription, and approval.
+- Al-Madina restaurant storefront, menu browsing, cart, checkout, order history, order status updates, notifications, reviews, saved addresses, and opt-in location sharing. Customer-facing APIs must not show or accept other restaurant records.
+- Separate platform admin, Al-Madina owner/staff, and delivery dashboards with role-scoped workflows. The Al-Madina owner creates and manages delivery accounts; platform admin manages only Al-Madina owner access, subscription, and approval.
 - Restaurant menu and service settings, named delivery areas with PIN coverage, delivery assignment acceptance/decline, and delivery completion.
 - Responsive website and Android WebView/PWA options using the same API and MongoDB data.
 - Optional Google sign-in, phone OTP, email, and SMS integrations when correctly configured.
@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | Online payments | Checkout stores online/UPI as a preference. It does not charge a card/UPI account or create a QR. COD is the implemented collection flow. | Do not accept online payment orders as paid. A provider integration must be completed and verified before claiming online payments are supported. |
 | Fees | Tax and delivery charges are currently zero. | Agree on commercial rules and implement/configure them before launch. |
-| Sunrise service coverage | Delivery PIN codes are grouped under Sunrise service areas and checked at checkout. The customer site is not a restaurant directory. | Configure Sunrise's actual hours, menu, delivery areas, and contact details before launch. |
+| Al-Madina service coverage | Delivery PIN codes are grouped under Al-Madina service areas and checked at checkout. The customer site is not a restaurant directory. | Configure Al-Madina's actual hours, menu, delivery areas, and contact details before launch. |
 | Tracking | Location sharing is opt-in and refreshes by polling; maps provide visual context and external map links. | It is not turn-by-turn navigation and freshness depends on GPS permission, connectivity, and refresh interval. |
 | Notifications | In-app records are available; email and SMS depend on provider setup and delivery rules. | Verify each channel with production credentials and real devices before promising delivery. |
 | Deployment portability | The browser client currently points to the Foodway Vercel API URL in source. | Changing hosting environments requires updating and rebuilding/redeploying the frontend API base URL. |
@@ -28,7 +28,7 @@
 
 ### Client decisions and content
 
-- Confirm Sunrise owner contact, approved breakfast menu, prices, images, weekly hours, delivery PIN codes, delivery/preparation estimates, and item availability.
+- Confirm Al-Madina owner contact, approved menu, prices, images, weekly hours, delivery PIN codes, delivery/preparation estimates, and item availability.
 - Confirm supported payment methods, tax treatment, delivery fees, cancellation/refund policy, customer support contact, and operating hours.
 - Approve privacy notice, terms, data retention/deletion policy, location-sharing explanation, and any required local compliance language.
 - Decide whether acceptance is for an MVP demonstration or a live commercial launch.
@@ -46,7 +46,7 @@
 
 ## Suggested acceptance walkthrough
 
-1. Customer creates an account, browses Sunrise's available breakfast dishes, and places a COD order.
+1. Customer creates an account, browses Al-Madina's available dishes using cuisine and veg/non-veg filters, and places a COD order.
 2. Restaurant account receives the order, advances preparation, and marks it ready for pickup.
 3. Delivery partner accepts the offer, uses the address/map link, optionally shares GPS, and completes delivery.
 4. Customer sees delivery completion, confirms receipt, and submits a review; restaurant staff can see the resulting order/review state.

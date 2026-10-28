@@ -44,9 +44,9 @@ async function deleteAddress(req, res) {
 }
 
 async function getLoyaltySummary(req, res) {
-  const sunrise = await Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
-  if (!sunrise) return res.json({ loyalty: { points: 0, deliveredOrders: 0, totalSpentPaise: 0, pointsPerTenRupees: 1, rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders" } });
-  const orders = await Order.find({ customerId: req.user._id, restaurantId: sunrise._id, status: "delivered" })
+  const alMadina = await Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" }).select("_id").lean();
+  if (!alMadina) return res.json({ loyalty: { points: 0, deliveredOrders: 0, totalSpentPaise: 0, pointsPerTenRupees: 1, rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders" } });
+  const orders = await Order.find({ customerId: req.user._id, restaurantId: alMadina._id, status: "delivered" })
     .select("totalPaise")
     .lean();
 
@@ -67,17 +67,17 @@ async function getLoyaltySummary(req, res) {
 }
 
 async function listFavouriteRestaurants(req, res) {
-  const [user, sunrise] = await Promise.all([
+  const [user, alMadina] = await Promise.all([
     User.findById(req.user._id).select("favoriteRestaurantIds").lean(),
-    Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean()
+    Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" }).select("_id").lean()
   ]);
   const favorites = (user?.favoriteRestaurantIds || []).map(String);
-  return res.json({ restaurantIds: sunrise && favorites.includes(String(sunrise._id)) ? [String(sunrise._id)] : [] });
+  return res.json({ restaurantIds: alMadina && favorites.includes(String(alMadina._id)) ? [String(alMadina._id)] : [] });
 }
 
 async function addFavouriteRestaurant(req, res) {
   if (!mongoose.isValidObjectId(req.params.restaurantId)) return res.status(400).json({ error: "Invalid restaurant" });
-  const restaurant = await Restaurant.findOne({ _id: req.params.restaurantId, name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
+  const restaurant = await Restaurant.findOne({ _id: req.params.restaurantId, name: /^Al-Madina$/i, status: "approved" }).select("_id").lean();
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   await User.updateOne({ _id: req.user._id }, { $addToSet: { favoriteRestaurantIds: restaurant._id } });
   return res.status(204).end();

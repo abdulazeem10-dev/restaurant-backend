@@ -121,7 +121,7 @@ async function createRestaurant(req, res) {
     const startsAt = new Date();
     const endsAt = new Date(startsAt);
     endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.subscriptionYears);
-    const subscription = await Subscription.create({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.subscriptionYears + "-year", termYears: parsed.data.subscriptionYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt });
+    const subscription = await Subscription.create({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.subscriptionYears + "-year", termYears: parsed.data.subscriptionYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt });
     return res.status(201).json({ restaurant, subscription, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
   } catch (error) {
     if (restaurant) { await Subscription.deleteMany({ restaurantId: restaurant._id }); await Restaurant.deleteOne({ _id: restaurant._id }); }
@@ -144,12 +144,12 @@ async function renewRestaurantSubscription(req, res) {
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
-  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "sunrise-" + parsed.data.years + "-year", termYears: parsed.data.years });
+  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.years + "-year", termYears: parsed.data.years });
   const now = new Date();
   const startsAt = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now ? subscription.currentPeriodEnd : now;
   const endsAt = new Date(startsAt);
   endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.years);
-  Object.assign(subscription, { currentPeriodStart: startsAt, currentPeriodEnd: endsAt, termYears: parsed.data.years, planId: "sunrise-" + parsed.data.years + "-year", status: "active", cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
+  Object.assign(subscription, { currentPeriodStart: startsAt, currentPeriodEnd: endsAt, termYears: parsed.data.years, planId: "al-madina-" + parsed.data.years + "-year", status: "active", cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
   await subscription.save();
   return res.json({ subscription });
 }

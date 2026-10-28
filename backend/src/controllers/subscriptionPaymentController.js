@@ -91,7 +91,7 @@ async function verifyPayment(req, res) {
       const endsAt = new Date(startsAt);
       endsAt.setUTCFullYear(endsAt.getUTCFullYear() + currentPayment.termYears);
       const target = subscription || new Subscription({ restaurantId: restaurant._id });
-      Object.assign(target, { planId: `sunrise-${currentPayment.termYears}-year`, termYears: currentPayment.termYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt, cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
+      Object.assign(target, { planId: `al-madina-${currentPayment.termYears}-year`, termYears: currentPayment.termYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt, cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
       await target.save({ session });
       currentPayment.status = "paid";
       currentPayment.providerPaymentId = parsed.data.razorpay_payment_id;

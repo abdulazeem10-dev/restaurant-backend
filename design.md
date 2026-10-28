@@ -10,7 +10,7 @@ This guide records the visual language in the current frontend CSS and the UX pr
 - **Surfaces:** warm near-white backgrounds, white cards, light beige borders, and dark warm text.
 - Use food imagery where available; avoid decorative visuals that push menu, address, status, or payment information out of view.
 
-The customer home page is a dedicated Sunrise Tiffin House storefront, not a restaurant marketplace. Preserve the breakfast hero, cuisine carousel, dish search/filter controls, image-led Sunrise menu items, and warm visual style. Do not add restaurant cards, restaurant sorting, neighborhood discovery, or a delivery PIN filter to the customer home page.
+The customer home page is a dedicated Al-Madina storefront, not a restaurant marketplace. Preserve the restaurant hero, cuisine carousel, dish search/filter controls, image-led Al-Madina menu items, and warm visual style. Do not add restaurant cards, restaurant sorting, neighborhood discovery, or a delivery PIN filter to the customer home page.
 
 ## Current CSS palette
 
@@ -38,7 +38,7 @@ The customer home page is a dedicated Sunrise Tiffin House storefront, not a res
 - Cards use white surfaces, subtle warm borders, rounded corners (about 12–16px), and restrained shadows.
 - Inputs and selects should have consistent heights, spacing, borders, labels, and clear focus styling.
 - Primary buttons use high-contrast filled color, visible hover/focus states, and comfortable touch targets. Secondary actions use neutral surfaces.
-- Keep the single Sunrise customer storefront separate from platform-admin, restaurant-owner/staff, and delivery dashboards. Role dashboards should prioritize task queues, status, and actions relevant to that role.
+- Keep the single Al-Madina customer storefront separate from platform-admin, restaurant-owner/staff, and delivery dashboards. Role dashboards should prioritize task queues, status, and actions relevant to that role.
 - Use status chips with both text and color (for example “Preparing”, “Ready”, “Delivered”).
 - Filter controls should be grouped once per task area; avoid duplicated controls that perform the same filtering.
 
