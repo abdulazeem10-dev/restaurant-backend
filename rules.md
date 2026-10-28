@@ -15,6 +15,7 @@ These are project-specific working conventions for the Food Platform repository.
 - Backend: Node.js 20+, Express, Mongoose, and MongoDB in `backend/`.
 - Keep HTTP route declarations in `backend/src/routes/`, request/business handling in controllers or shared services, schemas in `backend/src/models/`, and reusable access checks in middleware/utilities.
 - Keep the customer website and Android PWA pointed at the same API. Do not duplicate business rules in a separate client implementation.
+- Keep the public customer experience Sunrise Tiffin House-only. Public restaurant, menu, review, and order endpoints must not expose or accept another restaurant's records; never fall back to the only available restaurant if Sunrise is missing. Keep platform-admin account management separate from the Sunrise storefront.
 
 ## Security and data integrity
 

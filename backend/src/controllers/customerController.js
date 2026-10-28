@@ -44,7 +44,9 @@ async function deleteAddress(req, res) {
 }
 
 async function getLoyaltySummary(req, res) {
-  const orders = await Order.find({ customerId: req.user._id, status: "delivered" })
+  const sunrise = await Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
+  if (!sunrise) return res.json({ loyalty: { points: 0, deliveredOrders: 0, totalSpentPaise: 0, pointsPerTenRupees: 1, rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders" } });
+  const orders = await Order.find({ customerId: req.user._id, restaurantId: sunrise._id, status: "delivered" })
     .select("totalPaise")
     .lean();
 
@@ -65,13 +67,17 @@ async function getLoyaltySummary(req, res) {
 }
 
 async function listFavouriteRestaurants(req, res) {
-  const user = await User.findById(req.user._id).select("favoriteRestaurantIds").lean();
-  return res.json({ restaurantIds: (user?.favoriteRestaurantIds || []).map(String) });
+  const [user, sunrise] = await Promise.all([
+    User.findById(req.user._id).select("favoriteRestaurantIds").lean(),
+    Restaurant.findOne({ name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean()
+  ]);
+  const favorites = (user?.favoriteRestaurantIds || []).map(String);
+  return res.json({ restaurantIds: sunrise && favorites.includes(String(sunrise._id)) ? [String(sunrise._id)] : [] });
 }
 
 async function addFavouriteRestaurant(req, res) {
   if (!mongoose.isValidObjectId(req.params.restaurantId)) return res.status(400).json({ error: "Invalid restaurant" });
-  const restaurant = await Restaurant.findOne({ _id: req.params.restaurantId, status: "approved" }).select("_id").lean();
+  const restaurant = await Restaurant.findOne({ _id: req.params.restaurantId, name: /^Sunrise Tiffin House$/i, status: "approved" }).select("_id").lean();
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   await User.updateOne({ _id: req.user._id }, { $addToSet: { favoriteRestaurantIds: restaurant._id } });
   return res.status(204).end();

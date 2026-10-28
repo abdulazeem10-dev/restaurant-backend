@@ -1,28 +1,26 @@
-# Implementation Roadmap
+# Sunrise Tiffin House Implementation Roadmap
 
-## Included in this starter
+## Current Sunrise implementation
 - Express app with Helmet, CORS allowlist, request-size limit, and API rate limit
 - MongoDB connection
 - User, Restaurant, MenuItem, Order, Subscription, Delivery, Payment models
 - Customer registration and login
 - JWT authentication and role middleware
-- Public approved-restaurant and menu APIs
+- Public APIs restricted to the approved Sunrise Tiffin House profile, menu, reviews, and customer order creation
 - Restaurant-owned menu read/create/update/delete routes
 - Admin-only restaurant and owner-account onboarding, approval, rejection, and suspension
-- Customer restaurant browsing, menu, cart, checkout, and order history screens
+- Sunrise breakfast storefront, menu filters, cart, checkout, and order history screens
 - Restaurant menu availability and open/close controls
-- Restaurant order status management through ready for pickup
+- Dine-in table bills, menu availability controls, restaurant order management, and kitchen queue
 - Local one-time admin provisioning script
 - Basic API tests
 
-## Next work, in order
-1. Secure customer sessions, account recovery, and login-specific rate limiting.
-2. Restaurant profile editing, opening hours, customer contact details, and order notifications.
-3. Configure tax, fees, service area, and cancellation rules for the launch region.
-4. Choose payment and collection behavior; integrate a payment provider only when ready.
-5. Add delivery partner onboarding, dispatch, assignment locking, and delivery status transitions.
-6. Add notifications (email/SMS/push) and optional live location.
-7. Add integration tests, security review, backups, logging, monitoring, and deployment.
+## Remaining work, in order
+1. Verify customer → Sunrise kitchen → delivery end to end with production-like accounts.
+2. Verify public APIs reject non-Sunrise restaurant IDs and Sunrise is the only restaurant returned to customer pages.
+3. Complete release testing for login, account recovery, role access, dish availability, table billing, order status, and delivery handoff.
+4. Configure and verify payment and notification providers before presenting them as available.
+5. Add operational logging, monitoring, backups/restore drills, and deployment checks before production use.
 
 ## Before production
 - Add login and registration rate limiting by IP and account identifier.

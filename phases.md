@@ -14,26 +14,26 @@ This plan organizes the product into reviewable milestones. It records the curre
 
 **Exit criteria:** API and database start with documented configuration; protected routes enforce role and ownership checks.
 
-## Phase 2 — Restaurant discovery and ordering
+## Phase 2 — Sunrise storefront and ordering
 
 **Status: Implemented.**
 
-- Browse, search, food-type filters, sorting, and delivery PIN filtering.
-- Restaurant profile/menu display and menu item availability.
+- Sunrise Tiffin House storefront, breakfast categories, dish search/filters, and menu availability.
+- Sunrise profile/menu display, cart, checkout, and delivery coverage validation.
 - Cart, delivery details, checkout, order history, and reorder/saved addresses.
 - Server-calculated totals and validation against current menu/service settings.
 
-**Exit criteria:** customer can make an order from a currently eligible menu and see the saved order.
+**Exit criteria:** a customer can order only from Sunrise's currently eligible menu and see the saved order.
 
 ## Phase 3 — Restaurant operations
 
 **Status: Implemented; continue usability and permission review.**
 
-- Restaurant owner dashboard and staff accounts for secondary admin, biller/modifier, and viewer.
-- Menu CRUD and availability, open/close, opening hours, and delivery areas.
+- Sunrise owner dashboard and staff accounts for secondary admin, biller/modifier, and viewer.
+- Sunrise menu CRUD and availability, open/close, opening hours, delivery areas, table count, dine-in billing, and kitchen queue.
 - Incoming orders, preparation/handoff statuses, support/cancellation requests, reviews, and sales reporting.
 
-**Exit criteria:** each restaurant role can perform only its permitted operations and orders can be progressed to delivery handoff.
+**Exit criteria:** each Sunrise role can perform only its permitted operations and orders can be progressed to delivery handoff.
 
 ## Phase 4 — Delivery dispatch and tracking
 

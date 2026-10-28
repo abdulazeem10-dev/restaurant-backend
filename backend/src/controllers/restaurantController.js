@@ -77,13 +77,9 @@ function cuisineForMenuCategory(category) {
 }
 
 async function listRestaurants(req, res) {
-  const query = { status: "approved" };
-  if (req.query.pincode !== undefined) {
-    if (typeof req.query.pincode !== "string" || req.query.pincode.length !== 6 || !/^\d{6}$/.test(req.query.pincode)) {
-      return res.status(400).json({ error: "Enter a valid 6-digit PIN code" });
-    }
-    query.deliveryPincodes = req.query.pincode;
-  }
+  // The customer storefront belongs to Sunrise Tiffin House. Admin-managed
+  // restaurant records must never turn this public endpoint into a directory.
+  const query = { status: "approved", name: /^Sunrise Tiffin House$/i };
   const restaurants = await Restaurant.find(query)
     .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
@@ -140,6 +136,7 @@ async function listRestaurants(req, res) {
 async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
+    name: /^Sunrise Tiffin House$/i,
     status: "approved"
   }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
@@ -159,6 +156,7 @@ async function getRestaurant(req, res) {
 async function getPublicMenu(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
+    name: /^Sunrise Tiffin House$/i,
     status: "approved"
   }).select("_id");
 

@@ -59,14 +59,14 @@ Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Cre
 In-app notifications are stored in MongoDB. Optional email alerts use Resend (`RESEND_API_KEY` and `EMAIL_FROM`); optional order SMS alerts use Twilio Messaging (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`). SMS delivery depends on Twilio account status, verified destinations in trial mode, and regional messaging rules. Copy `backend/.env.example` to `backend/.env` and keep provider credentials only in the backend environment. No SMS or email is sent until these values are configured.
 
 ## Restaurant hours and delivery areas
-Restaurant owners can set weekly opening hours in India Standard Time and group delivery PIN codes under named neighbourhoods. Customers can search by area name or filter by PIN, and checkout/order requests are checked against the restaurant's hours and PIN coverage. Restaurants without a saved PIN list remain unrestricted until the owner configures one.
+The Sunrise owner can set weekly opening hours in India Standard Time and group delivery PIN codes under named service areas. Customers browse only the Sunrise menu; checkout checks the address PIN against Sunrise coverage and validates current opening hours. PINs and service areas are not restaurant-discovery filters.
 
 Owners and secondary admins can configure typical preparation and delivery times. Customers see an estimated delivery time; the estimate is reset when the restaurant marks the order ready. It is a restaurant-configured estimate, not a guaranteed arrival time.
 
-The platform admin creates each restaurant's primary admin account (the owner). The primary admin can then create one account for each additional role: secondary admin, biller/modifier, and viewer, and can remove accounts to free a role for a replacement. Secondary admins can manage restaurant settings, menus, and orders. Biller/modifier accounts can manage menus and update order statuses. Viewers have read-only access.
+The platform admin provisions the Sunrise Tiffin House owner account and manages its subscription and operational approval. The Sunrise owner can then create one account for each additional role: secondary admin, biller/modifier, and viewer, and can create, update, or deactivate delivery accounts. Secondary admins can manage restaurant settings, menus, and orders. Biller/modifier accounts can manage menus and update order statuses. Viewers have read-only access.
 
 ## Ratings and reviews
-Customers can submit one 1–5 star rating and an optional comment for each order after the restaurant marks it ready. Restaurant cards and menu pages show the average score, review count, and recent feedback; restaurant owners can read their reviews in the dashboard.
+Customers can submit one 1–5 star rating and an optional comment for each eligible Sunrise order. Sunrise menu pages show the average score, review count, and recent feedback; the restaurant owner can read reviews in the dashboard.
 
 ## Order tracking and saved addresses
 Customer orders show a progress timeline and refresh automatically while the orders page is open. Orders progress through placed, preparing, ready for pickup, out for delivery, and delivery done. Restaurant staff manage the flow through out for delivery; only the assigned delivery person can mark delivery done. Delivery people can explicitly start GPS sharing from their dashboard; the customer sees the rider on a live map. Customers can separately opt in to share their GPS location with the assigned delivery person while the order is out for delivery. Precise customer coordinates are available only to that assigned delivery account and the customer, and are cleared when delivery is marked done. Location sharing requires HTTPS (or localhost) and browser permission. The maps use OpenStreetMap tiles and update as the pages refresh; they are not turn-by-turn navigation. Restaurant status changes, delivery, cancellation requests/reviews, and help requests/replies create in-app notifications for the relevant customer or restaurant team. Customers can save up to 10 delivery addresses and reorder from the current menu.
@@ -92,9 +92,9 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `POST /api/auth/phone/otp/request` — sends a rate-limited sign-in code to a matching active customer account
 - `POST /api/auth/phone/otp/verify` — verifies the SMS code and creates a customer session
 - `GET /api/auth/me`
-- `GET /api/restaurants` — lists approved restaurants, with optional `?pincode=400001` coverage filter
-- `GET /api/restaurants/:id`
-- `GET /api/restaurants/:id/menu`
+- `GET /api/restaurants` — returns the approved Sunrise Tiffin House profile only; delivery PINs are checked at checkout, not used for restaurant discovery
+- `GET /api/restaurants/:id` — returns Sunrise only
+- `GET /api/restaurants/:id/menu` — returns Sunrise menu only
 - `GET /api/restaurants/owner/menu` — restaurant owner only
 - `POST /api/restaurants/owner/menu` — restaurant owner only
 - `PATCH /api/restaurants/owner/menu/:id` — restaurant owner only
@@ -104,7 +104,7 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/restaurants/owner/staff` — primary restaurant admin lists staff accounts
 - `POST /api/restaurants/owner/staff` — primary restaurant admin creates a secondary admin, biller/modifier, or viewer login
 - `DELETE /api/restaurants/owner/staff/:staffId` — primary restaurant admin removes a staff login
-- `GET /api/reviews/restaurant/:id` — public restaurant rating and recent reviews
+- `GET /api/reviews/restaurant/:id` — public Sunrise rating and recent reviews
 - `GET /api/reviews/restaurant/mine` — restaurant owner's reviews
 - `POST /api/reviews` — customer reviews one of their ready orders
 - `POST /api/orders` — authenticated customer creates an order (server calculates item prices)
@@ -131,7 +131,6 @@ To provision the first admin locally, set `ADMIN_NAME`, `ADMIN_EMAIL`, and a uni
 - `GET /api/restaurants/owner/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` — owner or secondary admin gets sales and order summaries
 - `GET /api/admin/restaurants` — admin lists restaurants
 - `POST /api/admin/restaurants` — admin creates a pending restaurant and owner login
-- `POST /api/admin/delivery-partners` — admin creates an active delivery login
 - `PATCH /api/admin/restaurants/:id/status` — admin approves, rejects, or suspends a restaurant
 
 The existing owner menu routes are mounted under `/api/restaurants/owner/menu`.
@@ -139,7 +138,7 @@ The existing owner menu routes are mounted under `/api/restaurants/owner/menu`.
 ## Local use
 Run the API and serve the `frontend` directory with a static server. Set `FRONTEND_ORIGIN` to that server's origin. You need an approved restaurant and an active restaurant-owner user in MongoDB before it appears publicly. Public self-registration creates customer accounts only. Restaurant account provisioning and approval are still manual and must be done through a controlled process.
 
-Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; there is no distance routing or dispatch optimization. Orders are rejected temporarily when no active delivery account exists; create one from the admin dashboard before accepting orders.
+Order totals currently include menu item prices only; taxes and delivery fees are zero. Delivery assignment is account-based and uses restaurant/customer text addresses; there is no distance routing or dispatch optimization. Orders are rejected temporarily when no active delivery account exists; the Sunrise owner creates delivery accounts in the restaurant workspace.
 
 ## Security baseline
 - Keep real credentials in the deployment platform's secret manager or an ignored local `.env`; never put them in frontend files, screenshots, issue reports, or commits. `.env.example` must contain placeholders only.
