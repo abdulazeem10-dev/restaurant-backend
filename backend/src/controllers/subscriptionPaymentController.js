@@ -4,7 +4,7 @@ const { z } = require("zod");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
 const SubscriptionPayment = require("../models/SubscriptionPayment");
-const { PLAN_TIERS, TERM_PRICES_PAISE, makePlanId, normalizePlanTier } = require("../utils/subscriptionPlans");
+const { PLAN_TIERS, makePlanId, normalizePlanTier, subscriptionPricePaise } = require("../utils/subscriptionPlans");
 const provider = "razorpay";
 
 function credentials() {
@@ -36,14 +36,15 @@ async function createOrder(req, res) {
   const { keyId, keySecret } = credentials();
   if (!keyId || !keySecret) return res.status(503).json({ error: "Subscription payments are not configured yet" });
   const parsed = z.object({
-    years: z.coerce.number().int().refine(value => Object.hasOwn(TERM_PRICES_PAISE, value)),
+    years: z.coerce.number().int().min(1).max(3),
     planTier: z.enum(["bronze", "silver", "gold"])
   }).strict().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose Bronze, Silver, or Gold and a term of 1, 2, or 3 years" });
   const restaurant = await Restaurant.findOne({ ownerId: req.user._id }).select("_id");
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const years = parsed.data.years, planTier = parsed.data.planTier, amountPaise = TERM_PRICES_PAISE[years];
-  const previous = await SubscriptionPayment.findOne({ restaurantId: restaurant._id, termYears: years, planTier, status: "pending" }).sort({ createdAt: -1 });
+  const years = parsed.data.years, planTier = parsed.data.planTier, amountPaise = subscriptionPricePaise(planTier, years);
+  if (!amountPaise) return res.status(400).json({ error: "That plan term is not available" });
+  const previous = await SubscriptionPayment.findOne({ restaurantId: restaurant._id, termYears: years, planTier, amountPaise, status: "pending" }).sort({ createdAt: -1 });
   if (previous) return res.json({ keyId, razorpayOrderId: previous.providerReference, amount: previous.amountPaise, currency: "INR", termYears: years, planTier });
   try {
     const order = await razorpayRequest("/orders", {
@@ -103,7 +104,7 @@ async function verifyPayment(req, res) {
       expiresAt = endsAt;
     });
   } finally { await session.endSession(); }
-  return res.json({ paid: true, expiresAt, planTier: normalizePlanTier(payment.planTier), maxAccounts: PLAN_TIERS[normalizePlanTier(payment.planTier)].maxAccounts });
+  return res.json({ paid: true, expiresAt, planTier: normalizePlanTier(payment.planTier), maxAccounts: PLAN_TIERS[normalizePlanTier(payment.planTier)].maxAccounts, amount: payment.amountPaise });
 }
 
 module.exports = { createOrder, verifyPayment };

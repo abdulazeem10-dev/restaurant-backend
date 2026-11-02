@@ -4,7 +4,11 @@ const PLAN_TIERS = Object.freeze({
   gold: Object.freeze({ maxAccounts: 9 })
 });
 
-const TERM_PRICES_PAISE = Object.freeze({ 1: 500000, 2: 900000, 3: 1200000 });
+const PLAN_PRICES_PAISE = Object.freeze({
+  bronze: Object.freeze({ 1: 500000, 2: 600000, 3: 700000 }),
+  silver: Object.freeze({ 1: 600000, 2: 700000, 3: 800000 }),
+  gold: Object.freeze({ 1: 700000, 2: 800000, 3: 900000 })
+});
 
 function normalizePlanTier(tier) {
   const normalized = String(tier || "bronze").toLowerCase();
@@ -19,4 +23,8 @@ function makePlanId(tier, years) {
   return `${normalizePlanTier(tier)}-${years}-year`;
 }
 
-module.exports = { PLAN_TIERS, TERM_PRICES_PAISE, normalizePlanTier, accountLimitFor, makePlanId };
+function subscriptionPricePaise(tier, years) {
+  return PLAN_PRICES_PAISE[normalizePlanTier(tier)][years] || null;
+}
+
+module.exports = { PLAN_TIERS, PLAN_PRICES_PAISE, normalizePlanTier, accountLimitFor, makePlanId, subscriptionPricePaise };
