@@ -20,12 +20,13 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: "Account unavailable" });
     }
 
-    const isSubscriptionSelfService = user.role !== "delivery" && (req.path.startsWith("/owner/subscription") || req.path === "/me");
+    const isSubscriptionSelfService = user.role === "restaurant" && req.path.startsWith("/owner/subscription")
+      || user.role !== "delivery" && req.path === "/me";
     if ((user.role === "restaurant" || user.role === "restaurant_staff" || user.role === "delivery") && !isSubscriptionSelfService) {
       const restaurant = user.role === "restaurant" || user.role === "restaurant_staff" ? (user.role === "restaurant_staff" ? await Restaurant.findById(user.restaurantId).select("_id") : await Restaurant.findOne({ ownerId: user._id }).select("_id")) : await Restaurant.findById(user.restaurantId).select("_id status");
       const subscription = restaurant ? await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).select("status currentPeriodEnd") : null;
       if (user.role === "delivery" && (!restaurant || restaurant.status !== "approved" || !subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date())) return res.status(403).json({ error: "This restaurant delivery account is unavailable because the restaurant is inactive or its subscription has expired.", code: "subscription_expired" });
-      if (subscription && (subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date())) return res.status(403).json({ error: "Restaurant subscription expired. Contact the platform administrator to renew access.", code: "subscription_expired" });
+      if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) return res.status(403).json({ error: "Restaurant subscription is inactive or expired. The owner must choose a plan and complete payment to restore access.", code: "subscription_expired" });
     }
     req.user = user;
     return next();

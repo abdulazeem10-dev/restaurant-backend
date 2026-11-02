@@ -4,8 +4,7 @@ const { z } = require("zod");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
 const SubscriptionPayment = require("../models/SubscriptionPayment");
-
-const PRICES = Object.freeze({ 1: 500000, 2: 900000, 3: 1200000 });
+const { PLAN_TIERS, TERM_PRICES_PAISE, makePlanId, normalizePlanTier } = require("../utils/subscriptionPlans");
 const provider = "razorpay";
 
 function credentials() {
@@ -36,21 +35,24 @@ async function razorpayRequest(path, body) {
 async function createOrder(req, res) {
   const { keyId, keySecret } = credentials();
   if (!keyId || !keySecret) return res.status(503).json({ error: "Subscription payments are not configured yet" });
-  const parsed = z.object({ years: z.coerce.number().int().refine(value => Object.hasOwn(PRICES, value)) }).strict().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Choose a term of 1, 2, or 3 years" });
+  const parsed = z.object({
+    years: z.coerce.number().int().refine(value => Object.hasOwn(TERM_PRICES_PAISE, value)),
+    planTier: z.enum(["bronze", "silver", "gold"])
+  }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose Bronze, Silver, or Gold and a term of 1, 2, or 3 years" });
   const restaurant = await Restaurant.findOne({ ownerId: req.user._id }).select("_id");
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const years = parsed.data.years, amountPaise = PRICES[years];
-  const previous = await SubscriptionPayment.findOne({ restaurantId: restaurant._id, termYears: years, status: "pending" }).sort({ createdAt: -1 });
-  if (previous) return res.json({ keyId, razorpayOrderId: previous.providerReference, amount: previous.amountPaise, currency: "INR", termYears: years });
+  const years = parsed.data.years, planTier = parsed.data.planTier, amountPaise = TERM_PRICES_PAISE[years];
+  const previous = await SubscriptionPayment.findOne({ restaurantId: restaurant._id, termYears: years, planTier, status: "pending" }).sort({ createdAt: -1 });
+  if (previous) return res.json({ keyId, razorpayOrderId: previous.providerReference, amount: previous.amountPaise, currency: "INR", termYears: years, planTier });
   try {
     const order = await razorpayRequest("/orders", {
       amount: amountPaise, currency: "INR", receipt: `sub_${restaurant._id}_${Date.now()}`.slice(0, 40),
-      notes: { foodPlatformPurpose: "restaurant_subscription", restaurantId: String(restaurant._id), termYears: String(years) }
+      notes: { foodPlatformPurpose: "restaurant_subscription", restaurantId: String(restaurant._id), termYears: String(years), planTier }
     });
     if (!order.id || order.amount !== amountPaise || order.currency !== "INR") return res.status(502).json({ error: "Payment service returned an invalid order" });
-    const payment = await SubscriptionPayment.create({ restaurantId: restaurant._id, provider, providerReference: order.id, amountPaise, termYears: years });
-    return res.json({ keyId, razorpayOrderId: payment.providerReference, amount: payment.amountPaise, currency: "INR", termYears: years });
+    const payment = await SubscriptionPayment.create({ restaurantId: restaurant._id, provider, providerReference: order.id, amountPaise, termYears: years, planTier });
+    return res.json({ keyId, razorpayOrderId: payment.providerReference, amount: payment.amountPaise, currency: "INR", termYears: years, planTier });
   } catch (error) {
     return res.status(502).json({ error: error.message || "Could not start subscription payment" });
   }
@@ -71,7 +73,7 @@ async function verifyPayment(req, res) {
   if (!payment) return res.status(404).json({ error: "Subscription payment not found" });
   const expected = crypto.createHmac("sha256", keySecret).update(`${payment.providerReference}|${parsed.data.razorpay_payment_id}`).digest("hex");
   if (!secureHexEqual(parsed.data.razorpay_signature, expected)) return res.status(400).json({ error: "Payment signature could not be verified" });
-  if (payment.status === "paid") return res.json({ paid: true, expiresAt: payment.subscriptionEndsAt });
+  if (payment.status === "paid") return res.json({ paid: true, expiresAt: payment.subscriptionEndsAt, planTier: normalizePlanTier(payment.planTier), maxAccounts: PLAN_TIERS[normalizePlanTier(payment.planTier)].maxAccounts });
   let providerPayment;
   try { providerPayment = await razorpayRequest(`/payments/${encodeURIComponent(parsed.data.razorpay_payment_id)}`); }
   catch (error) { return res.status(502).json({ error: error.message }); }
@@ -91,7 +93,8 @@ async function verifyPayment(req, res) {
       const endsAt = new Date(startsAt);
       endsAt.setUTCFullYear(endsAt.getUTCFullYear() + currentPayment.termYears);
       const target = subscription || new Subscription({ restaurantId: restaurant._id });
-      Object.assign(target, { planId: `al-madina-${currentPayment.termYears}-year`, termYears: currentPayment.termYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt, cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
+      const planTier = normalizePlanTier(currentPayment.planTier);
+      Object.assign(target, { planId: makePlanId(planTier, currentPayment.termYears), planTier, termYears: currentPayment.termYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt, cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
       await target.save({ session });
       currentPayment.status = "paid";
       currentPayment.providerPaymentId = parsed.data.razorpay_payment_id;
@@ -100,7 +103,7 @@ async function verifyPayment(req, res) {
       expiresAt = endsAt;
     });
   } finally { await session.endSession(); }
-  return res.json({ paid: true, expiresAt });
+  return res.json({ paid: true, expiresAt, planTier: normalizePlanTier(payment.planTier), maxAccounts: PLAN_TIERS[normalizePlanTier(payment.planTier)].maxAccounts });
 }
 
 module.exports = { createOrder, verifyPayment };

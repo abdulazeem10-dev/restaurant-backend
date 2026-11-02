@@ -82,7 +82,6 @@ const createSchema = z.object({
   email: z.string().trim().email().max(254),
   phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
   password: z.string().min(12).max(128),
-  subscriptionYears: z.coerce.number().int().min(1).max(3),
   restaurantName: z.string().trim().min(1).max(150),
   description: z.string().max(2000).optional().default(""),
   address: z.string().trim().min(5).max(500),
@@ -118,13 +117,9 @@ async function createRestaurant(req, res) {
       status: "pending",
       isOpen: false
     });
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt);
-    endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.subscriptionYears);
-    const subscription = await Subscription.create({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.subscriptionYears + "-year", termYears: parsed.data.subscriptionYears, status: "active", currentPeriodStart: startsAt, currentPeriodEnd: endsAt });
-    return res.status(201).json({ restaurant, subscription, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+    return res.status(201).json({ restaurant, subscription: null, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
   } catch (error) {
-    if (restaurant) { await Subscription.deleteMany({ restaurantId: restaurant._id }); await Restaurant.deleteOne({ _id: restaurant._id }); }
+    if (restaurant) await Restaurant.deleteOne({ _id: restaurant._id });
     await User.deleteOne({ _id: owner._id });
     throw error;
   }
@@ -136,22 +131,6 @@ async function listRestaurants(req, res) {
   const byRestaurant = new Map();
   for (const subscription of subscriptions) if (!byRestaurant.has(String(subscription.restaurantId))) byRestaurant.set(String(subscription.restaurantId), subscription);
   return res.json({ restaurants: restaurants.map(restaurant => ({ ...restaurant.toObject(), subscription: byRestaurant.get(String(restaurant._id)) || null })) });
-}
-
-async function renewRestaurantSubscription(req, res) {
-  const parsed = z.object({ years: z.coerce.number().int().min(1).max(3) }).strict().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Choose a renewal term of 1, 2, or 3 years" });
-  const restaurant = await Restaurant.findById(req.params.id);
-  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
-  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.years + "-year", termYears: parsed.data.years });
-  const now = new Date();
-  const startsAt = subscription.currentPeriodEnd && subscription.currentPeriodEnd > now ? subscription.currentPeriodEnd : now;
-  const endsAt = new Date(startsAt);
-  endsAt.setUTCFullYear(endsAt.getUTCFullYear() + parsed.data.years);
-  Object.assign(subscription, { currentPeriodStart: startsAt, currentPeriodEnd: endsAt, termYears: parsed.data.years, planId: "al-madina-" + parsed.data.years + "-year", status: "active", cancelAtPeriodEnd: false, renewalRequest: { status: "none", years: null, requestedAt: null } });
-  await subscription.save();
-  return res.json({ subscription });
 }
 
 async function setRestaurantStatus(req, res) {
@@ -206,4 +185,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, renewRestaurantSubscription, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, updateRestaurantProfile, setRestaurantProfileStatus };
+module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, updateRestaurantProfile, setRestaurantProfileStatus };

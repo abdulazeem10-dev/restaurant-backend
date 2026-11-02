@@ -5,6 +5,7 @@ const schema = new mongoose.Schema({
   provider: { type: String, required: true },
   providerReference: { type: String, required: true, unique: true },
   providerPaymentId: { type: String, default: "" },
+  planTier: { type: String, enum: ["bronze", "silver", "gold"], required: true, default: "bronze" },
   amountPaise: { type: Number, required: true, min: 1 },
   termYears: { type: Number, enum: [1, 2, 3], required: true },
   status: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending", index: true },

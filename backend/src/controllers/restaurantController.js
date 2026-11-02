@@ -3,9 +3,11 @@ const MenuItem = require("../models/MenuItem");
 const Review = require("../models/Review");
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Order = require("../models/Order");
 const Subscription = require("../models/Subscription");
+const { PLAN_TIERS, accountLimitFor, normalizePlanTier } = require("../utils/subscriptionPlans");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -80,9 +82,16 @@ async function listRestaurants(req, res) {
   // The customer storefront belongs to Al-Madina. Admin-managed
   // restaurant records must never turn this public endpoint into a directory.
   const query = { status: "approved", name: /^Al-Madina$/i };
-  const restaurants = await Restaurant.find(query)
+  const approvedRestaurants = await Restaurant.find(query)
     .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
+  const activeSubscriptions = await Subscription.find({
+    restaurantId: { $in: approvedRestaurants.map(restaurant => restaurant._id) },
+    status: "active",
+    currentPeriodEnd: { $gt: new Date() }
+  }).select("restaurantId").lean();
+  const paidRestaurantIds = new Set(activeSubscriptions.map(item => String(item.restaurantId)));
+  const restaurants = approvedRestaurants.filter(restaurant => paidRestaurantIds.has(String(restaurant._id)));
   const ratingStats = await Review.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
     { $group: { _id: "$restaurantId", ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
@@ -141,6 +150,7 @@ async function getRestaurant(req, res) {
   }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (!await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
   const [stats] = await Review.aggregate([
     { $match: { restaurantId: restaurant._id } },
     { $group: { _id: null, ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
@@ -161,6 +171,7 @@ async function getPublicMenu(req, res) {
   }).select("_id");
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (!await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
 
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
@@ -175,6 +186,72 @@ async function getOwnedRestaurant(user) {
   return Restaurant.findOne({ ownerId: user._id });
 }
 
+function quotaError(message, code, status = 409) {
+  const error = new Error(message);
+  error.code = code;
+  error.status = status;
+  return error;
+}
+
+async function getRestaurantAccountQuota(restaurantId, session = null) {
+  let subscriptionQuery = Subscription.findOne({ restaurantId }).sort({ currentPeriodEnd: -1 });
+  let countQuery = User.countDocuments({
+    restaurantId,
+    role: { $in: ["restaurant_staff", "delivery"] },
+    status: "active",
+    profileDeactivatedAt: null
+  });
+  if (session) {
+    subscriptionQuery = subscriptionQuery.session(session);
+    countQuery = countQuery.session(session);
+  }
+  const [subscription, staffAndDelivery] = await Promise.all([subscriptionQuery, countQuery]);
+  const active = Boolean(subscription && subscription.status === "active" && subscription.currentPeriodEnd > new Date());
+  const planTier = subscription ? normalizePlanTier(subscription.planTier) : null;
+  const maxAccounts = active ? accountLimitFor(planTier) : 0;
+  return {
+    planTier,
+    termYears: subscription?.termYears || null,
+    active,
+    totalAccounts: 1 + staffAndDelivery,
+    maxAccounts,
+    remainingAccounts: Math.max(0, maxAccounts - 1 - staffAndDelivery)
+  };
+}
+
+async function createRestaurantAccountWithinQuota(restaurantId, accountDetails) {
+  const session = await mongoose.startSession();
+  let account;
+  let quota;
+  try {
+    await session.withTransaction(async () => {
+      const [subscription] = await Subscription.find({ restaurantId }).sort({ currentPeriodEnd: -1 }).limit(1).session(session);
+      if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) {
+        throw quotaError("Choose and pay for a subscription before creating staff or delivery accounts.", "subscription_required", 403);
+      }
+      const planTier = normalizePlanTier(subscription.planTier);
+      const maxAccounts = accountLimitFor(planTier);
+      const activeAccounts = await User.countDocuments({ restaurantId, role: { $in: ["restaurant_staff", "delivery"] }, status: "active", profileDeactivatedAt: null }).session(session);
+      const totalAccounts = await User.countDocuments({ email: accountDetails.email }).session(session);
+      const used = 1 + activeAccounts; // The restaurant owner is always one of the plan's seats.
+      quota = { planTier, active: true, totalAccounts: used, maxAccounts, remainingAccounts: Math.max(0, maxAccounts - used) };
+      if (totalAccounts) throw quotaError("An account already uses this email", "email_in_use");
+      if (used >= maxAccounts) throw quotaError(`Your ${planTier[0].toUpperCase()}${planTier.slice(1)} plan allows ${maxAccounts} total active accounts, including the owner. Upgrade your plan or deactivate an account to add another.`, "account_limit_reached");
+
+      // Every seat allocation writes the same subscription document inside the
+      // transaction. Concurrent account creation therefore conflicts and is
+      // retried by MongoDB before the account cap can be exceeded.
+      await Subscription.updateOne({ _id: subscription._id }, { $inc: { seatRevision: 1 } }, { session });
+      const [created] = await User.create([accountDetails], { session });
+      account = created;
+      quota = { ...quota, totalAccounts: used + 1, remainingAccounts: Math.max(0, maxAccounts - used - 1) };
+    });
+    return { account, quota };
+  } finally {
+    await session.endSession();
+  }
+}
+
 const deliveryPartnerSchema = z.object({
  name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254),
  phone:z.string().trim().max(32).transform(v=>v.replace(/[\s().-]/g,"")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
@@ -187,14 +264,15 @@ const deliveryPartnerProfileSchema=z.object({
 const deliveryProfileStatusSchema=z.object({active:z.boolean()}).strict();
 async function listOwnDeliveryPartners(req,res){
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
- const deliveryPartners=await User.find({restaurantId:restaurant._id,role:"delivery"}).select("name email phone status profileDeactivatedAt createdAt").sort({createdAt:-1}).limit(200).lean();return res.json({deliveryPartners});
+ const [deliveryPartners, quota]=await Promise.all([User.find({restaurantId:restaurant._id,role:"delivery"}).select("name email phone status profileDeactivatedAt createdAt").sort({createdAt:-1}).limit(200).lean(),getRestaurantAccountQuota(restaurant._id)]);return res.json({deliveryPartners,quota});
 }
 async function createOwnDeliveryPartner(req,res){
  const parsed=deliveryPartnerSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Enter a name, valid email, phone number, and password of at least 12 characters"});
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});const email=parsed.data.email.toLowerCase();
- if(await User.findOne({email}))return res.status(409).json({error:"An account already uses this email"});
- const partner=await User.create({name:parsed.data.name,email,phone:parsed.data.phone,passwordHash:await bcrypt.hash(parsed.data.password,12),role:"delivery",restaurantId:restaurant._id,status:"active"});
- return res.status(201).json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone}});
+ try {
+  const {account:partner,quota}=await createRestaurantAccountWithinQuota(restaurant._id,{name:parsed.data.name,email,phone:parsed.data.phone,passwordHash:await bcrypt.hash(parsed.data.password,12),role:"delivery",restaurantId:restaurant._id,status:"active"});
+  return res.status(201).json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone},quota});
+ } catch(error) { if(error.code===11000||error.code==="email_in_use")return res.status(409).json({error:"An account already uses this email"}); if(error.code==="account_limit_reached"||error.code==="subscription_required")return res.status(error.status||409).json({error:error.message,code:error.code,quota:await getRestaurantAccountQuota(restaurant._id)}); throw error; }
 }
 async function updateOwnDeliveryPartner(req,res){
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
@@ -208,17 +286,39 @@ async function setOwnDeliveryPartnerProfileStatus(req,res){
  const parsed=deliveryProfileStatusSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Choose whether to activate or deactivate the account"});
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
  const partner=await User.findOne({_id:req.params.id,restaurantId:restaurant._id,role:"delivery"});if(!partner)return res.status(404).json({error:"Delivery account not found"});
- if(parsed.data.active){if(!partner.profileDeactivatedAt)return res.status(409).json({error:"This account is not deactivated"});partner.status=partner.statusBeforeProfileDeactivation||"active";partner.profileDeactivatedAt=null;partner.statusBeforeProfileDeactivation=null}
- else{if(partner.profileDeactivatedAt)return res.status(409).json({error:"This account is already deactivated"});partner.statusBeforeProfileDeactivation=partner.status;partner.status="suspended";partner.profileDeactivatedAt=new Date()}
- await partner.save();return res.json({deliveryPartner:{id:partner._id,status:partner.status,profileDeactivatedAt:partner.profileDeactivatedAt}});
+ if(parsed.data.active){
+  if(!partner.profileDeactivatedAt)return res.status(409).json({error:"This account is not deactivated"});
+  const session=await mongoose.startSession();
+  try{
+   await session.withTransaction(async()=>{
+    const [subscription]=await Subscription.find({restaurantId:restaurant._id}).sort({currentPeriodEnd:-1}).limit(1).session(session);
+    if(!subscription||subscription.status!=="active"||!subscription.currentPeriodEnd||subscription.currentPeriodEnd<=new Date())throw quotaError("An active subscription is required to restore this login.","subscription_required",403);
+    const tier=normalizePlanTier(subscription.planTier),max=accountLimitFor(tier);
+    const used=1+await User.countDocuments({restaurantId:restaurant._id,role:{$in:["restaurant_staff","delivery"]},status:"active",profileDeactivatedAt:null}).session(session);
+    if(used>=max)throw quotaError(`Your ${tier} plan allows ${max} total active accounts, including the owner. Deactivate another login or upgrade your plan first.`,"account_limit_reached");
+    await Subscription.updateOne({_id:subscription._id},{$inc:{seatRevision:1}},{session});
+    const current=await User.findOne({_id:partner._id,restaurantId:restaurant._id,role:"delivery"}).session(session);
+    if(!current||!current.profileDeactivatedAt)throw quotaError("This account is not deactivated","account_state_changed");
+    current.status=current.statusBeforeProfileDeactivation||"active";current.profileDeactivatedAt=null;current.statusBeforeProfileDeactivation=null;await current.save({session});
+    partner.status=current.status;partner.profileDeactivatedAt=null;
+   });
+  }catch(error){if(error.code==="account_limit_reached"||error.code==="subscription_required")return res.status(error.status||409).json({error:error.message,code:error.code,quota:await getRestaurantAccountQuota(restaurant._id)});throw error}
+  finally{await session.endSession()}
+ } else {
+  if(partner.profileDeactivatedAt)return res.status(409).json({error:"This account is already deactivated"});
+  partner.statusBeforeProfileDeactivation=partner.status;partner.status="suspended";partner.profileDeactivatedAt=new Date();await partner.save();
+ }
+ return res.json({deliveryPartner:{id:partner._id,status:partner.status,profileDeactivatedAt:partner.profileDeactivatedAt},quota:await getRestaurantAccountQuota(restaurant._id)});
 }
 
 async function listOwnStaff(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  const accounts = await User.find({ restaurantId: restaurant._id, role: "restaurant_staff" })
-    .select("name email phone restaurantStaffRole").sort({ restaurantStaffRole: 1 }).lean();
-  return res.json({ accounts });
+  const [accounts, quota] = await Promise.all([
+    User.find({ restaurantId: restaurant._id, role: "restaurant_staff" }).select("name email phone restaurantStaffRole status").sort({ restaurantStaffRole: 1 }).lean(),
+    getRestaurantAccountQuota(restaurant._id)
+  ]);
+  return res.json({ accounts, quota });
 }
 
 async function createOwnStaff(req, res) {
@@ -227,12 +327,11 @@ async function createOwnStaff(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const email = parsed.data.email.toLowerCase();
-  if (await User.findOne({ email })) return res.status(409).json({ error: "An account already uses this email" });
   if (await User.findOne({ restaurantId: restaurant._id, restaurantStaffRole: parsed.data.staffRole, role: "restaurant_staff" })) {
     return res.status(409).json({ error: "This restaurant already has an account for that role" });
   }
   try {
-    const account = await User.create({
+    const { account, quota } = await createRestaurantAccountWithinQuota(restaurant._id, {
       name: parsed.data.name,
       email,
       phone: parsed.data.phone,
@@ -242,9 +341,10 @@ async function createOwnStaff(req, res) {
       restaurantStaffRole: parsed.data.staffRole,
       status: "active"
     });
-    return res.status(201).json({ account: { id: account._id, name: account.name, email: account.email, phone: account.phone, staffRole: account.restaurantStaffRole } });
+    return res.status(201).json({ account: { id: account._id, name: account.name, email: account.email, phone: account.phone, staffRole: account.restaurantStaffRole }, quota });
   } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ error: "That role or email already has an account" });
+    if (error.code === 11000 || error.code === "email_in_use") return res.status(409).json({ error: "That role or email already has an account" });
+    if (error.code === "account_limit_reached" || error.code === "subscription_required") return res.status(error.status || 409).json({ error: error.message, code: error.code, quota: await getRestaurantAccountQuota(restaurant._id) });
     throw error;
   }
 }
@@ -261,21 +361,12 @@ async function getOwnSubscription(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).lean();
-  return res.json({ subscription: subscription ? { termYears: subscription.termYears, status: subscription.status, currentPeriodStart: subscription.currentPeriodStart, currentPeriodEnd: subscription.currentPeriodEnd, renewalRequest: subscription.renewalRequest || { status: "none" } } : null });
-}
-
-async function requestOwnSubscriptionRenewal(req, res) {
-  const parsed = z.object({ years: z.coerce.number().int().min(1).max(3) }).strict().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Choose a renewal request of 1, 2, or 3 years" });
-  if (req.user.role !== "restaurant") return res.status(403).json({ error: "Only the restaurant owner can request subscription renewal" });
-  const restaurant = await getOwnedRestaurant(req.user);
-  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  let subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 });
-  if (!subscription) subscription = new Subscription({ restaurantId: restaurant._id, planId: "al-madina-" + parsed.data.years + "-year", termYears: parsed.data.years });
-  if (subscription.renewalRequest?.status === "pending") return res.status(409).json({ error: "A renewal request is already waiting for the platform administrator" });
-  subscription.renewalRequest = { years: parsed.data.years, status: "pending", requestedAt: new Date() };
-  await subscription.save();
-  return res.status(201).json({ subscription: { termYears: subscription.termYears, status: subscription.status, currentPeriodEnd: subscription.currentPeriodEnd, renewalRequest: subscription.renewalRequest } });
+  const quota = await getRestaurantAccountQuota(restaurant._id);
+  return res.json({
+    subscription: subscription ? { planTier: normalizePlanTier(subscription.planTier), termYears: subscription.termYears, status: subscription.status, currentPeriodStart: subscription.currentPeriodStart, currentPeriodEnd: subscription.currentPeriodEnd, renewalRequest: subscription.renewalRequest || { status: "none" } } : null,
+    quota,
+    plans: Object.entries(PLAN_TIERS).map(([planTier, config]) => ({ planTier, maxAccounts: config.maxAccounts }))
+  });
 }
 
 async function setOwnOpenStatus(req, res) {
@@ -546,7 +637,7 @@ async function deleteMenuItem(req, res) {
   return res.status(204).end();
 }
 
-module.exports = { getOwnSubscription, requestOwnSubscriptionRenewal,
+module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
