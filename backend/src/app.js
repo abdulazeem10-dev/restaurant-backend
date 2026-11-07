@@ -12,6 +12,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const rejectMongoOperators = require("./middleware/rejectMongoOperators");
 const connectDatabase = require("./config/database");
+const { timingSafeEqual } = require("node:crypto");
 
 const app = express();
 app.disable("x-powered-by");
@@ -26,10 +27,16 @@ const allowedOrigins = [...new Set([...configuredOrigins, "https://restaurant-fr
 
 app.use(cors({
   origin(origin, callback) {
-    const isOwnedFrontendPreview = typeof origin === "string" && origin.startsWith("https://restaurant-frontend-frontend-") && origin.endsWith("-abdulazeem31975-2509.vercel.app");
-    if (!origin || allowedOrigins.includes(origin) || isOwnedFrontendPreview) return callback(null, true);
-    return callback(new Error("Origin not allowed by CORS"));
-  }
+    const isDevelopmentPreview = process.env.NODE_ENV !== "production" && typeof origin === "string"
+      && origin.startsWith("https://restaurant-frontend-frontend-") && origin.endsWith("-abdulazeem31975-2509.vercel.app");
+    if (!origin || allowedOrigins.includes(origin) || isDevelopmentPreview) return callback(null, true);
+    const error = new Error("Origin not allowed by CORS");
+    error.status = 403;
+    return callback(error);
+  },
+  credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type", "X-Foodway-CSRF"]
 }));
 
 app.use("/api", rateLimit({
@@ -39,6 +46,11 @@ app.use("/api", rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests. Please wait before trying again." }
 }));
+
+app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 // Keep expensive authentication endpoints below the general API budget.
 // These run before the database connection middleware to avoid opening DB
@@ -102,6 +114,30 @@ app.use(express.json({
   }
 }));
 app.use("/api", rejectMongoOperators);
+
+// Cookie sessions are accepted only from configured first-party web origins.
+// SameSite=Lax is an additional CSRF barrier; this Origin check protects
+// state-changing requests even if a browser sends a cookie unexpectedly.
+app.use("/api", (req, res, next) => {
+  const requestOrigin = req.get("origin");
+  req.isTrustedBrowserOrigin = Boolean(requestOrigin && allowedOrigins.includes(requestOrigin) && requestOrigin !== "https://appassets.androidplatform.net");
+  const unsafeMethod = !["GET", "HEAD", "OPTIONS"].includes(req.method);
+  const sessionCookieName = process.env.NODE_ENV === "production" ? "__Host-foodway_session" : "foodway_session";
+  const csrfCookieName = process.env.NODE_ENV === "production" ? "__Host-foodway_csrf" : "foodway_csrf";
+  const cookies = (req.headers.cookie || "").split(";").map(value => value.trim());
+  const hasCookieSession = cookies.some(value => value.startsWith(`${sessionCookieName}=`));
+  if (!unsafeMethod || !hasCookieSession) return next();
+  const origin = req.get("origin");
+  if (!origin || !allowedOrigins.includes(origin)) return res.status(403).json({ error: "Request origin is not allowed" });
+  const csrfCookie = cookies.find(value => value.startsWith(`${csrfCookieName}=`))?.slice(csrfCookieName.length + 1) || "";
+  const csrfHeader = req.get("X-Foodway-CSRF") || "";
+  const cookieBytes = Buffer.from(csrfCookie);
+  const headerBytes = Buffer.from(csrfHeader);
+  if (!cookieBytes.length || cookieBytes.length !== headerBytes.length || !timingSafeEqual(cookieBytes, headerBytes)) {
+    return res.status(403).json({ error: "CSRF validation failed" });
+  }
+  return next();
+});
 
 // Connect inside the request lifecycle as well as local server startup. This
 // ensures Vercel requests do not query Mongoose before the database is ready.

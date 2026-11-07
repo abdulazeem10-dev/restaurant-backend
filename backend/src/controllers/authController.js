@@ -117,17 +117,67 @@ async function twilioVerifyRequest(config, resource, values) {
   return data;
 }
 
-function loginResponse(user) {
-  return {
-    accessToken: jwt.sign(
-      { sub: String(user._id) },
-      process.env.JWT_SECRET,
-      { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-    ),
-    tokenType: "Bearer",
-    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
-    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, restaurantId: user.restaurantId || null, restaurantStaffRole: user.restaurantStaffRole || null }
-  };
+const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-foodway_session" : "foodway_session";
+const CSRF_COOKIE = process.env.NODE_ENV === "production" ? "__Host-foodway_csrf" : "foodway_csrf";
+const SESSION_MAX_AGE = 15 * 60 * 1000;
+
+function issueAccessToken(user) {
+  return jwt.sign(
+    { sub: String(user._id) },
+    process.env.JWT_SECRET,
+    { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
+  );
+}
+
+function setSessionCookie(res, token) {
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_MAX_AGE
+  });
+  res.cookie(CSRF_COOKIE, randomBytes(32).toString("hex"), {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_MAX_AGE
+  });
+}
+
+function loginResponse(req, res, user) {
+  const accessToken = issueAccessToken(user);
+  // Native Android WebView uses the appassets origin and bearer authentication.
+  // Browser clients receive only a host-only HttpOnly cookie.
+  const isNativeApp = /AlMadinaAndroidApp/i.test(req.get("user-agent") || "");
+  const isLocalDevelopment = process.env.NODE_ENV !== "production"
+    && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(req.get("origin") || "");
+  if (isNativeApp || isLocalDevelopment) res.json({ accessToken, tokenType: "Bearer", expiresIn: process.env.JWT_EXPIRES_IN || "15m", user: publicUser(user) });
+  else {
+    setSessionCookie(res, accessToken);
+    res.json({ user: publicUser(user) });
+  }
+}
+
+function publicUser(user) {
+  return { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, restaurantId: user.restaurantId || null, restaurantStaffRole: user.restaurantStaffRole || null };
+}
+
+function logout(req, res) {
+  res.clearCookie(SESSION_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/"
+  });
+  res.clearCookie(CSRF_COOKIE, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/"
+  });
+  return res.status(204).end();
 }
 
 async function register(req, res) {
@@ -169,7 +219,7 @@ async function login(req, res) {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  return res.json(loginResponse(user));
+  return loginResponse(req, res, user);
 }
 
 async function requestPhoneOtp(req, res) {
@@ -212,7 +262,7 @@ async function verifyPhoneOtp(req, res) {
 
   const user = await User.findOne({ phone: { $in: phoneLookupCandidates(phone) }, role: "customer", status: "active" });
   if (!user) return res.status(401).json({ error: "That code is invalid or expired. Request a new one and try again." });
-  return res.json(loginResponse(user));
+  return loginResponse(req, res, user);
 }
 
 async function googleLogin(req, res) {
@@ -260,18 +310,7 @@ async function googleLogin(req, res) {
     await user.save();
   }
 
-  const accessToken = jwt.sign(
-    { sub: String(user._id) },
-    process.env.JWT_SECRET,
-    { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-  );
-
-  return res.json({
-    accessToken,
-    tokenType: "Bearer",
-    expiresIn: process.env.JWT_EXPIRES_IN || "15m",
-    user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role }
-  });
+  return loginResponse(req, res, user);
 }
 
 async function requestPasswordReset(req, res) {
@@ -337,4 +376,4 @@ function me(req, res) {
   });
 }
 
-module.exports = { register, login, requestPhoneOtp, verifyPhoneOtp, googleLogin, requestPasswordReset, resetPassword, me };
+module.exports = { register, login, logout, requestPhoneOtp, verifyPhoneOtp, googleLogin, requestPasswordReset, resetPassword, me, SESSION_COOKIE };

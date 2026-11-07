@@ -178,3 +178,10 @@ Frontend changes are included in the next APK build, so install the new APK to u
 5. After Android Studio reports the build succeeded, click **Locate** in its notification. The debug APK is `app/build/outputs/apk/debug/app-debug.apk`.
 
 The Gradle build automatically synchronizes the latest `frontend/` files into the app assets before building. `android/local.properties` is machine-specific and ignored by Git; if Android Studio cannot find the SDK, open **Tools → SDK Manager** and set the Android SDK location for this computer.
+
+## Production security configuration
+
+- Set `FRONTEND_ORIGIN` to a comma-separated list of exact trusted origins (scheme and hostname only, no path or trailing slash). Include the stable frontend domain and only preview/custom domains that should be trusted. Production preview wildcards are not accepted.
+- Keep `JWT_SECRET`, `MONGODB_URI`, Razorpay secrets, and provider credentials in Vercel environment variables, never in Git. Because the JWT secret was shown in a terminal screenshot, generate a new one and replace it in the backend project's Production environment, then redeploy. This signs out existing users. For example, generate a value locally with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`; do not paste it into chat or commit it.
+- Deploy the frontend rewrite first, then set `FRONTEND_ORIGIN` and deploy this backend. The browser frontend routes `/api/*` through the frontend Vercel rewrite and receives a 15-minute HttpOnly, SameSite=Lax session cookie. State-changing cookie requests also require a matching CSRF cookie/header and trusted Origin. Android continues to use bearer authentication.
+- Create a MongoDB database user limited to the app database and required read/write permissions. Restrict Atlas Network Access to the backend's known egress IPs where your hosting plan supports stable egress; avoid broad public allowlists when possible. Configure Atlas backups and alerts.

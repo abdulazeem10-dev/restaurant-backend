@@ -3,15 +3,35 @@ const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
 
+const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-foodway_session" : "foodway_session";
+
+function readCookie(req, name) {
+  const cookieHeader = req.headers.cookie || "";
+  for (const entry of cookieHeader.split(";")) {
+    const separator = entry.indexOf("=");
+    if (separator < 0 || entry.slice(0, separator).trim() !== name) continue;
+    try { return decodeURIComponent(entry.slice(separator + 1).trim()); } catch { return ""; }
+  }
+  return "";
+}
+
 async function authenticate(req, res, next) {
   try {
     const header = req.headers.authorization || "";
     const parts = header.split(" ");
-    if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1]) {
+    const bearerToken = parts.length === 2 && parts[0] === "Bearer" ? parts[1] : "";
+    const cookieToken = readCookie(req, SESSION_COOKIE);
+    // After migration, web browsers must use the HttpOnly cookie; bearer
+    // tokens remain supported for the Android WebView and non-browser clients.
+    if (process.env.NODE_ENV === "production" && req.isTrustedBrowserOrigin && bearerToken && !cookieToken) {
+      return res.status(401).json({ error: "Please sign in again using the secure browser session" });
+    }
+    const token = cookieToken || bearerToken;
+    if (!token) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const payload = jwt.verify(parts[1], process.env.JWT_SECRET, {
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
       algorithms: ["HS256"]
     });
 
