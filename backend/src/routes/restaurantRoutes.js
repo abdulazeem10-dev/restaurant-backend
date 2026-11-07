@@ -5,6 +5,7 @@ const authenticate = require("../middleware/auth");
 const authorizeRestaurant = require("../middleware/authorizeRestaurant");
 const authorize = require("../middleware/authorize");
 const asyncHandler = require("../utils/asyncHandler");
+const aggregatorReportController = require("../controllers/aggregatorReportController");
 
 const router = express.Router();
 
@@ -25,6 +26,8 @@ router.delete("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyn
 router.patch("/owner/open", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnOpenStatus));
 router.patch("/owner/service-settings", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnServiceSettings));
 router.get("/owner/reports", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.getOwnReports));
+router.get("/owner/aggregator-reports", authenticate, authorizeRestaurant("settings"), asyncHandler(aggregatorReportController.getReport));
+router.post("/owner/aggregator-reports/import", authenticate, authorizeRestaurant("settings"), asyncHandler(aggregatorReportController.importReport));
 // Only the restaurant's primary owner can create or remove staff accounts.
 router.get("/owner/staff", authenticate, authorize("restaurant"), asyncHandler(controller.listOwnStaff));
 router.post("/owner/staff", authenticate, authorize("restaurant"), asyncHandler(controller.createOwnStaff));
