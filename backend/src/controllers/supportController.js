@@ -18,20 +18,20 @@ function serviceUnavailable(res) {
   });
 }
 
-function extractText(value) {
+function extractText(value, depth = 0) {
+  if (depth > 5) return "";
   if (typeof value === "string") return value;
   if (Array.isArray(value)) {
-    return value.map(part => {
-      if (typeof part === "string") return part;
-      if (!part || typeof part !== "object") return "";
-      if (typeof part.text === "string") return part.text;
-      if (typeof part.content === "string") return part.content;
-      return "";
-    }).join("");
+    return value.map(part => extractText(part, depth + 1)).filter(Boolean).join("");
   }
   if (value && typeof value === "object") {
-    if (typeof value.text === "string") return value.text;
-    if (typeof value.content === "string") return value.content;
+    // Traverse known text-bearing fields only; don't surface arbitrary metadata or reasoning.
+    for (const key of ["text", "content", "output_text", "parts", "segments", "items"]) {
+      if (value[key] !== undefined) {
+        const text = extractText(value[key], depth + 1);
+        if (text.trim()) return text;
+      }
+    }
   }
   return "";
 }
@@ -144,8 +144,9 @@ async function chat(req, res) {
       const choiceKeys = choice && typeof choice === "object" ? Object.keys(choice).slice(0, 10).join(",") : "none";
       const messageKeys = message && typeof message === "object" ? Object.keys(message).slice(0, 10).join(",") : "none";
       const contentType = Array.isArray(content) ? "array" : typeof content;
+      const contentKeys = content && typeof content === "object" && !Array.isArray(content) ? Object.keys(content).slice(0, 10).join(",") : "none";
       const contentPartKeys = Array.isArray(content) && content[0] && typeof content[0] === "object" ? Object.keys(content[0]).slice(0, 10).join(",") : "none";
-      console.error(`[support-ai] Cloudflare response had no recognized text; HTTP ${response.status}, success=${String(payload?.success)}, resultType=${typeof payload?.result}, resultKeys=${resultKeys}, topLevelKeys=${topLevelKeys}, choiceKeys=${choiceKeys}, messageKeys=${messageKeys}, contentType=${contentType}, contentPartKeys=${contentPartKeys}, provider error codes=${providerCodes.join(",") || "none"}`);
+      console.error(`[support-ai] Cloudflare response had no recognized text; HTTP ${response.status}, success=${String(payload?.success)}, resultType=${typeof payload?.result}, resultKeys=${resultKeys}, topLevelKeys=${topLevelKeys}, choiceKeys=${choiceKeys}, messageKeys=${messageKeys}, contentType=${contentType}, contentKeys=${contentKeys}, contentPartKeys=${contentPartKeys}, provider error codes=${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
     return res.json({ answer });
