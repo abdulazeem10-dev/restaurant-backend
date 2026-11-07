@@ -58,6 +58,11 @@ Phone sign-in sends and checks SMS one-time passwords through Twilio Verify. Cre
 ## Order alerts
 In-app notifications are stored in MongoDB. Optional email alerts use Resend (`RESEND_API_KEY` and `EMAIL_FROM`); optional order SMS alerts use Twilio Messaging (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and either `TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`). SMS delivery depends on Twilio account status, verified destinations in trial mode, and regional messaging rules. Copy `backend/.env.example` to `backend/.env` and keep provider credentials only in the backend environment. No SMS or email is sent until these values are configured.
 
+## Al-Madina AI customer support
+Customer pages include a support chat for general restaurant and menu questions. The backend supplies only approved public Al-Madina profile, hours, and available menu data to Cloudflare Workers AI; it does not expose customer accounts, order records, or payment actions to the model. Order-specific questions are directed to the signed-in My Orders page. Requests are input-validated, limited to 12 per 15 minutes per backend process, bounded by a 15-second timeout, and the provider call is made only from the backend.
+
+To enable it, create a Cloudflare Workers AI API token from the Workers AI dashboard's REST API setup and copy the Account ID. Add `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_API_TOKEN` to the **backend Vercel project's** Environment Variables for Production (and Preview if desired), then redeploy the backend. Never add the token to frontend environment variables or GitHub source. The selected model is `@cf/google/gemma-4-26b-a4b-it`; verify current Cloudflare availability and pricing before production use. Without those values, chat returns a friendly unavailable response and the rest of the site continues working.
+
 ## Restaurant hours and delivery areas
 The Al-Madina owner can set weekly opening hours in India Standard Time and group delivery PIN codes under named service areas. Customers browse only the Al-Madina menu; checkout checks the address PIN against Al-Madina coverage and validates current opening hours. PINs and service areas are not restaurant-discovery filters.
 
