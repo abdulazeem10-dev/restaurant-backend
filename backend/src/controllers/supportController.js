@@ -58,9 +58,12 @@ async function chat(req, res) {
   const parsed = requestSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Enter a message of up to 500 characters." });
 
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const apiToken = process.env.CLOUDFLARE_AI_API_TOKEN;
-  if (!accountId || !apiToken) return serviceUnavailable(res);
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_AI_API_TOKEN?.trim();
+  if (!accountId || !apiToken) {
+    console.error(`[support-ai] Missing Cloudflare configuration (accountId=${Boolean(accountId)}, apiToken=${Boolean(apiToken)})`);
+    return serviceUnavailable(res);
+  }
 
   let context;
   try {
@@ -94,11 +97,12 @@ async function chat(req, res) {
       body: JSON.stringify({ messages, max_tokens: 220, temperature: 0.2, store: false }),
       signal: controller.signal
     });
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      console.error(`[support-ai] Cloudflare Workers AI returned HTTP ${response.status}`);
+      const providerCodes = Array.isArray(payload?.errors) ? payload.errors.map(error => error.code).filter(Number.isFinite).slice(0, 3) : [];
+      console.error(`[support-ai] Cloudflare Workers AI returned HTTP ${response.status}; provider error codes: ${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
-    const payload = await response.json();
     const answer = typeof payload?.result?.response === "string" ? payload.result.response.trim().slice(0, 1800) : "";
     if (!answer) {
       console.error("[support-ai] Cloudflare Workers AI returned an empty response");
