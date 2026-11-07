@@ -18,6 +18,24 @@ function serviceUnavailable(res) {
   });
 }
 
+function extractText(value) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.map(part => {
+      if (typeof part === "string") return part;
+      if (!part || typeof part !== "object") return "";
+      if (typeof part.text === "string") return part.text;
+      if (typeof part.content === "string") return part.content;
+      return "";
+    }).join("");
+  }
+  if (value && typeof value === "object") {
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.content === "string") return value.content;
+  }
+  return "";
+}
+
 async function getPublicRestaurantContext() {
   const restaurant = await Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" })
     .select("name description address foodType openingHours isOpen prepTimeMinutes deliveryTimeMinutes")
@@ -91,10 +109,10 @@ async function chat(req, res) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${MODEL}`, {
+    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/v1/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, max_tokens: 220, temperature: 0.2, store: false }),
+      body: JSON.stringify({ model: MODEL, messages, max_tokens: 220, temperature: 0.2 }),
       signal: controller.signal
     });
     const payload = await response.json().catch(() => null);
@@ -109,16 +127,25 @@ async function chat(req, res) {
       console.error(`[support-ai] Cloudflare Workers AI reported failure in an HTTP ${response.status} response; provider error codes: ${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
-    const candidate = [
-      payload?.result?.response,
+    const candidateTexts = [
+      payload?.choices?.[0]?.message?.content,
       payload?.result?.choices?.[0]?.message?.content,
-      payload?.choices?.[0]?.message?.content
-    ].find(value => typeof value === "string");
-    const answer = typeof candidate === "string" ? candidate.trim().slice(0, 1800) : "";
+      payload?.choices?.[0]?.text,
+      payload?.result?.choices?.[0]?.text,
+      payload?.result?.response
+    ].map(extractText);
+    const answer = candidateTexts.find(value => value.trim())?.trim().slice(0, 1800) || "";
     if (!answer) {
       const resultKeys = payload?.result && typeof payload.result === "object" ? Object.keys(payload.result).slice(0, 12).join(",") : "none";
       const topLevelKeys = payload && typeof payload === "object" ? Object.keys(payload).slice(0, 12).join(",") : "none";
-      console.error(`[support-ai] Cloudflare response had no recognized text; HTTP ${response.status}, success=${String(payload?.success)}, resultType=${typeof payload?.result}, resultKeys=${resultKeys}, topLevelKeys=${topLevelKeys}, provider error codes=${providerCodes.join(",") || "none"}`);
+      const choice = payload?.choices?.[0] || payload?.result?.choices?.[0];
+      const message = choice?.message;
+      const content = message?.content;
+      const choiceKeys = choice && typeof choice === "object" ? Object.keys(choice).slice(0, 10).join(",") : "none";
+      const messageKeys = message && typeof message === "object" ? Object.keys(message).slice(0, 10).join(",") : "none";
+      const contentType = Array.isArray(content) ? "array" : typeof content;
+      const contentPartKeys = Array.isArray(content) && content[0] && typeof content[0] === "object" ? Object.keys(content[0]).slice(0, 10).join(",") : "none";
+      console.error(`[support-ai] Cloudflare response had no recognized text; HTTP ${response.status}, success=${String(payload?.success)}, resultType=${typeof payload?.result}, resultKeys=${resultKeys}, topLevelKeys=${topLevelKeys}, choiceKeys=${choiceKeys}, messageKeys=${messageKeys}, contentType=${contentType}, contentPartKeys=${contentPartKeys}, provider error codes=${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
     return res.json({ answer });
