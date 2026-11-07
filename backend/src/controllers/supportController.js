@@ -98,14 +98,27 @@ async function chat(req, res) {
       signal: controller.signal
     });
     const payload = await response.json().catch(() => null);
+    const providerCodes = Array.isArray(payload?.errors)
+      ? payload.errors.map(error => error.code).filter(Number.isFinite).slice(0, 3)
+      : [];
     if (!response.ok) {
-      const providerCodes = Array.isArray(payload?.errors) ? payload.errors.map(error => error.code).filter(Number.isFinite).slice(0, 3) : [];
       console.error(`[support-ai] Cloudflare Workers AI returned HTTP ${response.status}; provider error codes: ${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
-    const answer = typeof payload?.result?.response === "string" ? payload.result.response.trim().slice(0, 1800) : "";
+    if (payload?.success === false) {
+      console.error(`[support-ai] Cloudflare Workers AI reported failure in an HTTP ${response.status} response; provider error codes: ${providerCodes.join(",") || "none"}`);
+      return serviceUnavailable(res);
+    }
+    const candidate = [
+      payload?.result?.response,
+      payload?.result?.choices?.[0]?.message?.content,
+      payload?.choices?.[0]?.message?.content
+    ].find(value => typeof value === "string");
+    const answer = typeof candidate === "string" ? candidate.trim().slice(0, 1800) : "";
     if (!answer) {
-      console.error("[support-ai] Cloudflare Workers AI returned an empty response");
+      const resultKeys = payload?.result && typeof payload.result === "object" ? Object.keys(payload.result).slice(0, 12).join(",") : "none";
+      const topLevelKeys = payload && typeof payload === "object" ? Object.keys(payload).slice(0, 12).join(",") : "none";
+      console.error(`[support-ai] Cloudflare response had no recognized text; HTTP ${response.status}, success=${String(payload?.success)}, resultType=${typeof payload?.result}, resultKeys=${resultKeys}, topLevelKeys=${topLevelKeys}, provider error codes=${providerCodes.join(",") || "none"}`);
       return serviceUnavailable(res);
     }
     return res.json({ answer });
