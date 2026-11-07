@@ -112,7 +112,13 @@ async function chat(req, res) {
     const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/v1/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, messages, max_tokens: 220, temperature: 0.2 }),
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        max_tokens: 220,
+        temperature: 0.2,
+        chat_template_kwargs: { enable_thinking: false }
+      }),
       signal: controller.signal
     });
     const payload = await response.json().catch(() => null);
