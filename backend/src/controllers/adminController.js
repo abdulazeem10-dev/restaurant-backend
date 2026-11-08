@@ -3,6 +3,7 @@ const { z } = require("zod");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
+const SubscriptionPayment = require("../models/SubscriptionPayment");
 const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
 
 const profileStatusSchema = z.object({ active: z.boolean() }).strict();
@@ -127,10 +128,27 @@ async function createRestaurant(req, res) {
 
 async function listRestaurants(req, res) {
   const restaurants = await Restaurant.find().populate("ownerId", "name email phone status").sort({ createdAt: -1 }).limit(200);
-  const subscriptions = await Subscription.find({ restaurantId: { $in: restaurants.map(item => item._id) } }).sort({ currentPeriodEnd: -1 }).lean();
+  const restaurantIds = restaurants.map(item => item._id);
+  const [subscriptions, payments] = await Promise.all([
+    Subscription.find({ restaurantId: { $in: restaurantIds } }).sort({ currentPeriodEnd: -1 }).lean(),
+    SubscriptionPayment.find({ restaurantId: { $in: restaurantIds }, status: "paid" })
+      .select("restaurantId planTier termYears amountPaise status providerPaymentId subscriptionEndsAt createdAt")
+      .sort({ createdAt: -1 }).lean()
+  ]);
   const byRestaurant = new Map();
   for (const subscription of subscriptions) if (!byRestaurant.has(String(subscription.restaurantId))) byRestaurant.set(String(subscription.restaurantId), subscription);
-  return res.json({ restaurants: restaurants.map(restaurant => ({ ...restaurant.toObject(), subscription: byRestaurant.get(String(restaurant._id)) || null })) });
+  const paymentsByRestaurant = new Map();
+  for (const payment of payments) {
+    const key = String(payment.restaurantId);
+    if (!paymentsByRestaurant.has(key)) paymentsByRestaurant.set(key, []);
+    const rows = paymentsByRestaurant.get(key);
+    if (rows.length < 10) rows.push(payment);
+  }
+  return res.json({ restaurants: restaurants.map(restaurant => ({
+    ...restaurant.toObject(),
+    subscription: byRestaurant.get(String(restaurant._id)) || null,
+    subscriptionPayments: paymentsByRestaurant.get(String(restaurant._id)) || []
+  })) });
 }
 
 async function setRestaurantStatus(req, res) {
