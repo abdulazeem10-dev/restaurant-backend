@@ -50,6 +50,8 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ["cash_on_delivery", "online", "upi_qr", "razorpay"], default: "cash_on_delivery" },
   paymentStatus: { type: String, enum: ["pending", "paid", "failed", "refunded"], default: "pending" },
   paymentCollectedAt: { type: Date, default: null },
+  // Staff can clear a paid dine-in ticket from the live queue without deleting its history.
+  queueClearedAt: { type: Date, default: null, index: true },
   customerReceivedAt: { type: Date, default: null },
   cancellationRequest: {
     status: { type: String, enum: ["none", "pending", "approved", "declined"], default: "none" },

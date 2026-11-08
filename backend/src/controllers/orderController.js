@@ -218,6 +218,21 @@ async function listRestaurantOrders(req, res) {
   return res.json({ orders });
 }
 
+async function clearDineInQueueOrder(req, res) {
+  const restaurant = req.user.role === "restaurant_staff"
+    ? await Restaurant.findById(req.user.restaurantId)
+    : await Restaurant.findOne({ ownerId: req.user._id });
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const order = await Order.findOne({ _id: req.params.id, restaurantId: restaurant._id });
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.orderType !== "dine_in" || order.paymentStatus !== "paid") {
+    return res.status(409).json({ error: "Only paid dine-in orders can be marked done." });
+  }
+  order.queueClearedAt = order.queueClearedAt || new Date();
+  await order.save();
+  return res.json({ orderId: String(order._id), queueClearedAt: order.queueClearedAt });
+}
+
 async function updateRestaurantOrder(req, res) {
   const validStatuses = ["confirmed", "preparing", "ready", "out_for_delivery", "cancelled"];
   if (!validStatuses.includes(req.body?.status)) return res.status(400).json({ error: "Invalid order status" });
@@ -543,4 +558,4 @@ async function resolveOrderHelpRequest(req, res) {
   return res.json({ order, request: support });
 }
 
-module.exports = { createOrder, createDineInOrder, addItemsToRestaurantOrder, collectDineInPayment, listMyOrders, listRestaurantOrders, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, updateCustomerLocation, clearCustomerLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
+module.exports = { createOrder, createDineInOrder, addItemsToRestaurantOrder, collectDineInPayment, listMyOrders, listRestaurantOrders, clearDineInQueueOrder, updateRestaurantOrder, listDeliveryOrders, respondToDeliveryAssignment, reassignDeliveryOrder, updateDeliveryOrder, updateDeliveryLocation, clearDeliveryLocation, updateCustomerLocation, clearCustomerLocation, confirmOrderReceived, requestOrderCancellation, createOrderHelpRequest, reviewCancellationRequest, resolveOrderHelpRequest };
