@@ -66,9 +66,10 @@ const googleSchema = z.object({
 }).strict();
 
 const loginSchema = z.object({
-  email: z.string().trim().email().max(254),
+  identifier: z.string().trim().min(1).max(254).optional(),
+  email: z.string().trim().min(1).max(254).optional(),
   password: z.string().min(1).max(128)
-}).strict();
+}).strict().refine(data => Boolean(data.identifier || data.email), { message: "Enter your email or phone number" });
 
 const phoneOtpRequestSchema = z.object({
   phone: z.string().trim().min(8).max(25)
@@ -210,9 +211,22 @@ async function register(req, res) {
 
 async function login(req, res) {
   const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Invalid login details" });
+  if (!parsed.success) return res.status(400).json({ error: "Enter your email or phone number and password" });
 
-  const user = await User.findOne({ email: parsed.data.email.toLowerCase() }).select("+passwordHash");
+  const identifier = (parsed.data.identifier || parsed.data.email).trim();
+  let lookup;
+  if (identifier.includes("@")) {
+    const email = z.string().trim().email().max(254).safeParse(identifier);
+    if (!email.success) return res.status(400).json({ error: "Enter a valid email or phone number" });
+    lookup = { email: identifier.toLowerCase() };
+  } else {
+    const phone = normalizePhoneNumber(identifier);
+    if (!phone) return res.status(400).json({ error: "Enter a valid email or phone number" });
+    lookup = { phone: { $in: phoneLookupCandidates(phone) } };
+  }
+
+  const matches = await User.find(lookup).select("+passwordHash").limit(2);
+  const user = matches.length === 1 ? matches[0] : null;
   const valid = user?.passwordHash && await bcrypt.compare(parsed.data.password, user.passwordHash);
 
   if (!valid || user.status !== "active") {
