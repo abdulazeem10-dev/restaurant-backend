@@ -1,6 +1,6 @@
 const capabilities = {
-  secondary_admin: new Set(["read", "menu", "orders", "settings"]),
-  biller_modifier: new Set(["read", "menu", "orders"]),
+  secondary_admin: new Set(["read", "menu", "inventory", "orders", "settings"]),
+  biller_modifier: new Set(["read", "menu", "inventory", "orders"]),
   viewer: new Set(["read"])
 };
 

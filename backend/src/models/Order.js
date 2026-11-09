@@ -41,7 +41,8 @@ const orderSchema = new mongoose.Schema({
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },
     name: { type: String, required: true },
     unitPricePaise: { type: Number, required: true, min: 1 },
-    quantity: { type: Number, required: true, min: 1, max: 20 }
+    quantity: { type: Number, required: true, min: 1, max: 20 },
+    stockReservedQuantity: { type: Number, min: 0, default: 0, validate: Number.isSafeInteger }
   }],
   subtotalPaise: { type: Number, required: true, min: 0 },
   deliveryFeePaise: { type: Number, required: true, min: 0, default: 0 },

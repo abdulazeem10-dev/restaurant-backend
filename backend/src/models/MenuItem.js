@@ -8,7 +8,10 @@ const menuItemSchema = new mongoose.Schema({
   pricePaise: { type: Number, required: true, min: 1, validate: Number.isSafeInteger },
   category: { type: String, required: true, trim: true, maxlength: 80 },
   foodType: { type: String, enum: ["veg", "nonVeg"] },
-  available: { type: Boolean, default: true }
+  available: { type: Boolean, default: true },
+  stockTracked: { type: Boolean, default: false },
+  stockQuantity: { type: Number, min: 0, default: null, validate: Number.isSafeInteger },
+  lowStockThreshold: { type: Number, min: 0, default: 5, validate: Number.isSafeInteger }
 }, { timestamps: true });
 
 module.exports = mongoose.model("MenuItem", menuItemSchema);

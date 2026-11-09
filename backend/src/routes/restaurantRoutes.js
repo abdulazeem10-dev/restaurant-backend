@@ -18,6 +18,8 @@ router.post("/owner/delivery-partners", authenticate, authorizeRestaurant("setti
 router.patch("/owner/delivery-partners/:id/profile", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnDeliveryPartner));
 router.patch("/owner/delivery-partners/:id/profile-status", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnDeliveryPartnerProfileStatus));
 router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandler(controller.getOwnMenu));
+router.get("/owner/inventory", authenticate, authorizeRestaurant("inventory"), asyncHandler(controller.getOwnInventory));
+router.patch("/owner/inventory/:id", authenticate, authorizeRestaurant("inventory"), asyncHandler(controller.updateOwnInventoryItem));
 router.patch("/owner/profile", authenticate, authorize("restaurant"), asyncHandler(controller.updateOwnProfile));
 router.patch("/owner/deactivate-profile", authenticate, authorize("restaurant"), asyncHandler(controller.deactivateOwnProfile));
 router.post("/owner/menu", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.createMenuItem));

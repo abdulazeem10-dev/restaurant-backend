@@ -8,6 +8,7 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 const { sendOrderAlerts } = require("../utils/orderAlerts");
+const { reserveMenuStock, restoreReservedStock } = require("../utils/menuInventory");
 
 const createSchema = z.object({
   restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
@@ -73,6 +74,14 @@ async function createOrder(req, res) {
   const placedAt = new Date();
   const deliveryArea = (restaurant.deliveryAreas || []).find(area => area.pincodes?.includes(parsed.data.deliveryDetails.pincode));
 
+  const stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
+  const reservedRemaining = new Map(stockReservations.map(item => [String(item.menuItemId), item.quantity]));
+  for (const item of items) {
+    const itemId = String(item.menuItemId);
+    const reservedQuantity = Math.min(item.quantity, reservedRemaining.get(itemId) || 0);
+    item.stockReservedQuantity = reservedQuantity;
+    reservedRemaining.set(itemId, (reservedRemaining.get(itemId) || 0) - reservedQuantity);
+  }
   let order;
   try {
     order = await Order.create({
@@ -95,6 +104,7 @@ async function createOrder(req, res) {
       statusHistory: [{ status: "placed", at: placedAt }]
     });
   } catch (error) {
+    await restoreReservedStock(restaurant._id, stockReservations);
     // A unique index arbitrates simultaneous retries; return the first result.
     if (error?.code !== 11000) throw error;
     const concurrentOrder = await Order.findOne({ customerId: req.user._id, idempotencyKey }).select("+idempotencyRequestHash");
@@ -136,7 +146,21 @@ async function createDineInOrder(req, res) {
   const items = parsed.data.items.map(line => { const menuItem = byId.get(line.menuItemId); subtotalPaise += menuItem.pricePaise * line.quantity; return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity }; });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
   const now = new Date();
-  const order = await Order.create({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, customerName: parsed.data.customerName, customerPhone: parsed.data.customerPhone, deliveryAddress: "Dine-in · Table " + parsed.data.tableNumber, items, subtotalPaise, deliveryFeePaise: 0, taxPaise: 0, totalPaise: subtotalPaise, paymentMethod: parsed.data.paymentMethod, paymentStatus: "pending", status: "preparing", statusHistory: [{ status: "preparing", at: now }] });
+  const stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
+  const reservedRemaining = new Map(stockReservations.map(item => [String(item.menuItemId), item.quantity]));
+  for (const item of items) {
+    const itemId = String(item.menuItemId);
+    const reservedQuantity = Math.min(item.quantity, reservedRemaining.get(itemId) || 0);
+    item.stockReservedQuantity = reservedQuantity;
+    reservedRemaining.set(itemId, (reservedRemaining.get(itemId) || 0) - reservedQuantity);
+  }
+  let order;
+  try {
+    order = await Order.create({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, customerName: parsed.data.customerName, customerPhone: parsed.data.customerPhone, deliveryAddress: "Dine-in · Table " + parsed.data.tableNumber, items, subtotalPaise, deliveryFeePaise: 0, taxPaise: 0, totalPaise: subtotalPaise, paymentMethod: parsed.data.paymentMethod, paymentStatus: "pending", status: "preparing", statusHistory: [{ status: "preparing", at: now }] });
+  } catch (error) {
+    await restoreReservedStock(restaurant._id, stockReservations);
+    throw error;
+  }
   console.log("[orders] dine-in created", String(order._id), "table", order.tableNumber, "status", 201);
   return res.status(201).json({ order });
 }
@@ -156,13 +180,24 @@ async function addItemsToRestaurantOrder(req, res) {
   for (const line of parsed.data.items) {
     const menuItem = byId.get(line.menuItemId);
     const existing = order.items.find(item => String(item.menuItemId).toLowerCase() === line.menuItemId.toLowerCase());
-    if (existing) { if (existing.quantity + line.quantity > 20) return res.status(400).json({ error: "A dish cannot exceed 20 items per table order" }); existing.quantity += line.quantity; existing.unitPricePaise = menuItem.pricePaise; existing.name = menuItem.name; }
-    else order.items.push({ menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity });
+    if (existing && existing.quantity + line.quantity > 20) return res.status(400).json({ error: "A dish cannot exceed 20 items per table order" });
+  }
+  const stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
+  const reservedRemaining = new Map(stockReservations.map(item => [String(item.menuItemId), item.quantity]));
+  for (const line of parsed.data.items) {
+    const menuItem = byId.get(line.menuItemId);
+    const existing = order.items.find(item => String(item.menuItemId).toLowerCase() === line.menuItemId.toLowerCase());
+    const itemId = String(menuItem._id);
+    const reservedQuantity = Math.min(line.quantity, reservedRemaining.get(itemId) || 0);
+    reservedRemaining.set(itemId, (reservedRemaining.get(itemId) || 0) - reservedQuantity);
+    if (existing) { existing.quantity += line.quantity; existing.stockReservedQuantity = (existing.stockReservedQuantity || 0) + reservedQuantity; existing.unitPricePaise = menuItem.pricePaise; existing.name = menuItem.name; }
+    else order.items.push({ menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, stockReservedQuantity: reservedQuantity });
   }
   order.subtotalPaise = order.items.reduce((sum, item) => sum + item.unitPricePaise * item.quantity, 0);
   if (!Number.isSafeInteger(order.subtotalPaise) || order.subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
   order.totalPaise = order.subtotalPaise + order.deliveryFeePaise + order.taxPaise;
-  await order.save();
+  try { await order.save(); }
+  catch (error) { await restoreReservedStock(restaurant._id, stockReservations); throw error; }
   console.log("[orders] dine-in items updated", String(order._id), "status", 200);
   return res.json({ order });
 }
@@ -263,6 +298,7 @@ async function updateRestaurantOrder(req, res) {
   if (req.body.status === "ready") order.estimatedDeliveryAt = new Date(Date.now() + (restaurant.deliveryTimeMinutes || 30) * 60_000);
   if (req.body.status === "cancelled") order.estimatedDeliveryAt = null;
   await order.save();
+  if (req.body.status === "cancelled") await releaseCancelledOrderStock(restaurant._id, order);
   const statusLabels = { confirmed: "confirmed", preparing: "being prepared", ready: "ready for pickup", out_for_delivery: "out for delivery", cancelled: "cancelled" };
   if (order.customerId) await notifyOrderParticipants(order, {
     type: "order_status_updated",
@@ -527,6 +563,7 @@ async function reviewCancellationRequest(req, res) {
   order.cancellationRequest.reviewedBy = req.user._id;
   order.cancellationRequest.response = parsed.data.response;
   await order.save();
+  if (parsed.data.decision === "approved") await releaseCancelledOrderStock(restaurant._id, order);
   await notifyOrderParticipants(order, {
     type: "cancellation_reviewed",
     customerTitle: parsed.data.decision === "approved" ? "Cancellation approved" : "Cancellation declined",
@@ -534,6 +571,17 @@ async function reviewCancellationRequest(req, res) {
     audiences: ["customer"]
   });
   return res.json({ order });
+}
+
+async function releaseCancelledOrderStock(restaurantId, order) {
+  const reservations = order.items
+    .filter(item => Number(item.stockReservedQuantity) > 0)
+    .map(item => ({ menuItemId: item.menuItemId, quantity: Number(item.stockReservedQuantity) }));
+  if (!reservations.length) return;
+  await restoreReservedStock(restaurantId, reservations);
+  for (const item of order.items) item.stockReservedQuantity = 0;
+  await order.save();
+  console.log("[inventory] cancelled order stock restored", { orderId: String(order._id), itemCount: reservations.length });
 }
 
 async function resolveOrderHelpRequest(req, res) {

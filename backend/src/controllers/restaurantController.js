@@ -98,14 +98,14 @@ async function listRestaurants(req, res) {
   ]);
   const ratingByRestaurant = new Map(ratingStats.map(stats => [String(stats._id), stats]));
   const menuCategories = await MenuItem.aggregate([
-    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true } },
+    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] } },
     { $group: {
       _id: "$restaurantId",
       categories: { $addToSet: "$category" },
       lowestPricePaise: { $min: "$pricePaise" }
     } }
   ]);
-  const featuredItems = await MenuItem.find({ restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true })
+  const featuredItems = await MenuItem.find({ restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
     .select("name imageUrl pricePaise category foodType restaurantId")
     .sort({ createdAt: -1, _id: -1 })
     .limit(32)
@@ -175,7 +175,8 @@ async function getPublicMenu(req, res) {
 
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
-    available: true
+    available: true,
+    $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }]
   }).select("name description imageUrl pricePaise category foodType available").sort({ category: 1, name: 1 });
 
   return res.json({ items });
@@ -535,6 +536,45 @@ async function getOwnMenu(req, res) {
   });
 }
 
+async function getOwnInventory(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const items = await MenuItem.find({ restaurantId: restaurant._id })
+    .select("name category available stockTracked stockQuantity lowStockThreshold")
+    .sort({ category: 1, name: 1 });
+  const tracked = items.filter(item => item.stockTracked);
+  const lowStock = tracked.filter(item => item.stockQuantity <= item.lowStockThreshold).length;
+  return res.json({ items, summary: { totalDishes: items.length, trackedDishes: tracked.length, lowStockDishes: lowStock } });
+}
+
+async function updateOwnInventoryItem(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const input = req.body || {};
+  const allowed = ["stockTracked", "stockQuantity", "lowStockThreshold"];
+  if (!input || Object.keys(input).length === 0 || Object.keys(input).some(key => !allowed.includes(key))) {
+    return res.status(400).json({ error: "Provide stock tracking, stock quantity, or low-stock threshold" });
+  }
+  if (input.stockTracked !== undefined && typeof input.stockTracked !== "boolean") {
+    return res.status(400).json({ error: "Stock tracking must be enabled or disabled" });
+  }
+  for (const field of ["stockQuantity", "lowStockThreshold"]) {
+    if (input[field] !== undefined && (!Number.isSafeInteger(input[field]) || input[field] < 0 || input[field] > 1_000_000)) {
+      return res.status(400).json({ error: `${field === "stockQuantity" ? "Stock quantity" : "Low-stock threshold"} must be a whole number from 0 to 1,000,000` });
+    }
+  }
+  if (input.stockTracked === true && input.stockQuantity === undefined) {
+    return res.status(400).json({ error: "Enter the current stock quantity when enabling tracking" });
+  }
+  const item = await MenuItem.findOneAndUpdate(
+    { _id: req.params.id, restaurantId: restaurant._id },
+    { $set: input },
+    { new: true, runValidators: true }
+  ).select("name category available stockTracked stockQuantity lowStockThreshold");
+  if (!item) return res.status(404).json({ error: "Menu item not found" });
+  return res.json({ item });
+}
+
 async function createMenuItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -684,6 +724,6 @@ async function deleteMenuItem(req, res) {
 
 module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
-  getOwnMenu, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
+  getOwnMenu, getOwnInventory, updateOwnInventoryItem, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };
