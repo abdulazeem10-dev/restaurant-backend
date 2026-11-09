@@ -21,6 +21,7 @@ router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandle
 router.patch("/owner/profile", authenticate, authorize("restaurant"), asyncHandler(controller.updateOwnProfile));
 router.patch("/owner/deactivate-profile", authenticate, authorize("restaurant"), asyncHandler(controller.deactivateOwnProfile));
 router.post("/owner/menu", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.createMenuItem));
+router.post("/owner/menu/import", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.importOwnMenu));
 router.patch("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.updateMenuItem));
 router.delete("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.deleteMenuItem));
 router.patch("/owner/open", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnOpenStatus));

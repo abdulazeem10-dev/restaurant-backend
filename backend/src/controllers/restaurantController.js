@@ -573,6 +573,51 @@ async function createMenuItem(req, res) {
   return res.status(201).json({ item });
 }
 
+async function importOwnMenu(req, res) {
+  if (req.user?.role !== "restaurant") return res.status(403).json({ error: "Only the restaurant owner can import the printed menu" });
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (restaurant.status !== "approved") return res.status(403).json({ error: "Restaurant is not approved" });
+  if (String(restaurant.name || "").trim().toLocaleLowerCase() !== "al-madina") {
+    return res.status(409).json({ error: "The Al-Madina menu import is only available for the Al-Madina restaurant account" });
+  }
+
+  const input = req.body?.items;
+  if (!Array.isArray(input) || input.length < 1 || input.length > 400) {
+    return res.status(400).json({ error: "Import must contain between 1 and 400 menu items" });
+  }
+  const valid = input.every(item => item && typeof item === "object" && !Array.isArray(item)
+    && typeof item.name === "string" && item.name.trim().length > 0 && item.name.length <= 150
+    && typeof item.category === "string" && item.category.trim().length > 0 && item.category.length <= 80
+    && ["veg", "nonVeg"].includes(item.foodType)
+    && Number.isSafeInteger(item.pricePaise) && item.pricePaise > 0
+    && (item.description === undefined || (typeof item.description === "string" && item.description.length <= 1000)));
+  if (!valid) return res.status(400).json({ error: "One or more imported menu items are invalid" });
+
+  const operations = input.map(item => {
+    const name = item.name.trim();
+    const category = item.category.trim();
+    return {
+      updateOne: {
+        filter: { restaurantId: restaurant._id, name, category, pricePaise: item.pricePaise },
+        update: { $setOnInsert: {
+          restaurantId: restaurant._id, name, category, foodType: item.foodType,
+          pricePaise: item.pricePaise, description: String(item.description || "").trim(),
+          imageUrl: "", available: true
+        } },
+        upsert: true
+      }
+    };
+  });
+  const result = await MenuItem.bulkWrite(operations, { ordered: false });
+  const added = result.upsertedCount || 0;
+  return res.status(200).json({
+    imported: added,
+    alreadyPresent: input.length - added,
+    totalSubmitted: input.length
+  });
+}
+
 async function updateMenuItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -639,6 +684,6 @@ async function deleteMenuItem(req, res) {
 
 module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
-  getOwnMenu, createMenuItem, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
+  getOwnMenu, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };
