@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
+const { SUBSCRIPTIONS_ENABLED } = require("../config/features");
 
 const SESSION_COOKIE = process.env.NODE_ENV === "production" ? "__Host-foodway_session" : "foodway_session";
 
@@ -44,9 +45,12 @@ async function authenticate(req, res, next) {
       || user.role !== "delivery" && req.path === "/me";
     if ((user.role === "restaurant" || user.role === "restaurant_staff" || user.role === "delivery") && !isSubscriptionSelfService) {
       const restaurant = user.role === "restaurant" || user.role === "restaurant_staff" ? (user.role === "restaurant_staff" ? await Restaurant.findById(user.restaurantId).select("_id") : await Restaurant.findOne({ ownerId: user._id }).select("_id")) : await Restaurant.findById(user.restaurantId).select("_id status");
-      const subscription = restaurant ? await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).select("status currentPeriodEnd") : null;
-      if (user.role === "delivery" && (!restaurant || restaurant.status !== "approved" || !subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date())) return res.status(403).json({ error: "This restaurant delivery account is unavailable because the restaurant is inactive or its subscription has expired.", code: "subscription_expired" });
-      if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) return res.status(403).json({ error: "Restaurant subscription is inactive or expired. The owner must choose a plan and complete payment to restore access.", code: "subscription_expired" });
+      if (!restaurant || (user.role === "delivery" && restaurant.status !== "approved")) return res.status(403).json({ error: "This restaurant account is unavailable.", code: "restaurant_unavailable" });
+      if (SUBSCRIPTIONS_ENABLED) {
+        const subscription = await Subscription.findOne({ restaurantId: restaurant._id }).sort({ currentPeriodEnd: -1 }).select("status currentPeriodEnd");
+        if (user.role === "delivery" && (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date())) return res.status(403).json({ error: "This restaurant delivery account is unavailable because its subscription has expired.", code: "subscription_expired" });
+        if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) return res.status(403).json({ error: "Restaurant subscription is inactive or expired. The owner must choose a plan and complete payment to restore access.", code: "subscription_expired" });
+      }
     }
     req.user = user;
     return next();

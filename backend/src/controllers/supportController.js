@@ -2,6 +2,7 @@ const { z } = require("zod");
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
 const Subscription = require("../models/Subscription");
+const { SUBSCRIPTIONS_ENABLED } = require("../config/features");
 
 const MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const requestSchema = z.object({
@@ -47,7 +48,7 @@ async function getPublicRestaurantContext() {
     status: "active",
     currentPeriodEnd: { $gt: new Date() }
   });
-  if (!hasActiveSubscription) return { restaurant: "Al-Madina", availability: "Online ordering is currently unavailable." };
+  if (SUBSCRIPTIONS_ENABLED && !hasActiveSubscription) return { restaurant: "Al-Madina", availability: "Online ordering is currently unavailable." };
 
   const menu = await MenuItem.find({ restaurantId: restaurant._id, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
     .select("name description pricePaise category foodType")

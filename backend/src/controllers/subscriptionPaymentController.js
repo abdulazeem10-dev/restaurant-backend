@@ -5,6 +5,7 @@ const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
 const SubscriptionPayment = require("../models/SubscriptionPayment");
 const { PLAN_TIERS, makePlanId, normalizePlanTier, subscriptionPricePaise } = require("../utils/subscriptionPlans");
+const { SUBSCRIPTIONS_ENABLED } = require("../config/features");
 const provider = "razorpay";
 
 function credentials() {
@@ -33,6 +34,7 @@ async function razorpayRequest(path, body) {
 }
 
 async function createOrder(req, res) {
+  if (!SUBSCRIPTIONS_ENABLED) return res.status(404).json({ error: "Subscriptions are temporarily unavailable" });
   const { keyId, keySecret } = credentials();
   if (!keyId || !keySecret) return res.status(503).json({ error: "Subscription payments are not configured yet" });
   const parsed = z.object({
@@ -60,6 +62,7 @@ async function createOrder(req, res) {
 }
 
 async function verifyPayment(req, res) {
+  if (!SUBSCRIPTIONS_ENABLED) return res.status(404).json({ error: "Subscriptions are temporarily unavailable" });
   const { keySecret } = credentials();
   if (!keySecret) return res.status(503).json({ error: "Subscription payments are not configured yet" });
   const parsed = z.object({

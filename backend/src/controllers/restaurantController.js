@@ -9,6 +9,7 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const Subscription = require("../models/Subscription");
 const { PLAN_TIERS, accountLimitFor, normalizePlanTier } = require("../utils/subscriptionPlans");
+const { SUBSCRIPTIONS_ENABLED } = require("../config/features");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
 
 const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -103,13 +104,13 @@ async function listRestaurants(req, res) {
   const approvedRestaurants = await Restaurant.find(query)
     .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
-  const activeSubscriptions = await Subscription.find({
+  const activeSubscriptions = SUBSCRIPTIONS_ENABLED ? await Subscription.find({
     restaurantId: { $in: approvedRestaurants.map(restaurant => restaurant._id) },
     status: "active",
     currentPeriodEnd: { $gt: new Date() }
-  }).select("restaurantId").lean();
+  }).select("restaurantId").lean() : [];
   const paidRestaurantIds = new Set(activeSubscriptions.map(item => String(item.restaurantId)));
-  const restaurants = approvedRestaurants.filter(restaurant => paidRestaurantIds.has(String(restaurant._id)));
+  const restaurants = SUBSCRIPTIONS_ENABLED ? approvedRestaurants.filter(restaurant => paidRestaurantIds.has(String(restaurant._id))) : approvedRestaurants;
   const ratingStats = await Review.aggregate([
     { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) } } },
     { $group: { _id: "$restaurantId", ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
@@ -168,7 +169,7 @@ async function getRestaurant(req, res) {
   }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  if (!await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
+  if (SUBSCRIPTIONS_ENABLED && !await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
   const [stats] = await Review.aggregate([
     { $match: { restaurantId: restaurant._id } },
     { $group: { _id: null, ratingAverage: { $avg: "$rating" }, ratingCount: { $sum: 1 } } }
@@ -189,7 +190,7 @@ async function getPublicMenu(req, res) {
   }).select("_id");
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
-  if (!await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
+  if (SUBSCRIPTIONS_ENABLED && !await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
 
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
@@ -225,9 +226,9 @@ async function getRestaurantAccountQuota(restaurantId, session = null) {
     countQuery = countQuery.session(session);
   }
   const [subscription, staffAndDelivery] = await Promise.all([subscriptionQuery, countQuery]);
-  const active = Boolean(subscription && subscription.status === "active" && subscription.currentPeriodEnd > new Date());
-  const planTier = subscription ? normalizePlanTier(subscription.planTier) : null;
-  const maxAccounts = active ? accountLimitFor(planTier) : 0;
+  const active = !SUBSCRIPTIONS_ENABLED || Boolean(subscription && subscription.status === "active" && subscription.currentPeriodEnd > new Date());
+  const planTier = SUBSCRIPTIONS_ENABLED && subscription ? normalizePlanTier(subscription.planTier) : null;
+  const maxAccounts = active ? (SUBSCRIPTIONS_ENABLED ? accountLimitFor(planTier) : accountLimitFor("gold")) : 0;
   return {
     planTier,
     termYears: subscription?.termYears || null,
@@ -244,23 +245,26 @@ async function createRestaurantAccountWithinQuota(restaurantId, accountDetails) 
   let quota;
   try {
     await session.withTransaction(async () => {
-      const [subscription] = await Subscription.find({ restaurantId }).sort({ currentPeriodEnd: -1 }).limit(1).session(session);
-      if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) {
-        throw quotaError("Choose and pay for a subscription before creating staff or delivery accounts.", "subscription_required", 403);
+      let subscription = null;
+      if (SUBSCRIPTIONS_ENABLED) {
+        [subscription] = await Subscription.find({ restaurantId }).sort({ currentPeriodEnd: -1 }).limit(1).session(session);
+        if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) {
+          throw quotaError("Choose and pay for a subscription before creating staff or delivery accounts.", "subscription_required", 403);
+        }
       }
-      const planTier = normalizePlanTier(subscription.planTier);
+      const planTier = SUBSCRIPTIONS_ENABLED ? normalizePlanTier(subscription.planTier) : "gold";
       const maxAccounts = accountLimitFor(planTier);
       const activeAccounts = await User.countDocuments({ restaurantId, role: { $in: ["restaurant_staff", "delivery"] }, status: "active", profileDeactivatedAt: null }).session(session);
       const totalAccounts = await User.countDocuments({ email: accountDetails.email }).session(session);
       const used = 1 + activeAccounts; // The restaurant owner is always one of the plan's seats.
       quota = { planTier, active: true, totalAccounts: used, maxAccounts, remainingAccounts: Math.max(0, maxAccounts - used) };
       if (totalAccounts) throw quotaError("An account already uses this email", "email_in_use");
-      if (used >= maxAccounts) throw quotaError(`Your ${planTier[0].toUpperCase()}${planTier.slice(1)} plan allows ${maxAccounts} total active accounts, including the owner. Upgrade your plan or deactivate an account to add another.`, "account_limit_reached");
+      if (used >= maxAccounts) throw quotaError("The total account limit has been reached. Deactivate an account to add another.", "account_limit_reached");
 
       // Every seat allocation writes the same subscription document inside the
       // transaction. Concurrent account creation therefore conflicts and is
       // retried by MongoDB before the account cap can be exceeded.
-      await Subscription.updateOne({ _id: subscription._id }, { $inc: { seatRevision: 1 } }, { session });
+      if (SUBSCRIPTIONS_ENABLED) await Subscription.updateOne({ _id: subscription._id }, { $inc: { seatRevision: 1 } }, { session });
       const [created] = await User.create([accountDetails], { session });
       account = created;
       quota = { ...quota, totalAccounts: used + 1, remainingAccounts: Math.max(0, maxAccounts - used - 1) };
@@ -310,12 +314,15 @@ async function setOwnDeliveryPartnerProfileStatus(req,res){
   const session=await mongoose.startSession();
   try{
    await session.withTransaction(async()=>{
-    const [subscription]=await Subscription.find({restaurantId:restaurant._id}).sort({currentPeriodEnd:-1}).limit(1).session(session);
-    if(!subscription||subscription.status!=="active"||!subscription.currentPeriodEnd||subscription.currentPeriodEnd<=new Date())throw quotaError("An active subscription is required to restore this login.","subscription_required",403);
-    const tier=normalizePlanTier(subscription.planTier),max=accountLimitFor(tier);
+    let subscription=null;
+    if(SUBSCRIPTIONS_ENABLED){
+     [subscription]=await Subscription.find({restaurantId:restaurant._id}).sort({currentPeriodEnd:-1}).limit(1).session(session);
+     if(!subscription||subscription.status!=="active"||!subscription.currentPeriodEnd||subscription.currentPeriodEnd<=new Date())throw quotaError("An active subscription is required to restore this login.","subscription_required",403);
+    }
+    const tier=SUBSCRIPTIONS_ENABLED?normalizePlanTier(subscription.planTier):"gold",max=accountLimitFor(tier);
     const used=1+await User.countDocuments({restaurantId:restaurant._id,role:{$in:["restaurant_staff","delivery"]},status:"active",profileDeactivatedAt:null}).session(session);
-    if(used>=max)throw quotaError(`Your ${tier} plan allows ${max} total active accounts, including the owner. Deactivate another login or upgrade your plan first.`,"account_limit_reached");
-    await Subscription.updateOne({_id:subscription._id},{$inc:{seatRevision:1}},{session});
+    if(used>=max)throw quotaError("The total account limit has been reached. Deactivate another login first.","account_limit_reached");
+    if(SUBSCRIPTIONS_ENABLED)await Subscription.updateOne({_id:subscription._id},{$inc:{seatRevision:1}},{session});
     const current=await User.findOne({_id:partner._id,restaurantId:restaurant._id,role:"delivery"}).session(session);
     if(!current||!current.profileDeactivatedAt)throw quotaError("This account is not deactivated","account_state_changed");
     current.status=current.statusBeforeProfileDeactivation||"active";current.profileDeactivatedAt=null;current.statusBeforeProfileDeactivation=null;await current.save({session});
