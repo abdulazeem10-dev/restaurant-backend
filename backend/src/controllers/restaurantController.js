@@ -1,5 +1,6 @@
 const Restaurant = require("../models/Restaurant");
 const MenuItem = require("../models/MenuItem");
+const GroceryStock = require("../models/GroceryStock");
 const Review = require("../models/Review");
 const { z } = require("zod");
 const bcrypt = require("bcrypt");
@@ -27,6 +28,23 @@ const openingHoursInputSchema = z.object(Object.fromEntries(
 const deliveryAreaInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   pincodes: z.array(z.string().length(6).regex(/^\d{6}$/)).min(1).max(100)
+}).strict();
+const groceryDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+}, "Enter a valid date");
+const groceryInputSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(60).optional().default("Other"),
+  quantity: z.number().finite().min(0).max(10000000),
+  unit: z.string().trim().min(1).max(24),
+  lowStockThreshold: z.number().finite().min(0).max(10000000),
+  receivedDate: groceryDateSchema,
+  expiryDate: groceryDateSchema.nullable().optional().default(null),
+  supplier: z.string().trim().max(120).optional().default(""),
+  purchaseTotalPaise: z.number().int().safe().min(0).max(1000000000).optional().default(0),
+  paymentMethod: z.enum(["cash", "upi", "card", "bank_transfer", "credit", "other"]),
+  notes: z.string().trim().max(500).optional().default("")
 }).strict();
 const serviceSettingsSchema = z.object({
   openingHours: openingHoursInputSchema.optional(),
@@ -547,6 +565,55 @@ async function getOwnInventory(req, res) {
   return res.json({ items, summary: { totalDishes: items.length, trackedDishes: tracked.length, lowStockDishes: lowStock } });
 }
 
+function groceryInputError(error) {
+  const firstIssue = error.issues?.[0];
+  return firstIssue ? `${firstIssue.path.join(" ") || "Inventory details"}: ${firstIssue.message}` : "Invalid grocery stock details";
+}
+
+async function listOwnGroceryStock(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const items = await GroceryStock.find({ restaurantId: restaurant._id }).sort({ expiryDate: 1, name: 1, receivedDate: -1 }).limit(1000).lean();
+  return res.json({ items });
+}
+
+async function createOwnGroceryStock(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const parsed = groceryInputSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: groceryInputError(parsed.error) });
+  const item = await GroceryStock.create({ ...parsed.data, restaurantId: restaurant._id });
+  console.log("[grocery-inventory] stock batch created", { restaurantId: String(restaurant._id), itemId: String(item._id), quantity: item.quantity, unit: item.unit });
+  return res.status(201).json({ item });
+}
+
+async function updateOwnGroceryStock(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "Grocery stock entry not found" });
+  const parsed = groceryInputSchema.partial().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: groceryInputError(parsed.error) });
+  if (!Object.keys(parsed.data).length) return res.status(400).json({ error: "Provide at least one grocery stock field to update" });
+  const item = await GroceryStock.findOneAndUpdate(
+    { _id: req.params.id, restaurantId: restaurant._id },
+    { $set: parsed.data },
+    { new: true, runValidators: true }
+  );
+  if (!item) return res.status(404).json({ error: "Grocery stock entry not found" });
+  console.log("[grocery-inventory] stock batch updated", { restaurantId: String(restaurant._id), itemId: String(item._id) });
+  return res.json({ item });
+}
+
+async function deleteOwnGroceryStock(req, res) {
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "Grocery stock entry not found" });
+  const item = await GroceryStock.findOneAndDelete({ _id: req.params.id, restaurantId: restaurant._id });
+  if (!item) return res.status(404).json({ error: "Grocery stock entry not found" });
+  console.log("[grocery-inventory] stock batch deleted", { restaurantId: String(restaurant._id), itemId: String(item._id) });
+  return res.status(204).end();
+}
+
 async function updateOwnInventoryItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -724,6 +791,6 @@ async function deleteMenuItem(req, res) {
 
 module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
-  getOwnMenu, getOwnInventory, updateOwnInventoryItem, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
+  getOwnMenu, getOwnInventory, updateOwnInventoryItem, listOwnGroceryStock, createOwnGroceryStock, updateOwnGroceryStock, deleteOwnGroceryStock, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };
