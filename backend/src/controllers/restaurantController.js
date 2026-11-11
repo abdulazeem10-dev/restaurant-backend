@@ -97,10 +97,12 @@ function cuisineForMenuCategory(category) {
   return cuisineByMenuCategory.get(normalized);
 }
 
+const AL_MADINA_RESTAURANT_NAME = /^al[\s-]?madina(?:\s+family\s+restaurant)?$/i;
+
 async function listRestaurants(req, res) {
   // The customer storefront belongs to Al-Madina. Admin-managed
   // restaurant records must never turn this public endpoint into a directory.
-  const query = { status: "approved", name: /^Al-Madina$/i };
+  const query = { status: "approved", name: AL_MADINA_RESTAURANT_NAME };
   const approvedRestaurants = await Restaurant.find(query)
     .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
@@ -164,7 +166,7 @@ async function listRestaurants(req, res) {
 async function getRestaurant(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
-    name: /^Al-Madina$/i,
+    name: AL_MADINA_RESTAURANT_NAME,
     status: "approved"
   }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
@@ -185,7 +187,7 @@ async function getRestaurant(req, res) {
 async function getPublicMenu(req, res) {
   const restaurant = await Restaurant.findOne({
     _id: req.params.id,
-    name: /^Al-Madina$/i,
+    name: AL_MADINA_RESTAURANT_NAME,
     status: "approved"
   }).select("_id");
 
