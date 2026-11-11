@@ -6,6 +6,9 @@ const asyncHandler = require("../utils/asyncHandler");
 
 const router = express.Router();
 router.use(authenticate, authorize("customer"));
+router.get("/cart", asyncHandler(controller.getCart));
+router.put("/cart", asyncHandler(controller.saveCart));
+router.delete("/cart", asyncHandler(controller.clearCart));
 router.get("/loyalty", asyncHandler(controller.getLoyaltySummary));
 router.get("/favorites", asyncHandler(controller.listFavouriteRestaurants));
 router.post("/favorites/:restaurantId", asyncHandler(controller.addFavouriteRestaurant));

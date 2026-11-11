@@ -3,9 +3,11 @@ const controller = require("../controllers/adminController");
 const authenticate = require("../middleware/auth");
 const authorize = require("../middleware/authorize");
 const asyncHandler = require("../utils/asyncHandler");
+const backupController = require("../controllers/backupController");
 
 const router = express.Router();
 router.use(authenticate, authorize("admin"));
+router.get("/backup", asyncHandler(backupController.downloadPlatformBackup));
 router.get("/restaurants", asyncHandler(controller.listRestaurants));
 router.post("/restaurants", asyncHandler(controller.createRestaurant));
 router.patch("/restaurants/:id/profile", asyncHandler(controller.updateRestaurantProfile));

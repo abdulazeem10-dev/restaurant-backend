@@ -6,6 +6,7 @@ const MenuItem = require("../models/MenuItem");
 const Review = require("../models/Review");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const CustomerCart = require("../models/CustomerCart");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 const { sendOrderAlerts } = require("../utils/orderAlerts");
 const { reserveMenuStock, restoreReservedStock } = require("../utils/menuInventory");
@@ -43,6 +44,7 @@ async function createOrder(req, res) {
     if (existingOrder.idempotencyRequestHash !== requestHash) {
       return res.status(409).json({ error: "This checkout key was already used for different order details. Refresh checkout to place a new order." });
     }
+    await CustomerCart.deleteOne({ customerId: req.user._id });
     return res.status(200).json({ order: existingOrder, deliveryAssigned: Boolean(existingOrder.deliveryPartnerId), replayed: true });
   }
 
@@ -112,8 +114,10 @@ async function createOrder(req, res) {
     if (concurrentOrder.idempotencyRequestHash !== requestHash) {
       return res.status(409).json({ error: "This checkout key was already used for different order details. Refresh checkout to place a new order." });
     }
+    await CustomerCart.deleteOne({ customerId: req.user._id });
     return res.status(200).json({ order: concurrentOrder, deliveryAssigned: Boolean(concurrentOrder.deliveryPartnerId), replayed: true });
   }
+  await CustomerCart.deleteOne({ customerId: req.user._id });
   return res.status(201).json({ order, deliveryAssigned: true });
 }
 

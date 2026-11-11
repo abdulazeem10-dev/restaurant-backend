@@ -3,6 +3,68 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const Restaurant = require("../models/Restaurant");
 const mongoose = require("mongoose");
+const CustomerCart = require("../models/CustomerCart");
+const MenuItem = require("../models/MenuItem");
+
+const cartSchema = z.object({
+  restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
+  items: z.array(z.object({
+    menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
+    quantity: z.number().int().min(1).max(20)
+  }).strict()).max(100)
+}).strict();
+
+async function getCart(req, res) {
+  const cart = await CustomerCart.findOne({ customerId: req.user._id });
+  if (!cart) return res.json({ cart: null });
+  const currentItems = await MenuItem.find({ _id: { $in: cart.items.map(item => item.menuItemId) }, restaurantId: cart.restaurantId })
+    .select("_id name pricePaise")
+    .lean();
+  const currentById = new Map(currentItems.map(item => [String(item._id), item]));
+  let changed = false;
+  for (const item of cart.items) {
+    const current = currentById.get(String(item.menuItemId));
+    if (!current) continue;
+    if (item.name !== current.name || item.pricePaise !== current.pricePaise) {
+      item.name = current.name;
+      item.pricePaise = current.pricePaise;
+      changed = true;
+    }
+  }
+  if (changed) await cart.save();
+  return res.json({ cart: { restaurantId: String(cart.restaurantId), items: cart.items } });
+}
+
+async function saveCart(req, res) {
+  const parsed = cartSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid cart" });
+  const { restaurantId, items } = parsed.data;
+  if (new Set(items.map(item => item.menuItemId)).size !== items.length) return res.status(400).json({ error: "Cart contains duplicate dishes" });
+  if (!items.length) {
+    await CustomerCart.deleteOne({ customerId: req.user._id });
+    return res.json({ cart: null });
+  }
+  const restaurant = await Restaurant.findById(restaurantId).select("_id status").lean();
+  if (!restaurant || restaurant.status !== "approved") return res.status(404).json({ error: "Restaurant not found" });
+  const menuItems = await MenuItem.find({ _id: { $in: items.map(item => item.menuItemId) }, restaurantId, available: true }).select("_id name pricePaise").lean();
+  if (menuItems.length !== items.length) return res.status(400).json({ error: "One or more dishes are no longer available" });
+  const byId = new Map(menuItems.map(item => [String(item._id), item]));
+  const safeItems = items.map(item => {
+    const menuItem = byId.get(item.menuItemId);
+    return { menuItemId: menuItem._id, name: menuItem.name, pricePaise: menuItem.pricePaise, quantity: item.quantity };
+  });
+  const cart = await CustomerCart.findOneAndUpdate(
+    { customerId: req.user._id },
+    { $set: { restaurantId: restaurant._id, items: safeItems } },
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  ).lean();
+  return res.json({ cart: { restaurantId: String(cart.restaurantId), items: cart.items } });
+}
+
+async function clearCart(req, res) {
+  await CustomerCart.deleteOne({ customerId: req.user._id });
+  return res.status(204).end();
+}
 
 const addressSchema = z.object({
   label: z.string().trim().min(1).max(40).default("Home"),
@@ -89,4 +151,4 @@ async function removeFavouriteRestaurant(req, res) {
   return res.status(204).end();
 }
 
-module.exports = { listAddresses, addAddress, deleteAddress, getLoyaltySummary, listFavouriteRestaurants, addFavouriteRestaurant, removeFavouriteRestaurant };
+module.exports = { getCart, saveCart, clearCart, listAddresses, addAddress, deleteAddress, getLoyaltySummary, listFavouriteRestaurants, addFavouriteRestaurant, removeFavouriteRestaurant };

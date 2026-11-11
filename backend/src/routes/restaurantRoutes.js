@@ -6,11 +6,13 @@ const authorizeRestaurant = require("../middleware/authorizeRestaurant");
 const authorize = require("../middleware/authorize");
 const asyncHandler = require("../utils/asyncHandler");
 const aggregatorReportController = require("../controllers/aggregatorReportController");
+const backupController = require("../controllers/backupController");
 
 const router = express.Router();
 
 // Keep fixed /owner paths before /:id routes so "owner" is not cast as an ObjectId.
 router.get("/owner/subscription", authenticate, authorize("restaurant"), asyncHandler(controller.getOwnSubscription));
+router.get("/owner/backup", authenticate, authorizeRestaurant("settings"), asyncHandler(backupController.downloadRestaurantBackup));
 router.post("/owner/subscription/payment/order", authenticate, authorize("restaurant"), asyncHandler(subscriptionPaymentController.createOrder));
 router.post("/owner/subscription/payment/verify", authenticate, authorize("restaurant"), asyncHandler(subscriptionPaymentController.verifyPayment));
 router.get("/owner/delivery-partners", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.listOwnDeliveryPartners));
