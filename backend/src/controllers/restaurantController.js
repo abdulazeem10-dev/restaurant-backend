@@ -19,8 +19,8 @@ const dailyHoursSchema = z.object({
   opensAt: timeSchema,
   closesAt: timeSchema
 }).strict().superRefine((hours, context) => {
-  if (!hours.closed && hours.closesAt <= hours.opensAt) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Closing time must be later than opening time" });
+  if (!hours.closed && hours.closesAt === hours.opensAt) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Opening and closing times cannot be the same" });
   }
 });
 const openingHoursInputSchema = z.object(Object.fromEntries(
