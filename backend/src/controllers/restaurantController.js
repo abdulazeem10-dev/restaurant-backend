@@ -119,14 +119,14 @@ async function listRestaurants(req, res) {
   ]);
   const ratingByRestaurant = new Map(ratingStats.map(stats => [String(stats._id), stats]));
   const menuCategories = await MenuItem.aggregate([
-    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] } },
+    { $match: { restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: { $ne: false }, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] } },
     { $group: {
       _id: "$restaurantId",
       categories: { $addToSet: "$category" },
       lowestPricePaise: { $min: "$pricePaise" }
     } }
   ]);
-  const featuredItems = await MenuItem.find({ restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
+  const featuredItems = await MenuItem.find({ restaurantId: { $in: restaurants.map(restaurant => restaurant._id) }, available: { $ne: false }, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
     .select("name imageUrl pricePaise category foodType restaurantId")
     .sort({ createdAt: -1, _id: -1 })
     .limit(32)
@@ -196,7 +196,9 @@ async function getPublicMenu(req, res) {
 
   const items = await MenuItem.find({
     restaurantId: restaurant._id,
-    available: true,
+    // Older menu records may not have the availability field yet. Treat only
+    // an explicit false as sold out so previously saved dishes remain listed.
+    available: { $ne: false },
     $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }]
   }).select("name description imageUrl pricePaise category foodType available").sort({ category: 1, name: 1 });
 

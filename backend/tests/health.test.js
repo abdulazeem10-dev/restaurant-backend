@@ -4,6 +4,8 @@ const request = require("supertest");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../src/models/User");
+const Restaurant = require("../src/models/Restaurant");
+const MenuItem = require("../src/models/MenuItem");
 const { PLAN_TIERS, subscriptionPricePaise } = require("../src/utils/subscriptionPlans");
 
 process.env.FRONTEND_ORIGIN = "http://127.0.0.1:5500";
@@ -79,16 +81,25 @@ test("protected account endpoint rejects a missing token", async () => {
   assert.equal(response.body.error, "Authentication required");
 });
 
+test("admin, restaurant menu, and customer data routes reject unauthenticated requests", async () => {
+  const [admin, ownerMenu, customerCart] = await Promise.all([
+    request(app).get("/api/admin/restaurants"),
+    request(app).get("/api/restaurants/owner/menu"),
+    request(app).get("/api/customer/cart")
+  ]);
+  assert.deepEqual([admin.status, ownerMenu.status, customerCart.status], [401, 401, 401]);
+});
+
 test("login rejects malformed credentials before querying the database", async () => {
   const response = await request(app)
     .post("/api/auth/login")
     .send({ email: "not-an-email", password: "" });
   assert.equal(response.status, 400);
-  assert.equal(response.body.error, "Invalid login details");
+  assert.equal(response.body.error, "Enter your email or phone number and password");
 });
 
 test("browser login returns an HttpOnly cookie without exposing a bearer token", async () => {
-  const originalFindOne = User.findOne;
+  const originalFind = User.find;
   const user = {
     _id: "507f1f77bcf86cd799439011",
     name: "Test Customer",
@@ -98,7 +109,10 @@ test("browser login returns an HttpOnly cookie without exposing a bearer token",
     status: "active",
     passwordHash: await bcrypt.hash("correct-test-password", 4)
   };
-  User.findOne = () => ({ select: async () => user });
+  User.find = () => ({
+    select() { return this; },
+    limit: async () => [user]
+  });
   try {
     const response = await request(app)
       .post("/api/auth/login")
@@ -111,7 +125,7 @@ test("browser login returns an HttpOnly cookie without exposing a bearer token",
     assert.match(response.headers["set-cookie"][0], /HttpOnly/i);
     assert.match(response.headers["set-cookie"][0], /SameSite=Lax/i);
   } finally {
-    User.findOne = originalFindOne;
+    User.find = originalFind;
   }
 });
 
@@ -170,4 +184,27 @@ test("subscription prices and account limits match the published plans", () => {
     [PLAN_TIERS.bronze.maxAccounts, PLAN_TIERS.silver.maxAccounts, PLAN_TIERS.gold.maxAccounts],
     [5, 7, 9]
   );
+});
+
+test("public menu keeps legacy dishes without an availability flag", async () => {
+  const originalRestaurantFindOne = Restaurant.findOne;
+  const originalMenuFind = MenuItem.find;
+  const restaurantId = "507f1f77bcf86cd799439011";
+  const legacyDish = { _id: "607f1f77bcf86cd799439012", name: "Legacy biryani", foodType: "nonVeg", pricePaise: 25000 };
+  let menuQuery;
+  Restaurant.findOne = () => ({ select: async () => ({ _id: restaurantId }) });
+  MenuItem.find = query => {
+    menuQuery = query;
+    return { select: () => ({ sort: async () => [legacyDish] }) };
+  };
+  try {
+    const response = await request(app).get(`/api/restaurants/${restaurantId}/menu`);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.items.length, 1);
+    assert.equal(response.body.items[0].name, legacyDish.name);
+    assert.deepEqual(menuQuery.available, { $ne: false });
+  } finally {
+    Restaurant.findOne = originalRestaurantFindOne;
+    MenuItem.find = originalMenuFind;
+  }
 });

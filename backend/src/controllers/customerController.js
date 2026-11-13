@@ -46,7 +46,7 @@ async function saveCart(req, res) {
   }
   const restaurant = await Restaurant.findById(restaurantId).select("_id status").lean();
   if (!restaurant || restaurant.status !== "approved") return res.status(404).json({ error: "Restaurant not found" });
-  const menuItems = await MenuItem.find({ _id: { $in: items.map(item => item.menuItemId) }, restaurantId, available: true }).select("_id name pricePaise").lean();
+  const menuItems = await MenuItem.find({ _id: { $in: items.map(item => item.menuItemId) }, restaurantId, available: { $ne: false } }).select("_id name pricePaise").lean();
   if (menuItems.length !== items.length) return res.status(400).json({ error: "One or more dishes are no longer available" });
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
   const safeItems = items.map(item => {

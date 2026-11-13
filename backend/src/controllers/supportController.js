@@ -50,7 +50,7 @@ async function getPublicRestaurantContext() {
   });
   if (SUBSCRIPTIONS_ENABLED && !hasActiveSubscription) return { restaurant: "Al-Madina", availability: "Online ordering is currently unavailable." };
 
-  const menu = await MenuItem.find({ restaurantId: restaurant._id, available: true, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
+  const menu = await MenuItem.find({ restaurantId: restaurant._id, available: { $ne: false }, $or: [{ stockTracked: { $ne: true } }, { stockQuantity: { $gt: 0 } }] })
     .select("name description pricePaise category foodType")
     .sort({ category: 1, name: 1 }).limit(40).lean();
 

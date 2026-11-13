@@ -58,7 +58,7 @@ async function createOrder(req, res) {
   }
 
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
-  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
+  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: { $ne: false } });
   if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more items are unavailable" });
 
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
@@ -143,7 +143,7 @@ async function createDineInOrder(req, res) {
   const openTableOrder = await Order.findOne({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, paymentStatus: { $ne: "paid" }, status: { $nin: ["cancelled", "delivered"] } }).select("_id");
   if (openTableOrder) return res.status(409).json({ error: `Table ${parsed.data.tableNumber} already has an open bill (order #${String(openTableOrder._id).slice(-6)}). Add dishes to that order instead.` });
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
-  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
+  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: { $ne: false } });
   if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more dishes are unavailable" });
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
   let subtotalPaise = 0;
@@ -178,7 +178,7 @@ async function addItemsToRestaurantOrder(req, res) {
   if (!order) return res.status(404).json({ error: "Dine-in order not found" });
   if (["delivered", "cancelled"].includes(order.status) || order.paymentStatus === "paid") return res.status(409).json({ error: "This order is closed or already paid" });
   const ids = [...new Set(parsed.data.items.map(item => item.menuItemId))];
-  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: true });
+  const menuItems = await MenuItem.find({ _id: { $in: ids }, restaurantId: restaurant._id, available: { $ne: false } });
   if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more dishes are unavailable" });
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
   for (const line of parsed.data.items) {
