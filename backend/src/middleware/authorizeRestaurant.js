@@ -1,7 +1,10 @@
 const capabilities = {
-  secondary_admin: new Set(["read", "menu", "inventory", "orders", "settings"]),
-  biller_modifier: new Set(["read", "menu", "inventory", "orders"]),
-  viewer: new Set(["read"])
+  // Secondary admins can run the restaurant workspace, including staff accounts.
+  secondary_admin: new Set(["read", "menu", "inventory_read", "inventory", "orders", "settings", "accounts"]),
+  // Billers can operate every workspace feature except managing logins.
+  biller_modifier: new Set(["read", "menu", "inventory_read", "inventory", "orders", "settings"]),
+  // Viewers can inspect all workspace data, including grocery inventory, but cannot mutate it.
+  viewer: new Set(["read", "inventory_read"])
 };
 
 function authorizeRestaurant(permission = "read") {

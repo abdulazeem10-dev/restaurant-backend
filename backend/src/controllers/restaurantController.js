@@ -496,6 +496,19 @@ async function getOwnReports(req, res) {
 }
 
 async function updateOwnProfile(req, res) {
+  if (req.user?.role === "restaurant_staff") {
+    const parsedStaffProfile = z.object({
+      restaurantName: z.string().trim().min(1).max(150),
+      address: z.string().trim().min(5).max(500)
+    }).strict().safeParse(req.body);
+    if (!parsedStaffProfile.success) return res.status(400).json({ error: "Enter a restaurant name and valid address" });
+    const staffRestaurant = await getOwnedRestaurant(req.user);
+    if (!staffRestaurant) return res.status(404).json({ error: "Restaurant not found" });
+    staffRestaurant.name = parsedStaffProfile.data.restaurantName;
+    staffRestaurant.address = parsedStaffProfile.data.address;
+    await staffRestaurant.save();
+    return res.json({ restaurant: { id: staffRestaurant._id, name: staffRestaurant.name, address: staffRestaurant.address } });
+  }
   const parsed = z.object({
     restaurantName: z.string().trim().min(1).max(150),
     address: z.string().trim().min(5).max(500),
