@@ -7,8 +7,17 @@ const authorize = require("../middleware/authorize");
 const asyncHandler = require("../utils/asyncHandler");
 const aggregatorReportController = require("../controllers/aggregatorReportController");
 const backupController = require("../controllers/backupController");
+const cloudinaryController = require("../controllers/cloudinaryController");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
+const menuImageSignatureLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many menu photo uploads. Wait a few minutes and try again." }
+});
 
 // Keep fixed /owner paths before /:id routes so "owner" is not cast as an ObjectId.
 router.get("/owner/subscription", authenticate, authorize("restaurant"), asyncHandler(controller.getOwnSubscription));
@@ -20,6 +29,7 @@ router.post("/owner/delivery-partners", authenticate, authorizeRestaurant("accou
 router.patch("/owner/delivery-partners/:id/profile", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.updateOwnDeliveryPartner));
 router.patch("/owner/delivery-partners/:id/profile-status", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.setOwnDeliveryPartnerProfileStatus));
 router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandler(controller.getOwnMenu));
+router.post("/owner/menu/image-upload-signature", menuImageSignatureLimit, authenticate, authorizeRestaurant("menu"), asyncHandler(cloudinaryController.createMenuImageUploadSignature));
 router.put("/owner/category-carousel", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnCategoryCarousel));
 router.get("/owner/inventory/groceries", authenticate, authorizeRestaurant("inventory_read"), asyncHandler(controller.listOwnGroceryStock));
 router.post("/owner/inventory/groceries", authenticate, authorizeRestaurant("inventory"), asyncHandler(controller.createOwnGroceryStock));
