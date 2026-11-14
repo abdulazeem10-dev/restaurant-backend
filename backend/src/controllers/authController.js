@@ -124,7 +124,7 @@ const SESSION_MAX_AGE = 15 * 60 * 1000;
 
 function issueAccessToken(user) {
   return jwt.sign(
-    { sub: String(user._id) },
+    { sub: String(user._id), ver: Number(user.tokenVersion || 0) },
     process.env.JWT_SECRET,
     { algorithm: "HS256", expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
   );
@@ -368,6 +368,8 @@ async function resetPassword(req, res) {
   if (!user) return res.status(400).json({ error: "This reset link is invalid or expired. Request a new one." });
 
   user.passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  // Password recovery invalidates every existing web and mobile session.
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
   user.passwordResetTokenHash = undefined;
   user.passwordResetExpires = undefined;
   await user.save();

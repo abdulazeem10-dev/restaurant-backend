@@ -152,6 +152,39 @@ test("protected account endpoint accepts the HttpOnly session cookie", async () 
   }
 });
 
+test("password reset revokes all previously issued sessions", async () => {
+  const originalFindOne = User.findOne;
+  const originalFindById = User.findById;
+  const user = {
+    _id: "507f1f77bcf86cd799439011",
+    name: "Reset Customer",
+    email: "reset@example.test",
+    phone: "+919876543210",
+    role: "customer",
+    status: "active",
+    tokenVersion: 0,
+    passwordHash: "old-hash",
+    async save() {}
+  };
+  User.findOne = () => ({ select: async () => user });
+  User.findById = async () => user;
+  try {
+    const oldToken = jwt.sign({ sub: user._id, ver: 0 }, process.env.JWT_SECRET, { algorithm: "HS256", expiresIn: "5m" });
+    const reset = await request(app)
+      .post("/api/auth/password-reset/confirm")
+      .send({ token: "a".repeat(64), password: "a-new-long-password" });
+    assert.equal(reset.status, 200);
+    assert.equal(user.tokenVersion, 1);
+    const oldSession = await request(app)
+      .get("/api/auth/me")
+      .set("Cookie", `foodway_session=${oldToken}`);
+    assert.equal(oldSession.status, 401);
+    assert.match(oldSession.body.error, /session expired/i);
+  } finally {
+    User.findOne = originalFindOne;
+    User.findById = originalFindById;
+  }
+});
 test("production browser requests cannot authenticate with a bearer token", async () => {
   const previousNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = "production";

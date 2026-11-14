@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
     enum: ["secondary_admin", "biller_modifier", "viewer", null],
     default: null
   },
+  // Incrementing this invalidates all older access tokens for this account.
+  tokenVersion: { type: Number, default: 0, min: 0 },
   status: {
     type: String,
     enum: ["active", "pending", "suspended"],

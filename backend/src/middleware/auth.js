@@ -40,6 +40,9 @@ async function authenticate(req, res, next) {
     if (!user || user.status !== "active") {
       return res.status(401).json({ error: "Account unavailable" });
     }
+    if (Number(payload.ver || 0) !== Number(user.tokenVersion || 0)) {
+      return res.status(401).json({ error: "Session expired. Please sign in again." });
+    }
 
     const isSubscriptionSelfService = user.role === "restaurant" && req.path.startsWith("/owner/subscription")
       || user.role !== "delivery" && req.path === "/me";
