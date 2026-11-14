@@ -67,6 +67,18 @@ const serviceSettingsSchema = z.object({
     if (new Set(pincodes).size !== pincodes.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["deliveryAreas"], message: "A PIN code can belong to only one delivery area" });
   }
 });
+const carouselCategoryInputSchema = z.object({
+  category: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(60),
+  imageUrl: z.string().trim().max(2048).refine(value => !value || /^https:\/\//i.test(value), "Image URL must use HTTPS").optional().default(""),
+  visible: z.boolean(),
+  order: z.number().int().min(0).max(100)
+}).strict();
+const carouselSettingsSchema = z.object({ categories: z.array(carouselCategoryInputSchema).max(100) }).strict()
+  .superRefine(({ categories }, context) => {
+    const keys = categories.map(item => item.category.toLocaleLowerCase());
+    if (new Set(keys).size !== keys.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["categories"], message: "Each menu category can appear only once" });
+  });
 const restaurantStaffSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
@@ -104,7 +116,7 @@ async function listRestaurants(req, res) {
   // restaurant records must never turn this public endpoint into a directory.
   const query = { status: "approved", name: AL_MADINA_RESTAURANT_NAME };
   const approvedRestaurants = await Restaurant.find(query)
-    .select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
+    .select("name description address imageUrl foodType cuisine categoryCarousel isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes")
     .sort({ name: 1 }).limit(100).lean();
   const activeSubscriptions = SUBSCRIPTIONS_ENABLED ? await Subscription.find({
     restaurantId: { $in: approvedRestaurants.map(restaurant => restaurant._id) },
@@ -168,7 +180,7 @@ async function getRestaurant(req, res) {
     _id: req.params.id,
     name: AL_MADINA_RESTAURANT_NAME,
     status: "approved"
-  }).select("name description address imageUrl foodType cuisine isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
+  }).select("name description address imageUrl foodType cuisine categoryCarousel isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (SUBSCRIPTIONS_ENABLED && !await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
@@ -572,10 +584,21 @@ async function getOwnMenu(req, res) {
       deliveryAreas: restaurant.deliveryAreas,
       prepTimeMinutes: restaurant.prepTimeMinutes,
       deliveryTimeMinutes: restaurant.deliveryTimeMinutes,
-      dineInTableCount: restaurant.dineInTableCount
+      dineInTableCount: restaurant.dineInTableCount,
+      categoryCarousel: restaurant.categoryCarousel || []
     },
     items
   });
+}
+
+async function updateOwnCategoryCarousel(req, res) {
+  const parsed = carouselSettingsSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || "Invalid carousel settings" });
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  restaurant.categoryCarousel = parsed.data.categories;
+  await restaurant.save();
+  return res.json({ categories: restaurant.categoryCarousel });
 }
 
 async function getOwnInventory(req, res) {
@@ -816,5 +839,6 @@ async function deleteMenuItem(req, res) {
 module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, getOwnInventory, updateOwnInventoryItem, listOwnGroceryStock, createOwnGroceryStock, updateOwnGroceryStock, deleteOwnGroceryStock, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
+  updateOwnCategoryCarousel,
   listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };

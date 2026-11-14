@@ -31,6 +31,14 @@ const openingHoursSchema = new mongoose.Schema({
   sunday: { type: dailyHoursSchema, required: true }
 }, { _id: false });
 
+const carouselCategorySchema = new mongoose.Schema({
+  category: { type: String, required: true, trim: true, maxlength: 80 },
+  label: { type: String, required: true, trim: true, maxlength: 60 },
+  imageUrl: { type: String, trim: true, maxlength: 2048, default: "" },
+  visible: { type: Boolean, default: true },
+  order: { type: Number, min: 0, max: 100, default: 0 }
+}, { _id: false });
+
 const restaurantSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -73,6 +81,7 @@ const restaurantSchema = new mongoose.Schema(
       default: "other",
       index: true
     },
+    categoryCarousel: { type: [carouselCategorySchema], default: [] },
     openingHours: {
       type: openingHoursSchema,
       default: undefined
