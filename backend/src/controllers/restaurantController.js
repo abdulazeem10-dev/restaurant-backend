@@ -71,6 +71,7 @@ const carouselCategoryInputSchema = z.object({
   category: z.string().trim().min(1).max(80),
   label: z.string().trim().min(1).max(60),
   imageUrl: z.string().trim().max(2048).refine(value => !value || /^https:\/\//i.test(value), "Image URL must use HTTPS").optional().default(""),
+  foodType: z.enum(["both", "veg", "nonVeg"]).optional().default("both"),
   visible: z.boolean(),
   order: z.number().int().min(0).max(100)
 }).strict();

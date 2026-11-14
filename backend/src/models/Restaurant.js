@@ -35,6 +35,7 @@ const carouselCategorySchema = new mongoose.Schema({
   category: { type: String, required: true, trim: true, maxlength: 80 },
   label: { type: String, required: true, trim: true, maxlength: 60 },
   imageUrl: { type: String, trim: true, maxlength: 2048, default: "" },
+  foodType: { type: String, enum: ["both", "veg", "nonVeg"], default: "both" },
   visible: { type: Boolean, default: true },
   order: { type: Number, min: 0, max: 100, default: 0 }
 }, { _id: false });
