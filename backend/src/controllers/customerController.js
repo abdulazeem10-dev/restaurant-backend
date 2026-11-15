@@ -10,7 +10,8 @@ const cartSchema = z.object({
   restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
   items: z.array(z.object({
     menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
-    quantity: z.number().int().min(1).max(20)
+    quantity: z.number().int().min(1).max(20),
+    note: z.string().trim().max(300).optional().default("")
   }).strict()).max(100)
 }).strict();
 
@@ -51,7 +52,7 @@ async function saveCart(req, res) {
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
   const safeItems = items.map(item => {
     const menuItem = byId.get(item.menuItemId);
-    return { menuItemId: menuItem._id, name: menuItem.name, pricePaise: menuItem.pricePaise, quantity: item.quantity };
+    return { menuItemId: menuItem._id, name: menuItem.name, pricePaise: menuItem.pricePaise, quantity: item.quantity, note: item.note };
   });
   const cart = await CustomerCart.findOneAndUpdate(
     { customerId: req.user._id },
@@ -107,23 +108,26 @@ async function deleteAddress(req, res) {
 
 async function getLoyaltySummary(req, res) {
   const alMadina = await Restaurant.findOne({ name: /^Al-Madina$/i, status: "approved" }).select("_id").lean();
-  if (!alMadina) return res.json({ loyalty: { points: 0, deliveredOrders: 0, totalSpentPaise: 0, pointsPerTenRupees: 1, rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders" } });
-  const orders = await Order.find({ customerId: req.user._id, restaurantId: alMadina._id, status: "delivered" })
-    .select("totalPaise")
-    .lean();
-
-  const totalSpentPaise = orders.reduce((sum, order) => sum + (Number(order.totalPaise) || 0), 0);
-  // One point per ₹10 paid on a delivered order. Calculating this on the server
-  // keeps the balance consistent across browsers and prevents client-side edits.
-  const points = orders.reduce((sum, order) => sum + Math.floor((Number(order.totalPaise) || 0) / 1000), 0);
+  const user = await User.findById(req.user._id).select("loyaltyStampsRedeemed").lean();
+  const deliveredOrders = alMadina
+    ? await Order.countDocuments({ customerId: req.user._id, restaurantId: alMadina._id, status: "delivered" })
+    : 0;
+  const stampsRedeemed = Math.max(0, Number(user?.loyaltyStampsRedeemed) || 0);
+  const stampsAvailable = Math.max(0, deliveredOrders - stampsRedeemed);
+  const stampsPerReward = 20;
+  const rewardPercent = 20;
 
   return res.json({
     loyalty: {
-      points,
-      deliveredOrders: orders.length,
-      totalSpentPaise,
-      pointsPerTenRupees: 1,
-      rewardMessage: "Earn 1 point for every ₹10 spent on delivered orders"
+      deliveredOrders,
+      stampsEarned: deliveredOrders,
+      stampsRedeemed,
+      stampsAvailable,
+      availableRewards: Math.floor(stampsAvailable / stampsPerReward),
+      stampsTowardNextReward: stampsAvailable % stampsPerReward,
+      stampsPerReward,
+      rewardPercent,
+      rewardMessage: "Get 1 stamp for every delivered order. Redeem 20 stamps for 20% off one order."
     }
   });
 }

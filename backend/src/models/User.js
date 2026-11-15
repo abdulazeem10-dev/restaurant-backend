@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema({
   profileDeactivatedAt: { type: Date, default: null },
   statusBeforeProfileDeactivation: { type: String, enum: ["active", "pending", "suspended"], default: null },
   favoriteRestaurantIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" }],
+  // Lifetime stamps redeemed; earned stamps are derived from delivered orders.
+  loyaltyStampsRedeemed: { type: Number, default: 0, min: 0, validate: Number.isSafeInteger },
   savedAddresses: [{
     label: { type: String, trim: true, maxlength: 40, default: "Home" },
     recipientType: { type: String, enum: ["self", "other"], required: true, default: "self" },

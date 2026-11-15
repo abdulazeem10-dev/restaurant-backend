@@ -7,7 +7,8 @@ const customerCartSchema = new mongoose.Schema({
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem", required: true },
     name: { type: String, required: true, trim: true, maxlength: 150 },
     pricePaise: { type: Number, required: true, min: 1 },
-    quantity: { type: Number, required: true, min: 1, max: 20 }
+    quantity: { type: Number, required: true, min: 1, max: 20 },
+    note: { type: String, trim: true, maxlength: 300, default: "" }
   }]
 }, { timestamps: true });
 

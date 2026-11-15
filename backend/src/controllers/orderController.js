@@ -10,6 +10,7 @@ const CustomerCart = require("../models/CustomerCart");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 const { sendOrderAlerts } = require("../utils/orderAlerts");
 const { reserveMenuStock, restoreReservedStock } = require("../utils/menuInventory");
+const { restoreOrderRewardStamps } = require("../utils/loyalty");
 
 const createSchema = z.object({
   restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
@@ -24,9 +25,11 @@ const createSchema = z.object({
     pincode: z.string().length(6).regex(/^\d{6}$/)
   }).strict(),
   paymentMethod: z.enum(["cash_on_delivery", "online", "upi_qr", "razorpay"]).default("cash_on_delivery"),
+  redeemReward: z.boolean().optional().default(false),
   items: z.array(z.object({
     menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
-    quantity: z.number().int().min(1).max(20)
+    quantity: z.number().int().min(1).max(20),
+    note: z.string().trim().max(300).optional().default("")
   }).strict()).min(1).max(50)
 }).strict();
 
@@ -66,17 +69,45 @@ async function createOrder(req, res) {
   const items = parsed.data.items.map(line => {
     const menuItem = byId.get(line.menuItemId);
     subtotalPaise += menuItem.pricePaise * line.quantity;
-    return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity };
+    return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, note: line.note };
   });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
 
   const deliveryPartner = await findLeastBusyDeliveryPartner(restaurant._id);
   if (!deliveryPartner) return res.status(503).json({ error: "Orders are temporarily unavailable because no delivery person is active. Please try again later." });
 
+  const rewardStamps = parsed.data.redeemReward ? 20 : 0;
+  let rewardDiscountPaise = 0;
+  if (rewardStamps) {
+    const user = await User.findById(req.user._id).select("loyaltyStampsRedeemed").lean();
+    if (!user) return res.status(404).json({ error: "Customer account not found" });
+    const redeemedBefore = Number(user.loyaltyStampsRedeemed) || 0;
+    const deliveredCount = await Order.countDocuments({ customerId: req.user._id, restaurantId: restaurant._id, status: "delivered" });
+    if (deliveredCount - redeemedBefore < rewardStamps) {
+      return res.status(409).json({ error: "You need 20 available Al-Madina stamps to redeem this reward." });
+    }
+    const reservation = await User.updateOne({
+      _id: req.user._id,
+      ...(redeemedBefore === 0
+        ? { $or: [{ loyaltyStampsRedeemed: 0 }, { loyaltyStampsRedeemed: { $exists: false } }] }
+        : { loyaltyStampsRedeemed: redeemedBefore })
+    }, { $inc: { loyaltyStampsRedeemed: rewardStamps } });
+    if (reservation.modifiedCount !== 1) {
+      return res.status(409).json({ error: "Your stamp balance changed during checkout. Refresh the page and try again." });
+    }
+    rewardDiscountPaise = Math.floor(subtotalPaise * 0.2);
+  }
+
   const placedAt = new Date();
   const deliveryArea = (restaurant.deliveryAreas || []).find(area => area.pincodes?.includes(parsed.data.deliveryDetails.pincode));
 
-  const stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
+  let stockReservations = [];
+  try {
+    stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
+  } catch (error) {
+    if (rewardStamps) await User.updateOne({ _id: req.user._id, loyaltyStampsRedeemed: { $gte: rewardStamps } }, { $inc: { loyaltyStampsRedeemed: -rewardStamps } });
+    throw error;
+  }
   const reservedRemaining = new Map(stockReservations.map(item => [String(item.menuItemId), item.quantity]));
   for (const item of items) {
     const itemId = String(item.menuItemId);
@@ -101,12 +132,16 @@ async function createOrder(req, res) {
       subtotalPaise,
       deliveryFeePaise: 0,
       taxPaise: 0,
-      totalPaise: subtotalPaise,
+      loyaltyStampsUsed: rewardStamps,
+      rewardDiscountPercent: rewardStamps ? 20 : 0,
+      rewardDiscountPaise,
+      totalPaise: subtotalPaise - rewardDiscountPaise,
       status: "placed",
       statusHistory: [{ status: "placed", at: placedAt }]
     });
   } catch (error) {
     await restoreReservedStock(restaurant._id, stockReservations);
+    if (rewardStamps) await User.updateOne({ _id: req.user._id, loyaltyStampsRedeemed: { $gte: rewardStamps } }, { $inc: { loyaltyStampsRedeemed: -rewardStamps } });
     // A unique index arbitrates simultaneous retries; return the first result.
     if (error?.code !== 11000) throw error;
     const concurrentOrder = await Order.findOne({ customerId: req.user._id, idempotencyKey }).select("+idempotencyRequestHash");
@@ -302,7 +337,10 @@ async function updateRestaurantOrder(req, res) {
   if (req.body.status === "ready") order.estimatedDeliveryAt = new Date(Date.now() + (restaurant.deliveryTimeMinutes || 30) * 60_000);
   if (req.body.status === "cancelled") order.estimatedDeliveryAt = null;
   await order.save();
-  if (req.body.status === "cancelled") await releaseCancelledOrderStock(restaurant._id, order);
+  if (req.body.status === "cancelled") {
+    await releaseCancelledOrderStock(restaurant._id, order);
+    await restoreOrderRewardStamps(order);
+  }
   const statusLabels = { confirmed: "confirmed", preparing: "being prepared", ready: "ready for pickup", out_for_delivery: "out for delivery", cancelled: "cancelled" };
   if (order.customerId) await notifyOrderParticipants(order, {
     type: "order_status_updated",
@@ -567,7 +605,10 @@ async function reviewCancellationRequest(req, res) {
   order.cancellationRequest.reviewedBy = req.user._id;
   order.cancellationRequest.response = parsed.data.response;
   await order.save();
-  if (parsed.data.decision === "approved") await releaseCancelledOrderStock(restaurant._id, order);
+  if (parsed.data.decision === "approved") {
+    await releaseCancelledOrderStock(restaurant._id, order);
+    await restoreOrderRewardStamps(order);
+  }
   await notifyOrderParticipants(order, {
     type: "cancellation_reviewed",
     customerTitle: parsed.data.decision === "approved" ? "Cancellation approved" : "Cancellation declined",

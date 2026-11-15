@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { z } = require("zod");
 const Order = require("../models/Order");
 const Payment = require("../models/Payment");
+const { restoreOrderRewardStamps } = require("../utils/loyalty");
 
 const PROVIDER = "razorpay";
 
@@ -168,7 +169,12 @@ async function verifyRazorpayPayment(req, res) {
     if (providerPayment.status === "failed") {
       payment.status = "failed";
       order.paymentStatus = "failed";
+      if (order.status === "awaiting_payment") {
+        order.status = "cancelled";
+        recordStatus(order, "cancelled");
+      }
       await Promise.all([payment.save(), order.save()]);
+      await restoreOrderRewardStamps(order);
     }
     return res.status(202).json({ paid: false, processing: providerPayment.status !== "failed", error: providerPayment.status === "failed" ? "Payment failed. You can try again or choose cash on delivery." : "Payment is still being confirmed. Please wait a moment." });
   }
@@ -194,6 +200,7 @@ async function cancelPendingPayment(req, res) {
     order.paymentStatus = "failed";
     recordStatus(order, "cancelled");
     await order.save();
+    await restoreOrderRewardStamps(order);
     await Payment.updateOne({ orderId: order._id, provider: PROVIDER, status: "pending" }, { $set: { status: "failed" } });
   }
   return res.json({ cancelled: order.status === "cancelled" });
@@ -225,7 +232,12 @@ async function handleWebhook(req, res) {
     payment.status = "failed";
     payment.providerPaymentId = entity.id || "";
     order.paymentStatus = "failed";
+    if (order.status === "awaiting_payment") {
+      order.status = "cancelled";
+      recordStatus(order, "cancelled");
+    }
     await Promise.all([payment.save(), order.save()]);
+    await restoreOrderRewardStamps(order);
   }
   if (eventId) {
     payment.processedEventIds.addToSet(eventId);
