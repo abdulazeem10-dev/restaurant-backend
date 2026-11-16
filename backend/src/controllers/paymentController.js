@@ -2,13 +2,31 @@ const crypto = require("crypto");
 const { z } = require("zod");
 const Order = require("../models/Order");
 const Payment = require("../models/Payment");
+const Coupon = require("../models/Coupon");
 const { restoreOrderRewardStamps } = require("../utils/loyalty");
+const { restoreReservedStock } = require("../utils/menuInventory");
 
 const PROVIDER = "razorpay";
 
 function recordStatus(order, status) {
   order.statusHistory ||= [];
   if (order.statusHistory.at(-1)?.status !== status) order.statusHistory.push({ status, at: new Date() });
+}
+
+async function restoreCancelledOrderStock(order) {
+  const reserved = (order.items || []).filter(item => Number(item.stockReservedQuantity) > 0)
+    .map(item => ({ menuItemId: item.menuItemId, quantity: Number(item.stockReservedQuantity) }));
+  if (!reserved.length) return;
+  const claim = await Order.updateOne({ _id: order._id, status: "cancelled", stockRestoredAt: null }, { $set: { stockRestoredAt: new Date() } });
+  if (claim.modifiedCount === 1) await restoreReservedStock(order.restaurantId, reserved);
+}
+
+async function restoreCancelledCouponUse(order) {
+  if (!order.couponCode) return;
+  const claim = await Order.updateOne({ _id: order._id, status: "cancelled", couponCode: { $ne: "" }, couponUsageRestoredAt: null }, { $set: { couponUsageRestoredAt: new Date() } });
+  if (claim.modifiedCount === 1) {
+    await Coupon.updateOne({ restaurantId: order.restaurantId, code: order.couponCode, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } });
+  }
 }
 
 function paymentCredentials() {
@@ -44,7 +62,7 @@ async function razorpayRequest(path, { method = "GET", body } = {}) {
 
 async function getPaymentConfig(req, res) {
   const { keyId, keySecret } = paymentCredentials();
-  return res.json({ enabled: Boolean(keyId && keySecret && process.env.RAZORPAY_WEBHOOK_SECRET), keyId: keyId || null });
+  return res.json({ enabled: Boolean(keyId && keySecret && process.env.RAZORPAY_WEBHOOK_SECRET), keyId: keyId || null, provider: "razorpay" });
 }
 
 function validObjectId(id) {
@@ -175,6 +193,8 @@ async function verifyRazorpayPayment(req, res) {
       }
       await Promise.all([payment.save(), order.save()]);
       await restoreOrderRewardStamps(order);
+      await restoreCancelledOrderStock(order);
+      await restoreCancelledCouponUse(order);
     }
     return res.status(202).json({ paid: false, processing: providerPayment.status !== "failed", error: providerPayment.status === "failed" ? "Payment failed. You can try again or choose cash on delivery." : "Payment is still being confirmed. Please wait a moment." });
   }
@@ -201,6 +221,8 @@ async function cancelPendingPayment(req, res) {
     recordStatus(order, "cancelled");
     await order.save();
     await restoreOrderRewardStamps(order);
+    await restoreCancelledOrderStock(order);
+    await restoreCancelledCouponUse(order);
     await Payment.updateOne({ orderId: order._id, provider: PROVIDER, status: "pending" }, { $set: { status: "failed" } });
   }
   return res.json({ cancelled: order.status === "cancelled" });
@@ -238,6 +260,8 @@ async function handleWebhook(req, res) {
     }
     await Promise.all([payment.save(), order.save()]);
     await restoreOrderRewardStamps(order);
+    await restoreCancelledOrderStock(order);
+    await restoreCancelledCouponUse(order);
   }
   if (eventId) {
     payment.processedEventIds.addToSet(eventId);

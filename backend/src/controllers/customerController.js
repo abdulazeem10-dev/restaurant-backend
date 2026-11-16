@@ -132,6 +132,21 @@ async function getLoyaltySummary(req, res) {
   });
 }
 
+async function getMarketingPreference(req, res) {
+  const user = await User.findById(req.user._id).select("marketingOptIn marketingOptInUpdatedAt").lean();
+  if (!user) return res.status(404).json({ error: "Customer account not found" });
+  return res.json({ marketingOptIn: Boolean(user.marketingOptIn), updatedAt: user.marketingOptInUpdatedAt || null });
+}
+
+async function updateMarketingPreference(req, res) {
+  if (typeof req.body?.marketingOptIn !== "boolean" || Object.keys(req.body || {}).some(key => key !== "marketingOptIn")) {
+    return res.status(400).json({ error: "Choose whether to receive optional restaurant offers" });
+  }
+  const user = await User.findOneAndUpdate({ _id: req.user._id, role: "customer" }, { $set: { marketingOptIn: req.body.marketingOptIn, marketingOptInUpdatedAt: new Date() } }, { new: true }).select("marketingOptIn marketingOptInUpdatedAt");
+  if (!user) return res.status(404).json({ error: "Customer account not found" });
+  return res.json({ marketingOptIn: user.marketingOptIn, updatedAt: user.marketingOptInUpdatedAt });
+}
+
 async function listFavouriteRestaurants(req, res) {
   const [user, alMadina] = await Promise.all([
     User.findById(req.user._id).select("favoriteRestaurantIds").lean(),
@@ -155,4 +170,4 @@ async function removeFavouriteRestaurant(req, res) {
   return res.status(204).end();
 }
 
-module.exports = { getCart, saveCart, clearCart, listAddresses, addAddress, deleteAddress, getLoyaltySummary, listFavouriteRestaurants, addFavouriteRestaurant, removeFavouriteRestaurant };
+module.exports = { getCart, saveCart, clearCart, listAddresses, addAddress, deleteAddress, getLoyaltySummary, getMarketingPreference, updateMarketingPreference, listFavouriteRestaurants, addFavouriteRestaurant, removeFavouriteRestaurant };

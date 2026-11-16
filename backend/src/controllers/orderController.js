@@ -7,10 +7,25 @@ const Review = require("../models/Review");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const CustomerCart = require("../models/CustomerCart");
+const Coupon = require("../models/Coupon");
+const { calculateCouponDiscount } = require("./businessController");
 const { isWithinOpeningHours } = require("../utils/openingHours");
 const { sendOrderAlerts } = require("../utils/orderAlerts");
 const { reserveMenuStock, restoreReservedStock } = require("../utils/menuInventory");
 const { restoreOrderRewardStamps } = require("../utils/loyalty");
+
+function taxFor(restaurant, taxablePaise) {
+  const taxRateBasisPoints = restaurant.taxEnabled ? restaurant.taxRateBasisPoints || 0 : 0;
+  const taxInclusive = Boolean(restaurant.taxInclusive);
+  const taxPaise = !taxRateBasisPoints ? 0 : taxInclusive
+    ? Math.floor(taxablePaise * taxRateBasisPoints / (10_000 + taxRateBasisPoints))
+    : Math.floor(taxablePaise * taxRateBasisPoints / 10_000);
+  return { taxPaise, taxRateBasisPoints, taxInclusive, taxLabel: restaurant.taxLabel || "GST", gstin: restaurant.gstin || "" };
+}
+
+function ingredientCostPerDish(menuItem) {
+  return (menuItem.recipe || []).reduce((sum, ingredient) => sum + (Number(ingredient.costPaise) || 0), 0);
+}
 
 const createSchema = z.object({
   restaurantId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
@@ -26,6 +41,7 @@ const createSchema = z.object({
   }).strict(),
   paymentMethod: z.enum(["cash_on_delivery", "online", "upi_qr", "razorpay"]).default("cash_on_delivery"),
   redeemReward: z.boolean().optional().default(false),
+  couponCode: z.string().trim().toUpperCase().max(24).optional().default(""),
   items: z.array(z.object({
     menuItemId: z.string().length(24).regex(/^[a-f\d]{24}$/i),
     quantity: z.number().int().min(1).max(20),
@@ -55,6 +71,10 @@ async function createOrder(req, res) {
   if (!restaurant) return res.status(404).json({ error: "Restaurant is not accepting orders" });
   if (!restaurant.isOpen) return res.status(409).json({ error: "This restaurant is currently closed" });
   if (!isWithinOpeningHours(restaurant.openingHours)) return res.status(409).json({ error: "This restaurant is outside its listed opening hours" });
+  if (parsed.data.paymentMethod === "razorpay" && !(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_WEBHOOK_SECRET)) {
+    return res.status(503).json({ error: "Online payments are not configured yet. Choose cash on delivery." });
+  }
+  if (parsed.data.couponCode && parsed.data.redeemReward) return res.status(400).json({ error: "Use either the 20-stamp reward or a coupon on one order." });
   if (restaurant.deliveryPincodes?.length && !restaurant.deliveryPincodes.includes(parsed.data.deliveryDetails.pincode)) {
     const areaNames = (restaurant.deliveryAreas || []).map(area => area.name).filter(Boolean);
     return res.status(400).json({ error: `This restaurant does not deliver to that PIN code${areaNames.length ? `. Available areas: ${areaNames.join(", ")}` : ""}` });
@@ -69,7 +89,7 @@ async function createOrder(req, res) {
   const items = parsed.data.items.map(line => {
     const menuItem = byId.get(line.menuItemId);
     subtotalPaise += menuItem.pricePaise * line.quantity;
-    return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, note: line.note };
+    return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, note: line.note, ingredientCostPaise: ingredientCostPerDish(menuItem) * line.quantity, recipeCostQuantity: menuItem.recipe?.length ? line.quantity : 0 };
   });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
 
@@ -98,6 +118,17 @@ async function createOrder(req, res) {
     rewardDiscountPaise = Math.floor(subtotalPaise * 0.2);
   }
 
+  let coupon = null;
+  let couponDiscountPaise = 0;
+  if (parsed.data.couponCode) {
+    const now = new Date();
+    coupon = await Coupon.findOne({ restaurantId: restaurant._id, code: parsed.data.couponCode, active: true, $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }] }, { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }] }).lean();
+    if (!coupon) return res.status(404).json({ error: "This coupon is unavailable or has expired" });
+    if (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses) return res.status(409).json({ error: "This coupon has reached its use limit" });
+    if (subtotalPaise < coupon.minSubtotalPaise) return res.status(400).json({ error: "Your order does not meet this coupon's minimum amount" });
+    couponDiscountPaise = calculateCouponDiscount(coupon, subtotalPaise);
+  }
+
   const placedAt = new Date();
   const deliveryArea = (restaurant.deliveryAreas || []).find(area => area.pincodes?.includes(parsed.data.deliveryDetails.pincode));
 
@@ -115,8 +146,35 @@ async function createOrder(req, res) {
     item.stockReservedQuantity = reservedQuantity;
     reservedRemaining.set(itemId, (reservedRemaining.get(itemId) || 0) - reservedQuantity);
   }
+  let couponReserved = false;
+  if (coupon) {
+    const now = new Date();
+    let reservation;
+    try {
+      reservation = await Coupon.findOneAndUpdate({
+        _id: coupon._id,
+        restaurantId: restaurant._id,
+        active: true,
+        $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }] }, { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }],
+        $expr: { $or: [{ $eq: ["$maxUses", 0] }, { $lt: ["$usedCount", "$maxUses"] }] }
+      }, { $inc: { usedCount: 1 } }, { new: true });
+    } catch (error) {
+      await restoreReservedStock(restaurant._id, stockReservations);
+      if (rewardStamps) await User.updateOne({ _id: req.user._id, loyaltyStampsRedeemed: { $gte: rewardStamps } }, { $inc: { loyaltyStampsRedeemed: -rewardStamps } });
+      throw error;
+    }
+    if (!reservation) {
+      await restoreReservedStock(restaurant._id, stockReservations);
+      if (rewardStamps) await User.updateOne({ _id: req.user._id, loyaltyStampsRedeemed: { $gte: rewardStamps } }, { $inc: { loyaltyStampsRedeemed: -rewardStamps } });
+      return res.status(409).json({ error: "This coupon was just used up. Choose another coupon or retry without it." });
+    }
+    couponReserved = true;
+  }
   let order;
   try {
+    const taxablePaise = Math.max(0, subtotalPaise - rewardDiscountPaise - couponDiscountPaise);
+    const tax = taxFor(restaurant, taxablePaise);
+    const requiresOnlinePayment = parsed.data.paymentMethod === "razorpay";
     order = await Order.create({
       customerId: req.user._id,
       idempotencyKey,
@@ -131,16 +189,20 @@ async function createOrder(req, res) {
       items,
       subtotalPaise,
       deliveryFeePaise: 0,
-      taxPaise: 0,
+      ...tax,
       loyaltyStampsUsed: rewardStamps,
       rewardDiscountPercent: rewardStamps ? 20 : 0,
       rewardDiscountPaise,
-      totalPaise: subtotalPaise - rewardDiscountPaise,
-      status: "placed",
-      statusHistory: [{ status: "placed", at: placedAt }]
+      couponCode: coupon?.code || "",
+      couponDiscountPaise,
+      totalPaise: subtotalPaise - rewardDiscountPaise - couponDiscountPaise + (tax.taxInclusive ? 0 : tax.taxPaise),
+      paymentStatus: "pending",
+      status: requiresOnlinePayment ? "awaiting_payment" : "placed",
+      statusHistory: [{ status: requiresOnlinePayment ? "awaiting_payment" : "placed", at: placedAt }]
     });
   } catch (error) {
     await restoreReservedStock(restaurant._id, stockReservations);
+    if (couponReserved) await Coupon.updateOne({ _id: coupon._id, usedCount: { $gt: 0 } }, { $inc: { usedCount: -1 } });
     if (rewardStamps) await User.updateOne({ _id: req.user._id, loyaltyStampsRedeemed: { $gte: rewardStamps } }, { $inc: { loyaltyStampsRedeemed: -rewardStamps } });
     // A unique index arbitrates simultaneous retries; return the first result.
     if (error?.code !== 11000) throw error;
@@ -182,9 +244,10 @@ async function createDineInOrder(req, res) {
   if (menuItems.length !== ids.length) return res.status(400).json({ error: "One or more dishes are unavailable" });
   const byId = new Map(menuItems.map(item => [String(item._id), item]));
   let subtotalPaise = 0;
-  const items = parsed.data.items.map(line => { const menuItem = byId.get(line.menuItemId); subtotalPaise += menuItem.pricePaise * line.quantity; return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity }; });
+  const items = parsed.data.items.map(line => { const menuItem = byId.get(line.menuItemId); subtotalPaise += menuItem.pricePaise * line.quantity; return { menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, ingredientCostPaise: ingredientCostPerDish(menuItem) * line.quantity, recipeCostQuantity: menuItem.recipe?.length ? line.quantity : 0 }; });
   if (!Number.isSafeInteger(subtotalPaise) || subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
   const now = new Date();
+  const tax = taxFor(restaurant, subtotalPaise);
   const stockReservations = await reserveMenuStock(restaurant._id, parsed.data.items);
   const reservedRemaining = new Map(stockReservations.map(item => [String(item.menuItemId), item.quantity]));
   for (const item of items) {
@@ -195,7 +258,7 @@ async function createDineInOrder(req, res) {
   }
   let order;
   try {
-    order = await Order.create({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, customerName: parsed.data.customerName, customerPhone: parsed.data.customerPhone, deliveryAddress: "Dine-in · Table " + parsed.data.tableNumber, items, subtotalPaise, deliveryFeePaise: 0, taxPaise: 0, totalPaise: subtotalPaise, paymentMethod: parsed.data.paymentMethod, paymentStatus: "pending", status: "preparing", statusHistory: [{ status: "preparing", at: now }] });
+    order = await Order.create({ restaurantId: restaurant._id, orderType: "dine_in", tableNumber: parsed.data.tableNumber, customerName: parsed.data.customerName, customerPhone: parsed.data.customerPhone, deliveryAddress: "Dine-in · Table " + parsed.data.tableNumber, items, subtotalPaise, deliveryFeePaise: 0, ...tax, totalPaise: subtotalPaise + (tax.taxInclusive ? 0 : tax.taxPaise), paymentMethod: parsed.data.paymentMethod, paymentStatus: "pending", status: "preparing", statusHistory: [{ status: "preparing", at: now }] });
   } catch (error) {
     await restoreReservedStock(restaurant._id, stockReservations);
     throw error;
@@ -229,12 +292,14 @@ async function addItemsToRestaurantOrder(req, res) {
     const itemId = String(menuItem._id);
     const reservedQuantity = Math.min(line.quantity, reservedRemaining.get(itemId) || 0);
     reservedRemaining.set(itemId, (reservedRemaining.get(itemId) || 0) - reservedQuantity);
-    if (existing) { existing.quantity += line.quantity; existing.stockReservedQuantity = (existing.stockReservedQuantity || 0) + reservedQuantity; existing.unitPricePaise = menuItem.pricePaise; existing.name = menuItem.name; }
-    else order.items.push({ menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, stockReservedQuantity: reservedQuantity });
+    if (existing) { existing.quantity += line.quantity; existing.stockReservedQuantity = (existing.stockReservedQuantity || 0) + reservedQuantity; existing.ingredientCostPaise = (existing.ingredientCostPaise || 0) + ingredientCostPerDish(menuItem) * line.quantity; existing.recipeCostQuantity = (existing.recipeCostQuantity || 0) + (menuItem.recipe?.length ? line.quantity : 0); existing.unitPricePaise = menuItem.pricePaise; existing.name = menuItem.name; }
+    else order.items.push({ menuItemId: menuItem._id, name: menuItem.name, unitPricePaise: menuItem.pricePaise, quantity: line.quantity, stockReservedQuantity: reservedQuantity, ingredientCostPaise: ingredientCostPerDish(menuItem) * line.quantity, recipeCostQuantity: menuItem.recipe?.length ? line.quantity : 0 });
   }
   order.subtotalPaise = order.items.reduce((sum, item) => sum + item.unitPricePaise * item.quantity, 0);
   if (!Number.isSafeInteger(order.subtotalPaise) || order.subtotalPaise < 1) return res.status(400).json({ error: "Invalid order total" });
-  order.totalPaise = order.subtotalPaise + order.deliveryFeePaise + order.taxPaise;
+  const tax = taxFor(restaurant, order.subtotalPaise);
+  Object.assign(order, tax);
+  order.totalPaise = order.subtotalPaise + order.deliveryFeePaise + (tax.taxInclusive ? 0 : tax.taxPaise);
   try { await order.save(); }
   catch (error) { await restoreReservedStock(restaurant._id, stockReservations); throw error; }
   console.log("[orders] dine-in items updated", String(order._id), "status", 200);

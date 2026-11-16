@@ -5,6 +5,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 254 },
   passwordHash: { type: String, select: false },
   phone: { type: String, trim: true, maxlength: 20, default: "" },
+  marketingOptIn: { type: Boolean, default: false },
+  marketingOptInUpdatedAt: { type: Date, default: null },
   googleSub: { type: String, select: false, sparse: true, unique: true },
   role: {
     type: String,

@@ -10,6 +10,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const customerRoutes = require("./routes/customerRoutes");
 const supportRoutes = require("./routes/supportRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const rejectMongoOperators = require("./middleware/rejectMongoOperators");
 const connectDatabase = require("./config/database");
@@ -37,7 +38,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type", "X-Foodway-CSRF"]
+  allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Foodway-CSRF"]
 }));
 
 app.use("/api", rateLimit({
@@ -167,6 +168,7 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);

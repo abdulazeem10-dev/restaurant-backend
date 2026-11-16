@@ -8,6 +8,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const aggregatorReportController = require("../controllers/aggregatorReportController");
 const backupController = require("../controllers/backupController");
 const cloudinaryController = require("../controllers/cloudinaryController");
+const businessController = require("../controllers/businessController");
 const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
@@ -21,6 +22,22 @@ const menuImageSignatureLimit = rateLimit({
 
 // Keep fixed /owner paths before /:id routes so "owner" is not cast as an ObjectId.
 router.get("/owner/subscription", authenticate, authorize("restaurant"), asyncHandler(controller.getOwnSubscription));
+router.get("/owner/business-settings", authenticate, authorizeRestaurant("read"), asyncHandler(businessController.getBusinessSettings));
+router.put("/owner/business-settings", authenticate, authorizeRestaurant("settings"), asyncHandler(businessController.updateBusinessSettings));
+router.get("/owner/suppliers", authenticate, authorizeRestaurant("read"), asyncHandler(businessController.listSuppliers));
+router.post("/owner/suppliers", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.createSupplier));
+router.patch("/owner/suppliers/:id", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.updateSupplier));
+router.delete("/owner/suppliers/:id", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.archiveSupplier));
+router.get("/owner/expenses", authenticate, authorizeRestaurant("read"), asyncHandler(businessController.listExpenses));
+router.post("/owner/expenses", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.createExpense));
+router.patch("/owner/expenses/:id", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.updateExpense));
+router.delete("/owner/expenses/:id", authenticate, authorizeRestaurant("inventory"), asyncHandler(businessController.deleteExpense));
+router.get("/owner/branch-report", authenticate, authorizeRestaurant("read"), asyncHandler(businessController.getBranchReport));
+router.get("/owner/coupons", authenticate, authorizeRestaurant("read"), asyncHandler(businessController.listCoupons));
+router.post("/owner/coupons", authenticate, authorizeRestaurant("settings"), asyncHandler(businessController.createCoupon));
+router.patch("/owner/coupons/:id", authenticate, authorizeRestaurant("settings"), asyncHandler(businessController.updateCoupon));
+router.get("/owner/marketing/customers", authenticate, authorizeRestaurant("accounts"), asyncHandler(businessController.listOptedInCustomers));
+router.post("/:id/coupons/preview", authenticate, authorize("customer"), asyncHandler(businessController.previewCoupon));
 router.get("/owner/backup", authenticate, authorizeRestaurant("settings"), asyncHandler(backupController.downloadRestaurantBackup));
 router.post("/owner/subscription/payment/order", authenticate, authorize("restaurant"), asyncHandler(subscriptionPaymentController.createOrder));
 router.post("/owner/subscription/payment/verify", authenticate, authorize("restaurant"), asyncHandler(subscriptionPaymentController.verifyPayment));
@@ -43,6 +60,7 @@ router.patch("/owner/deactivate-profile", authenticate, authorize("restaurant"),
 router.post("/owner/menu", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.createMenuItem));
 router.post("/owner/menu/import", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.importOwnMenu));
 router.patch("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.updateMenuItem));
+router.patch("/owner/menu/:id/recipe", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.updateMenuRecipe));
 router.delete("/owner/menu/:id", authenticate, authorizeRestaurant("menu"), asyncHandler(controller.deleteMenuItem));
 router.patch("/owner/open", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.setOwnOpenStatus));
 router.patch("/owner/service-settings", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnServiceSettings));

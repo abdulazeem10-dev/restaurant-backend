@@ -11,7 +11,13 @@ const menuItemSchema = new mongoose.Schema({
   available: { type: Boolean, default: true },
   stockTracked: { type: Boolean, default: false },
   stockQuantity: { type: Number, min: 0, default: null, validate: Number.isSafeInteger },
-  lowStockThreshold: { type: Number, min: 0, default: 5, validate: Number.isSafeInteger }
+  lowStockThreshold: { type: Number, min: 0, default: 5, validate: Number.isSafeInteger },
+  recipe: [{
+    ingredientName: { type: String, required: true, trim: true, maxlength: 120 },
+    quantity: { type: Number, required: true, min: 0.001, max: 1000000 },
+    unit: { type: String, required: true, trim: true, maxlength: 24 },
+    costPaise: { type: Number, required: true, min: 0, max: 100000000, validate: Number.isSafeInteger }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("MenuItem", menuItemSchema);

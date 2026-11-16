@@ -181,7 +181,7 @@ async function getRestaurant(req, res) {
     _id: req.params.id,
     name: AL_MADINA_RESTAURANT_NAME,
     status: "approved"
-  }).select("name description address imageUrl foodType cuisine categoryCarousel isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes").lean();
+  }).select("name description address imageUrl foodType cuisine categoryCarousel isOpen openingHours deliveryPincodes deliveryAreas prepTimeMinutes deliveryTimeMinutes taxEnabled taxRateBasisPoints taxInclusive taxLabel").lean();
 
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   if (SUBSCRIPTIONS_ENABLED && !await Subscription.exists({ restaurantId: restaurant._id, status: "active", currentPeriodEnd: { $gt: new Date() } })) return res.status(404).json({ error: "Restaurant not found" });
@@ -490,7 +490,7 @@ async function getOwnReports(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const match = { restaurantId: restaurant._id, createdAt: { $gte: from, $lt: end }, status: { $ne: "awaiting_payment" } };
-  const [summaryRows, topItems, daily, statusCounts] = await Promise.all([
+  const [summaryRows, topItems, daily, statusCounts, ingredientCosts] = await Promise.all([
     Order.aggregate([
       { $match: match },
       { $group: {
@@ -522,9 +522,15 @@ async function getOwnReports(req, res) {
       { $match: match },
       { $group: { _id: "$status", count: { $sum: 1 } } },
       { $sort: { count: -1 } }
+    ]),
+    Order.aggregate([
+      { $match: { ...match, status: "delivered", paymentStatus: "paid" } },
+      { $unwind: "$items" },
+      { $group: { _id: null, recordedIngredientCostPaise: { $sum: { $ifNull: ["$items.ingredientCostPaise", 0] } }, ingredientCostedQuantity: { $sum: { $ifNull: ["$items.recipeCostQuantity", 0] } }, deliveredQuantity: { $sum: "$items.quantity" } } }
     ])
   ]);
   const summary = summaryRows[0] || { orders: 0, delivered: 0, cancelled: 0, paidSalesPaise: 0 };
+  Object.assign(summary, ingredientCosts[0] || { recordedIngredientCostPaise: 0, ingredientCostedQuantity: 0, deliveredQuantity: 0 });
   return res.json({ from: fromText, to: toText, summary, topItems, daily, statusCounts });
 }
 
@@ -844,6 +850,26 @@ async function updateMenuItem(req, res) {
   return res.json({ item });
 }
 
+async function updateMenuRecipe(req, res) {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: "Menu item not found" });
+  const parsed = z.object({
+    recipe: z.array(z.object({
+      ingredientName: z.string().trim().min(1).max(120),
+      quantity: z.number().finite().min(0.001).max(1000000),
+      unit: z.string().trim().min(1).max(24),
+      costPaise: z.number().int().safe().min(0).max(100000000)
+    }).strict()).max(40)
+  }).strict().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message || "Enter valid recipe ingredients" });
+  const totalCost = parsed.data.recipe.reduce((sum, ingredient) => sum + ingredient.costPaise, 0);
+  if (!Number.isSafeInteger(totalCost)) return res.status(400).json({ error: "Recipe ingredient costs are too large" });
+  const restaurant = await getOwnedRestaurant(req.user);
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const item = await MenuItem.findOneAndUpdate({ _id: req.params.id, restaurantId: restaurant._id }, { $set: { recipe: parsed.data.recipe } }, { new: true, runValidators: true });
+  if (!item) return res.status(404).json({ error: "Menu item not found" });
+  return res.json({ item: { _id: item._id, name: item.name, recipe: item.recipe, ingredientCostPaise: totalCost } });
+}
+
 async function deleteMenuItem(req, res) {
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
@@ -861,5 +887,5 @@ module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, getOwnInventory, updateOwnInventoryItem, listOwnGroceryStock, createOwnGroceryStock, updateOwnGroceryStock, deleteOwnGroceryStock, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   updateOwnCategoryCarousel,
-  listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, resetOwnManagedAccountPassword, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
+  listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, resetOwnManagedAccountPassword, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile, updateMenuRecipe
 };

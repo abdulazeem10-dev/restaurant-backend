@@ -101,6 +101,13 @@ const restaurantSchema = new mongoose.Schema(
     prepTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
     deliveryTimeMinutes: { type: Number, min: 5, max: 180, default: 30 },
     dineInTableCount: { type: Number, min: 1, max: 500, default: 10 },
+    taxEnabled: { type: Boolean, default: false },
+    taxRateBasisPoints: { type: Number, min: 0, max: 2800, default: 0, validate: Number.isSafeInteger },
+    taxInclusive: { type: Boolean, default: true },
+    gstin: { type: String, trim: true, uppercase: true, maxlength: 15, default: "" },
+    taxLabel: { type: String, trim: true, maxlength: 40, default: "GST" },
+    branchName: { type: String, trim: true, maxlength: 100, default: "" },
+    branchGroup: { type: String, trim: true, maxlength: 100, default: "" },
     location: {
       type: locationSchema,
       default: undefined
