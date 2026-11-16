@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
 const Subscription = require("../models/Subscription");
 const SubscriptionPayment = require("../models/SubscriptionPayment");
+const { randomBytes } = require("node:crypto");
 const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
 
 const profileStatusSchema = z.object({ active: z.boolean() }).strict();
@@ -82,7 +83,6 @@ const createSchema = z.object({
   ownerName: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
   phone: z.string().trim().max(32).transform(value => value.replace(/[\s().-]/g, "")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
-  password: z.string().min(12).max(128),
   restaurantName: z.string().trim().min(1).max(150),
   description: z.string().max(2000).optional().default(""),
   address: z.string().trim().min(5).max(500),
@@ -97,13 +97,16 @@ async function createRestaurant(req, res) {
   const email = parsed.data.email.toLowerCase();
   if (await User.findOne({ email })) return res.status(409).json({ error: "An account already uses this email" });
 
+  const temporaryPassword = randomBytes(24).toString("base64url");
   const owner = await User.create({
     name: parsed.data.ownerName,
     email,
     phone: parsed.data.phone,
-    passwordHash: await bcrypt.hash(parsed.data.password, 12),
+    passwordHash: await bcrypt.hash(temporaryPassword, 12),
     role: "restaurant",
-    status: "active"
+    status: "active",
+    mustChangePassword: true,
+    temporaryPasswordExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
   let restaurant;
   try {
@@ -118,12 +121,34 @@ async function createRestaurant(req, res) {
       status: "pending",
       isOpen: false
     });
-    return res.status(201).json({ restaurant, subscription: null, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone } });
+    return res.status(201).json({ restaurant, subscription: null, owner: { id: owner._id, name: owner.name, email: owner.email, phone: owner.phone }, temporaryPassword, temporaryPasswordExpiresAt: owner.temporaryPasswordExpiresAt });
   } catch (error) {
     if (restaurant) await Restaurant.deleteOne({ _id: restaurant._id });
     await User.deleteOne({ _id: owner._id });
     throw error;
   }
+}
+
+async function resetRestaurantOwnerPassword(req, res) {
+  if (!/^[a-f\d]{24}$/i.test(req.params.id)) return res.status(404).json({ error: "Restaurant not found" });
+  const restaurant = await Restaurant.findById(req.params.id).select("ownerId name");
+  if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+  const owner = await User.findOne({ _id: restaurant.ownerId, role: "restaurant" });
+  if (!owner) return res.status(404).json({ error: "Restaurant owner account not found" });
+
+  const temporaryPassword = randomBytes(24).toString("base64url");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  owner.passwordHash = await bcrypt.hash(temporaryPassword, 12);
+  owner.mustChangePassword = true;
+  owner.temporaryPasswordExpiresAt = expiresAt;
+  owner.tokenVersion = Number(owner.tokenVersion || 0) + 1;
+  await owner.save();
+
+  return res.json({
+    owner: { id: owner._id, name: owner.name, email: owner.email },
+    temporaryPassword,
+    temporaryPasswordExpiresAt: expiresAt
+  });
 }
 
 async function listRestaurants(req, res) {
@@ -203,4 +228,4 @@ async function setRestaurantCuisine(req, res) {
   return res.json({ restaurant });
 }
 
-module.exports = { createRestaurant, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, updateRestaurantProfile, setRestaurantProfileStatus };
+module.exports = { createRestaurant, resetRestaurantOwnerPassword, listRestaurants, setRestaurantStatus, setRestaurantImage, setRestaurantFoodType, setRestaurantCuisine, updateRestaurantProfile, setRestaurantProfileStatus };

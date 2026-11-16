@@ -10,6 +10,7 @@ router.use(authenticate, authorize("admin"));
 router.get("/backup", asyncHandler(backupController.downloadPlatformBackup));
 router.get("/restaurants", asyncHandler(controller.listRestaurants));
 router.post("/restaurants", asyncHandler(controller.createRestaurant));
+router.post("/restaurants/:id/password-reset", asyncHandler(controller.resetRestaurantOwnerPassword));
 router.patch("/restaurants/:id/profile", asyncHandler(controller.updateRestaurantProfile));
 router.patch("/restaurants/:id/profile-status", asyncHandler(controller.setRestaurantProfileStatus));
 router.patch("/restaurants/:id/image", asyncHandler(controller.setRestaurantImage));

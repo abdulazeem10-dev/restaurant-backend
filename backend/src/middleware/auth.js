@@ -44,8 +44,18 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: "Session expired. Please sign in again." });
     }
 
+    req.user = user;
+    req.authTokenVersion = Number(payload.ver || 0);
+    if (user.mustChangePassword && !["/me", "/password/change"].includes(req.path)) {
+      return res.status(403).json({ error: "Change your temporary password before continuing.", code: "password_change_required" });
+    }
+    if (user.mustChangePassword && user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt <= new Date()) {
+      return res.status(403).json({ error: "This temporary password has expired. Ask your restaurant or platform admin to reset it.", code: "temporary_password_expired" });
+    }
+
     const isSubscriptionSelfService = user.role === "restaurant" && req.path.startsWith("/owner/subscription")
-      || user.role !== "delivery" && req.path === "/me";
+      || user.role !== "delivery" && req.path === "/me"
+      || user.mustChangePassword && req.path === "/password/change";
     if ((user.role === "restaurant" || user.role === "restaurant_staff" || user.role === "delivery") && !isSubscriptionSelfService) {
       const restaurant = user.role === "restaurant" || user.role === "restaurant_staff" ? (user.role === "restaurant_staff" ? await Restaurant.findById(user.restaurantId).select("_id") : await Restaurant.findOne({ ownerId: user._id }).select("_id")) : await Restaurant.findById(user.restaurantId).select("_id status");
       if (!restaurant || (user.role === "delivery" && restaurant.status !== "approved")) return res.status(403).json({ error: "This restaurant account is unavailable.", code: "restaurant_unavailable" });
@@ -55,7 +65,6 @@ async function authenticate(req, res, next) {
         if (!subscription || subscription.status !== "active" || !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date()) return res.status(403).json({ error: "Restaurant subscription is inactive or expired. The owner must choose a plan and complete payment to restore access.", code: "subscription_expired" });
       }
     }
-    req.user = user;
     return next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });

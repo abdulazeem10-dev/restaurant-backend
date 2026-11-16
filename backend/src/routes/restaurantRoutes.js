@@ -28,6 +28,7 @@ router.get("/owner/delivery-partners", authenticate, authorizeRestaurant("read")
 router.post("/owner/delivery-partners", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.createOwnDeliveryPartner));
 router.patch("/owner/delivery-partners/:id/profile", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.updateOwnDeliveryPartner));
 router.patch("/owner/delivery-partners/:id/profile-status", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.setOwnDeliveryPartnerProfileStatus));
+router.post("/owner/accounts/:id/password-reset", authenticate, authorizeRestaurant("accounts"), asyncHandler(controller.resetOwnManagedAccountPassword));
 router.get("/owner/menu", authenticate, authorizeRestaurant("read"), asyncHandler(controller.getOwnMenu));
 router.post("/owner/menu/image-upload-signature", menuImageSignatureLimit, authenticate, authorizeRestaurant("menu"), asyncHandler(cloudinaryController.createMenuImageUploadSignature));
 router.put("/owner/category-carousel", authenticate, authorizeRestaurant("settings"), asyncHandler(controller.updateOwnCategoryCarousel));

@@ -14,6 +14,11 @@ const passwordResetSchema = z.object({
   password: z.string().min(12).max(128)
 }).strict();
 
+const changePasswordSchema = z.object({
+  password: z.string().min(12).max(128),
+  confirmPassword: z.string().min(12).max(128)
+}).strict().refine(data => data.password === data.confirmPassword, { message: "Passwords do not match" });
+
 function hashResetToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -162,7 +167,7 @@ function loginResponse(req, res, user) {
 }
 
 function publicUser(user) {
-  return { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, restaurantId: user.restaurantId || null, restaurantStaffRole: user.restaurantStaffRole || null };
+  return { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, restaurantId: user.restaurantId || null, restaurantStaffRole: user.restaurantStaffRole || null, mustChangePassword: Boolean(user.mustChangePassword) };
 }
 
 function logout(req, res) {
@@ -232,7 +237,33 @@ async function login(req, res) {
   if (!valid || user.status !== "active") {
     return res.status(401).json({ error: "Invalid email or password" });
   }
+  if (user.mustChangePassword && user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt <= new Date()) {
+    return res.status(401).json({ error: "This temporary password has expired. Ask your restaurant or platform admin to reset it." });
+  }
 
+  return loginResponse(req, res, user);
+}
+
+async function changePassword(req, res) {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter matching passwords with at least 12 characters" });
+  const user = await User.findById(req.user._id).select("+passwordHash");
+  if (!user || Number(user.tokenVersion || 0) !== Number(req.authTokenVersion || 0)) {
+    return res.status(401).json({ error: "Session expired. Sign in again with the latest temporary password." });
+  }
+  if (!user.mustChangePassword) return res.status(409).json({ error: "A password change is not required for this account" });
+  if (user.passwordHash && await bcrypt.compare(parsed.data.password, user.passwordHash)) {
+    return res.status(400).json({ error: "Choose a new password different from the temporary password" });
+  }
+
+  user.passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  user.mustChangePassword = false;
+  user.temporaryPasswordExpiresAt = null;
+  user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+  await user.save();
+
+  // Issue a fresh session after rotating tokenVersion; the temporary session
+  // and any other previous sessions are invalidated.
   return loginResponse(req, res, user);
 }
 
@@ -370,6 +401,8 @@ async function resetPassword(req, res) {
   user.passwordHash = await bcrypt.hash(parsed.data.password, 12);
   // Password recovery invalidates every existing web and mobile session.
   user.tokenVersion = Number(user.tokenVersion || 0) + 1;
+  user.mustChangePassword = false;
+  user.temporaryPasswordExpiresAt = null;
   user.passwordResetTokenHash = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
@@ -387,9 +420,10 @@ function me(req, res) {
       role: req.user.role,
       restaurantId: req.user.restaurantId || null,
       restaurantStaffRole: req.user.restaurantStaffRole || null,
+      mustChangePassword: Boolean(req.user.mustChangePassword),
       status: req.user.status
     }
   });
 }
 
-module.exports = { register, login, logout, requestPhoneOtp, verifyPhoneOtp, googleLogin, requestPasswordReset, resetPassword, me, SESSION_COOKIE };
+module.exports = { register, login, changePassword, logout, requestPhoneOtp, verifyPhoneOtp, googleLogin, requestPasswordReset, resetPassword, me, SESSION_COOKIE };

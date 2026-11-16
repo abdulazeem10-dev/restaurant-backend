@@ -103,6 +103,13 @@ app.post("/api/auth/password-reset/confirm", rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 }));
+app.post("/api/auth/password/change", rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many password change attempts. Please wait and try again." }
+}));
 app.use("/api/support", rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 12,

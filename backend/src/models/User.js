@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema({
   },
   // Incrementing this invalidates all older access tokens for this account.
   tokenVersion: { type: Number, default: 0, min: 0 },
+  mustChangePassword: { type: Boolean, default: false },
+  temporaryPasswordExpiresAt: { type: Date, default: null },
   status: {
     type: String,
     enum: ["active", "pending", "suspended"],

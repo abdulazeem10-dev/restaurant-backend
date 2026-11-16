@@ -11,6 +11,7 @@ const Subscription = require("../models/Subscription");
 const { PLAN_TIERS, accountLimitFor, normalizePlanTier } = require("../utils/subscriptionPlans");
 const { SUBSCRIPTIONS_ENABLED } = require("../config/features");
 const { WEEKDAYS, isRestaurantOpenNow } = require("../utils/openingHours");
+const { randomBytes } = require("node:crypto");
 
 const timeSchema = z.string().length(5).regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const cuisineSchema = z.enum(["north-indian", "pizza", "chinese", "desserts", "burger", "biryani", "south-indian", "noodles", "rolls", "shawarma", "vada", "dosa", "momo", "salads", "other"]);
@@ -84,7 +85,6 @@ const restaurantStaffSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(254),
   phone: z.string().trim().max(20).optional().default(""),
-  password: z.string().min(12).max(128),
   staffRole: z.enum(["secondary_admin", "biller_modifier", "viewer"])
 }).strict();
 
@@ -294,8 +294,7 @@ async function createRestaurantAccountWithinQuota(restaurantId, accountDetails) 
 
 const deliveryPartnerSchema = z.object({
  name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254),
- phone:z.string().trim().max(32).transform(v=>v.replace(/[\s().-]/g,"")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/)),
- password:z.string().min(12).max(128)
+ phone:z.string().trim().max(32).transform(v=>v.replace(/[\s().-]/g,"")).pipe(z.string().max(15).regex(/^\+?[1-9]\d{7,14}$/))
 }).strict();
 const deliveryPartnerProfileSchema=z.object({
  name:z.string().trim().min(1).max(100),email:z.string().trim().email().max(254),
@@ -307,12 +306,29 @@ async function listOwnDeliveryPartners(req,res){
  const [deliveryPartners, quota]=await Promise.all([User.find({restaurantId:restaurant._id,role:"delivery"}).select("name email phone status profileDeactivatedAt createdAt").sort({createdAt:-1}).limit(200).lean(),getRestaurantAccountQuota(restaurant._id)]);return res.json({deliveryPartners,quota});
 }
 async function createOwnDeliveryPartner(req,res){
- const parsed=deliveryPartnerSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Enter a name, valid email, phone number, and password of at least 12 characters"});
+ const parsed=deliveryPartnerSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({error:"Enter a name, valid email, and phone number"});
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});const email=parsed.data.email.toLowerCase();
  try {
-  const {account:partner,quota}=await createRestaurantAccountWithinQuota(restaurant._id,{name:parsed.data.name,email,phone:parsed.data.phone,passwordHash:await bcrypt.hash(parsed.data.password,12),role:"delivery",restaurantId:restaurant._id,status:"active"});
-  return res.status(201).json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone},quota});
+  const temporaryPassword=randomBytes(24).toString("base64url");
+  const temporaryPasswordExpiresAt=new Date(Date.now()+7*24*60*60*1000);
+  const {account:partner,quota}=await createRestaurantAccountWithinQuota(restaurant._id,{name:parsed.data.name,email,phone:parsed.data.phone,passwordHash:await bcrypt.hash(temporaryPassword,12),role:"delivery",restaurantId:restaurant._id,status:"active",mustChangePassword:true,temporaryPasswordExpiresAt});
+  return res.status(201).json({deliveryPartner:{id:partner._id,name:partner.name,email:partner.email,phone:partner.phone},temporaryPassword,temporaryPasswordExpiresAt,quota});
  } catch(error) { if(error.code===11000||error.code==="email_in_use")return res.status(409).json({error:"An account already uses this email"}); if(error.code==="account_limit_reached"||error.code==="subscription_required")return res.status(error.status||409).json({error:error.message,code:error.code,quota:await getRestaurantAccountQuota(restaurant._id)}); throw error; }
+}
+
+async function resetOwnManagedAccountPassword(req,res){
+ if(!mongoose.isValidObjectId(req.params.id))return res.status(404).json({error:"Account not found"});
+ const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
+ const account=await User.findOne({_id:req.params.id,restaurantId:restaurant._id,role:{$in:["restaurant_staff","delivery"]}});
+ if(!account)return res.status(404).json({error:"Restaurant account not found"});
+ const temporaryPassword=randomBytes(24).toString("base64url");
+ const temporaryPasswordExpiresAt=new Date(Date.now()+7*24*60*60*1000);
+ account.passwordHash=await bcrypt.hash(temporaryPassword,12);
+ account.mustChangePassword=true;
+ account.temporaryPasswordExpiresAt=temporaryPasswordExpiresAt;
+ account.tokenVersion=Number(account.tokenVersion||0)+1;
+ await account.save();
+ return res.json({account:{id:account._id,name:account.name,email:account.email,role:account.role,staffRole:account.restaurantStaffRole||null},temporaryPassword,temporaryPasswordExpiresAt});
 }
 async function updateOwnDeliveryPartner(req,res){
  const restaurant=await getOwnedRestaurant(req.user);if(!restaurant)return res.status(404).json({error:"Restaurant not found"});
@@ -366,7 +382,7 @@ async function listOwnStaff(req, res) {
 
 async function createOwnStaff(req, res) {
   const parsed = restaurantStaffSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Enter a name, valid email, password of at least 12 characters, and a valid staff role" });
+  if (!parsed.success) return res.status(400).json({ error: "Enter a name, valid email, and a valid staff role" });
   const restaurant = await getOwnedRestaurant(req.user);
   if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
   const email = parsed.data.email.toLowerCase();
@@ -374,17 +390,21 @@ async function createOwnStaff(req, res) {
     return res.status(409).json({ error: "This restaurant already has an account for that role" });
   }
   try {
+    const temporaryPassword = randomBytes(24).toString("base64url");
+    const temporaryPasswordExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const { account, quota } = await createRestaurantAccountWithinQuota(restaurant._id, {
       name: parsed.data.name,
       email,
       phone: parsed.data.phone,
-      passwordHash: await bcrypt.hash(parsed.data.password, 12),
+      passwordHash: await bcrypt.hash(temporaryPassword, 12),
       role: "restaurant_staff",
       restaurantId: restaurant._id,
       restaurantStaffRole: parsed.data.staffRole,
-      status: "active"
+      status: "active",
+      mustChangePassword: true,
+      temporaryPasswordExpiresAt
     });
-    return res.status(201).json({ account: { id: account._id, name: account.name, email: account.email, phone: account.phone, staffRole: account.restaurantStaffRole }, quota });
+    return res.status(201).json({ account: { id: account._id, name: account.name, email: account.email, phone: account.phone, staffRole: account.restaurantStaffRole }, temporaryPassword, temporaryPasswordExpiresAt, quota });
   } catch (error) {
     if (error.code === 11000 || error.code === "email_in_use") return res.status(409).json({ error: "That role or email already has an account" });
     if (error.code === "account_limit_reached" || error.code === "subscription_required") return res.status(error.status || 409).json({ error: error.message, code: error.code, quota: await getRestaurantAccountQuota(restaurant._id) });
@@ -841,5 +861,5 @@ module.exports = { getOwnSubscription,
   listRestaurants, getRestaurant, getPublicMenu,
   getOwnMenu, getOwnInventory, updateOwnInventoryItem, listOwnGroceryStock, createOwnGroceryStock, updateOwnGroceryStock, deleteOwnGroceryStock, createMenuItem, importOwnMenu, updateMenuItem, deleteMenuItem, setOwnOpenStatus, updateOwnServiceSettings,
   updateOwnCategoryCarousel,
-  listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
+  listOwnStaff, createOwnStaff, removeOwnStaff, listOwnDeliveryPartners, createOwnDeliveryPartner, resetOwnManagedAccountPassword, updateOwnDeliveryPartner, setOwnDeliveryPartnerProfileStatus, getOwnReports, updateOwnProfile, deactivateOwnProfile
 };
