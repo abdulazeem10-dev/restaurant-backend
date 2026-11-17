@@ -1,0 +1,29 @@
+name: Keep Render backend warm
+
+on:
+  schedule:
+    # Offset the 10-minute cadence to avoid the busiest top-of-hour minute.
+    - cron: "7,17,27,37,47,57 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-backend-health-ping
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Wake and verify the Render API
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Request the health endpoint
+        env:
+          HEALTH_URL: https://restaurant-backend-bc52.onrender.com/api/health
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error --retry 2 --retry-all-errors --retry-delay 5 --max-time 75 "$HEALTH_URL")"
+          printf '%s\n' "$response"
+          node -e 'const health = JSON.parse(process.argv[1]); if (health.status !== "ok") { console.error("Unexpected health response"); process.exit(1); }' "$response"

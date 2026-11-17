@@ -12,6 +12,12 @@ A restaurant ordering and operations app for the Al-Madina storefront, with cust
 - [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
 - [Client handoff and launch gaps](docs/CLIENT_HANDOFF.md)
 
+## Keeping the Render free backend warm
+
+The GitHub Actions workflow at `.github/workflows/render-health-ping.yml` requests the backend health endpoint every 10 minutes and can also be started manually from the repository's **Actions** tab. GitHub Actions must be enabled, and the workflow must be present on the repository's default branch. If the Render hostname changes, update `HEALTH_URL` in that workflow.
+
+This reduces cold starts while the schedule runs, but scheduled workflows can be delayed and Render can still restart a free service. Keeping the service active also uses Render's pooled free instance hours; see [Render's free instance limits](https://render.com/docs/free). A paid always-on web service is needed for predictable production response times.
+
 ## Stack
 - Frontend: HTML, CSS, browser JavaScript
 - Backend: Node.js, Express, Mongoose
